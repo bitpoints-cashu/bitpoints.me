@@ -252,8 +252,8 @@ MIT License - See [LICENSE.md](LICENSE.md)
 ## Contact
 
 - **GitHub**: [@bitpoints-cashu](https://github.com/bitpoints-cashu)
-- **Nostr**: `npub...` *(coming soon)*
-- **Email**: contact@bitpoints.me *(coming soon)*
+- **Email**: bitpoints@btclearn.org
+- **Nostr**: *(coming soon)*
 
 ---
 
