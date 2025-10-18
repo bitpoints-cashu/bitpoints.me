@@ -1,0 +1,45 @@
+╔══════════════════════════════════════════════════════════════╗
+║     🚀 TRAILS COFFEE REWARDS - QUICK DEPLOYMENT STEPS       ║
+╚══════════════════════════════════════════════════════════════╝
+
+📦 DEPLOYMENT FILE READY:
+   → trails-coffee-rewards-deployment.zip (4.6 MB)
+   → Location: /home/juli/git/cashu.me/
+
+🎯 SIMPLE HOSTINGER DEPLOYMENT (3 STEPS):
+
+   1️⃣  LOGIN TO HOSTINGER
+       → Go to: https://hpanel.hostinger.com
+       → Click: Files → File Manager
+
+   2️⃣  UPLOAD & EXTRACT
+       → Navigate to: public_html/
+       → Upload: trails-coffee-rewards-deployment.zip
+       → Right-click ZIP → Extract
+       → Delete the ZIP file
+
+   3️⃣  ENABLE SSL
+       → Go to: SSL section in hPanel
+       → Install: Free SSL Certificate
+       → Wait: 5-15 minutes
+
+   ✅ DONE! Visit: https://yourdomain.com
+
+⚠️  IMPORTANT NOTES:
+   • Must use HTTPS for PWA to work
+   • .htaccess file enables proper routing
+   • All files must be in public_html/ (or subdomain root)
+
+📱 TEST PWA INSTALL:
+   • Desktop: Chrome → Menu → Install App
+   • Mobile: Browser → Add to Home Screen
+
+🔧 IF ISSUES:
+   • Check browser console for errors
+   • Verify .htaccess file is present
+   • Ensure SSL is active (HTTPS)
+   • Contact Hostinger support for mod_rewrite
+
+📞 HOSTINGER SUPPORT: 24/7 Live Chat in hPanel
+
+☕ Your Trails Coffee Rewards app is ready to deploy!

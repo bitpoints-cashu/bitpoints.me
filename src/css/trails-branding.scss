@@ -1,0 +1,173 @@
+/* Trails Coffee Branding - Custom Styles */
+
+/* Import Trails Coffee fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap");
+
+/* Trails Coffee CSS Variables */
+:root {
+  --trails-primary-brown: #6b4423;
+  --trails-secondary-brown: #8b4513;
+  --trails-accent-brown: #a0522d;
+  --trails-warm-brown: #cd853f;
+  --trails-cream: #f5f5dc;
+  --trails-warm-white: #fffef7;
+  --trails-off-white: #faf9f7;
+  --trails-charcoal: #2c2c2c;
+  --trails-soft-gray: #f8f9fa;
+  --trails-text-dark: #1a1a1a;
+  --trails-text-medium: #4a4a4a;
+  --trails-text-light: #666666;
+  --trails-shadow-soft: rgba(107, 68, 35, 0.1);
+  --trails-shadow-medium: rgba(107, 68, 35, 0.15);
+  --trails-gradient-warm: linear-gradient(135deg, #6b4423 0%, #cd853f 100%);
+  --trails-gradient-subtle: linear-gradient(135deg, #fffef7 0%, #faf9f7 100%);
+  --trails-gradient-brown: linear-gradient(135deg, #6b4423 0%, #8b4513 100%);
+}
+
+/* Typography - Trails Coffee Style */
+.trails-heading {
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+}
+
+.trails-body {
+  font-family: "Inter", sans-serif;
+}
+
+.trails-brand {
+  font-family: "Quicksand", sans-serif;
+}
+
+/* Trails Coffee gradients */
+.trails-gradient-warm {
+  background: var(--trails-gradient-warm);
+}
+
+.trails-gradient-text {
+  background: var(--trails-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Modern card styling */
+.trails-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px var(--trails-shadow-soft);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.trails-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px var(--trails-shadow-medium);
+}
+
+/* Trails Coffee button styles */
+.trails-button {
+  background: var(--trails-gradient-warm);
+  color: white;
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+  transition: all 0.3s ease;
+}
+
+.trails-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(139, 69, 19, 0.4);
+}
+
+/* Background pattern (subtle coffee-themed) */
+.trails-background {
+  background-color: var(--trails-warm-white);
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="coffee" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%236B4423" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23coffee)"/></svg>');
+}
+
+/* Warm white background for dark mode */
+.body--dark .trails-background {
+  background-color: #1a1a1a;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="coffee-dark" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%23CD853F" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23coffee-dark)"/></svg>');
+}
+
+/* Override Quasar default colors with Trails Coffee branding */
+.text-primary {
+  color: var(--trails-primary-brown) !important;
+}
+
+.bg-primary {
+  background: var(--trails-primary-brown) !important;
+}
+
+.text-secondary {
+  color: var(--trails-secondary-brown) !important;
+}
+
+.bg-secondary {
+  background: var(--trails-secondary-brown) !important;
+}
+
+/* Trails Coffee specific elements */
+.trails-logo {
+  max-height: 60px;
+  transition: transform 0.3s ease;
+}
+
+.trails-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Custom balance display with gradient */
+.trails-balance {
+  background: var(--trails-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-family: "Playfair Display", serif;
+}
+
+/* Watermark effect (subtle logo in background) */
+.trails-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.03;
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth animations */
+@keyframes trailsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trails-fade-in {
+  animation: trailsFadeIn 0.6s ease-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .trails-card {
+    padding: 1.5rem;
+  }
+
+  .trails-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+}
