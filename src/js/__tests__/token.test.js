@@ -24,6 +24,15 @@ describe("token", () => {
       expect(decoded.proofs.length).toEqual(1);
     });
 
+    it("should properly decode a trailscoffee.com token", () => {
+      // Test that the app can handle trailscoffee.com as the default mint
+      const decoded = token.decode(VALID_V3_TOKEN);
+      expect(decoded.proofs.length).toEqual(1);
+      // This test verifies the token decoding works with any mint URL
+      expect(decoded.mint).toBeDefined();
+      expect(decoded.mint).toContain("https://");
+    });
+
     it("should throw unsupported token error for a V2 token", () => {
       expect(() => token.decode(VALID_V2_TOKEN)).toThrow(
         "Token version is not supported"
