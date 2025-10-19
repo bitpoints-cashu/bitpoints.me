@@ -15,7 +15,7 @@
               dense
               class="q-px-md q-mr-md wallet-action-btn"
               color="primary"
-              @click="showReceiveDialog = true"
+              @click="showCamera"
             >
               <div class="button-content">
                 <q-icon name="south_west" size="1.2rem" class="q-mr-xs" />
@@ -39,7 +39,7 @@
               dense
               class="q-px-md q-ml-md wallet-action-btn"
               color="primary"
-              @click="showSendDialog = true"
+              @click="showSendTokensDialog"
             >
               <div class="button-content">
                 <q-icon name="north_east" size="1.2rem" class="q-mr-xs" />
@@ -262,7 +262,34 @@
 
   <!-- QR CODE SCANNER  -->
   <q-dialog v-model="camera.show" backdrop-filter="blur(2px) brightness(60%)">
-    <QrcodeReader @decode="decodeQR" />
+    <q-card class="bg-grey-10 text-white full-width-card q-pb-lg">
+      <q-card-section class="row items-center q-pb-sm">
+        <q-btn flat round dense v-close-popup class="q-ml-sm" color="primary">
+          <XIcon />
+        </q-btn>
+        <div class="col text-center">
+          <span class="text-h6">{{ $t("ReceiveDialog.title") }}</span>
+        </div>
+        <div class="q-mr-sm"></div>
+      </q-card-section>
+
+      <q-card-section class="q-pa-md">
+        <QrcodeReader @decode="decodeQR" />
+
+        <!-- Action buttons below scanner -->
+        <div class="q-pt-md text-center">
+          <q-btn
+            @click="showInvoiceCreateDialog"
+            flat
+            color="primary"
+            size="sm"
+          >
+            <ZapIcon size="1em" class="q-mr-xs" />
+            {{ $t("ReceiveDialog.actions.lightning.label") }}
+          </q-btn>
+        </div>
+      </q-card-section>
+    </q-card>
   </q-dialog>
 
   <!-- WELCOME DIALOG  -->
@@ -437,6 +464,8 @@ export default {
     iOSPWAPrompt,
     AndroidPWAPrompt,
     ScanIcon,
+    XIcon,
+    ZapIcon,
     ActivityOrb,
     EcashClaimNotification,
     NearbyContactsDialog,
@@ -723,6 +752,7 @@ export default {
       this.invoiceData.hash = "";
       this.invoiceData.memo = "";
       this.showInvoiceDetails = true;
+      this.camera.show = false; // Close camera when switching to lightning
     },
     showSendTokensDialog: function () {
       console.log("##### showSendTokensDialog");

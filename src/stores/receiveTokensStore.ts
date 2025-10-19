@@ -114,6 +114,23 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
           return false;
         }
         this.receiveData.tokensBase64 = text;
+
+        // Auto-receive if not P2PK locked
+        const p2pkStore = useP2PKStore();
+        const isP2PKLocked =
+          p2pkStore.getPrivateKeyForP2PKEncodedToken(text) === null &&
+          p2pkStore.isP2PKEncodedToken(text);
+
+        if (!isP2PKLocked) {
+          this.$nextTick(async () => {
+            try {
+              await this.receiveIfDecodes();
+            } catch (error) {
+              console.error("Auto-receive failed:", error);
+            }
+          });
+        }
+
         return true;
       } else {
         // notifyWarning("Invalid token");

@@ -303,6 +303,16 @@
           </div>
         </q-form>
       </div>
+
+      <!-- Points option at bottom -->
+      <q-card-section class="q-pt-none">
+        <div class="text-center">
+          <q-btn @click="showSendTokensDialog" flat color="primary" size="sm">
+            <CoinsIcon size="1em" class="q-mr-xs" />
+            {{ $t("SendDialog.actions.points.label") }}
+          </q-btn>
+        </div>
+      </q-card-section>
     </q-card>
   </q-dialog>
 
@@ -317,6 +327,7 @@ import { defineComponent } from "vue";
 import { useWalletStore } from "src/stores/wallet";
 import { useUiStore } from "src/stores/ui";
 import { useCameraStore } from "src/stores/camera";
+import { useSendTokensStore } from "src/stores/sendTokensStore";
 import { useMintsStore, MintClass } from "src/stores/mints";
 import { useSettingsStore } from "src/stores/settings";
 import { usePriceStore } from "src/stores/price";
@@ -326,7 +337,8 @@ import ToggleUnit from "components/ToggleUnit.vue";
 import MultinutPaymentDialog from "./MultinutPaymentDialog.vue";
 
 import * as _ from "underscore";
-import { Scan as ScanIcon } from "lucide-vue-next";
+import { Scan as ScanIcon, Coins as CoinsIcon } from "lucide-vue-next";
+import { notifyWarning } from "src/js/notify";
 
 export default defineComponent({
   name: "PayInvoiceDialog",
@@ -336,6 +348,7 @@ export default defineComponent({
     ToggleUnit,
     MultinutPaymentDialog,
     ScanIcon,
+    CoinsIcon,
   },
   props: {},
   data: function () {
@@ -358,6 +371,11 @@ export default defineComponent({
     ...mapState(useSettingsStore, ["multinutEnabled"]),
     ...mapWritableState(useCameraStore, ["camera", "hasCamera"]),
     ...mapState(useWalletStore, ["payInvoiceData"]),
+    ...mapWritableState(useSendTokensStore, [
+      "showSendTokens",
+      "sendData",
+      "showLockInput",
+    ]),
     ...mapState(useMintsStore, [
       "activeMintUrl",
       "activeProofs",
@@ -379,6 +397,13 @@ export default defineComponent({
         navigator.clipboard &&
         navigator.clipboard.readText
       );
+    },
+    canMakePayments: function () {
+      if (!this.mints.length) {
+        return false;
+      } else {
+        return true;
+      }
     },
     enoughtotalUnitBalance: function () {
       return (
@@ -437,6 +462,22 @@ export default defineComponent({
     },
     handleReturnToPayDialog: function () {
       this.payInvoiceData.show = true;
+    },
+    showSendTokensDialog: function () {
+      if (!this.canMakePayments) {
+        notifyWarning(this.$i18n.t("SendDialog.actions.ecash.error_no_mints"));
+        this.payInvoiceData.show = false;
+        return;
+      }
+      this.sendData.tokens = "";
+      this.sendData.tokensBase64 = "";
+      this.sendData.amount = null;
+      this.sendData.memo = "";
+      this.sendData.p2pkPubkey = "";
+      this.sendData.paymentRequest = undefined;
+      this.payInvoiceData.show = false;
+      this.showSendTokens = true;
+      this.showLockInput = false;
     },
   },
   created: function () {},

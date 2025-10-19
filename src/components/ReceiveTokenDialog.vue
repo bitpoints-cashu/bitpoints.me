@@ -54,7 +54,7 @@
             v-model="receiveData.tokensBase64"
             :label="$t('ReceiveTokenDialog.inputs.tokens_base64.label')"
             type="textarea"
-            autofocus
+            readonly
             class="q-mb-lg cashub-nowrap"
             @keyup.enter="receiveIfDecodes"
           >
@@ -318,6 +318,15 @@ export default defineComponent({
         });
       }
     },
+    "receiveData.tokensBase64": {
+      handler(newToken) {
+        if (newToken && this.tokenDecodesCorrectly) {
+          // Auto-receive if token is valid and not P2PK locked
+          this.autoReceiveIfValid();
+        }
+      },
+      immediate: false,
+    },
   },
   computed: {
     ...mapWritableState(useReceiveTokensStore, [
@@ -518,6 +527,28 @@ export default defineComponent({
         mint
       );
       this.swapSelected = false;
+    },
+    autoReceiveIfValid: async function () {
+      // Check if token is P2PK locked - don't auto-receive these
+      const p2pkStore = useP2PKStore();
+      const isP2PKLocked =
+        p2pkStore.getPrivateKeyForP2PKEncodedToken(
+          this.receiveData.tokensBase64
+        ) === null &&
+        p2pkStore.isP2PKEncodedToken(this.receiveData.tokensBase64);
+
+      if (isP2PKLocked) {
+        // Don't auto-receive P2PK tokens, let user handle manually
+        return;
+      }
+
+      try {
+        // Auto-receive the token
+        await this.receiveIfDecodes();
+      } catch (error) {
+        console.error("Auto-receive failed:", error);
+        // Don't show error notification here as it might be expected for some edge cases
+      }
     },
   },
 });

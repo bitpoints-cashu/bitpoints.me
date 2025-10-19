@@ -262,6 +262,16 @@
             }}</q-btn>
           </div>
         </q-card-section>
+
+        <!-- Lightning option at bottom of send form -->
+        <q-card-section class="q-pt-none">
+          <div class="text-center">
+            <q-btn @click="showParseDialog" flat color="primary" size="sm">
+              <ZapIcon size="1em" class="q-mr-xs" />
+              {{ $t("SendDialog.actions.lightning.label") }}
+            </q-btn>
+          </div>
+        </q-card-section>
       </div>
 
       <!-- show ecash details -->
@@ -602,6 +612,7 @@ import {
   Scan as ScanIcon,
   Nfc as NfcIcon,
   Share as ShareIcon,
+  Zap as ZapIcon,
 } from "lucide-vue-next";
 import {
   notifyError,
@@ -620,6 +631,7 @@ export default defineComponent({
     ScanIcon,
     NfcIcon,
     ShareIcon,
+    ZapIcon,
   },
   props: {},
   data: function () {
@@ -686,6 +698,14 @@ export default defineComponent({
     ]),
     ...mapState(useSettingsStore, ["bitcoinPriceCurrency"]),
     ...mapState(useWorkersStore, ["tokenWorkerRunning"]),
+    ...mapWritableState(useWalletStore, ["payInvoiceData"]),
+    canMakePayments: function () {
+      if (!this.mints.length) {
+        return false;
+      } else {
+        return true;
+      }
+    },
     // TOKEN METHODS
     sumProofs: function () {
       let proofs = token.getProofs(token.decode(this.sendData.tokensBase64));
@@ -1160,6 +1180,23 @@ export default defineComponent({
           console.error("Error sharing token:", error);
         }
       }
+    },
+    showParseDialog: function () {
+      if (!this.canMakePayments) {
+        notifyWarning(
+          this.$i18n.t("SendDialog.actions.lightning.error_no_mints")
+        );
+        this.showSendTokens = false;
+        return;
+      }
+      this.payInvoiceData.show = true;
+      this.payInvoiceData.invoice = null;
+      this.payInvoiceData.lnurlpay = null;
+      this.payInvoiceData.domain = "";
+      this.payInvoiceData.lnurlauth = null;
+      this.payInvoiceData.input.request = "";
+      this.payInvoiceData.input.comment = "";
+      this.showSendTokens = false;
     },
   },
 });

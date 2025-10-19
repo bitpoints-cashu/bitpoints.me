@@ -1420,6 +1420,26 @@ export const useWalletStore = defineStore("wallet", {
     handleCashuToken: function () {
       this.payInvoiceData.show = false;
       receiveStore.showReceiveTokens = true;
+
+      // Auto-receive if token is valid and not P2PK locked
+      this.$nextTick(async () => {
+        if (receiveStore.receiveData.tokensBase64) {
+          const p2pkStore = useP2PKStore();
+          const isP2PKLocked =
+            p2pkStore.getPrivateKeyForP2PKEncodedToken(
+              receiveStore.receiveData.tokensBase64
+            ) === null &&
+            p2pkStore.isP2PKEncodedToken(receiveStore.receiveData.tokensBase64);
+
+          if (!isP2PKLocked) {
+            try {
+              await receiveStore.receiveIfDecodes();
+            } catch (error) {
+              console.error("Auto-receive failed:", error);
+            }
+          }
+        }
+      });
     },
     handleP2PK: function (req: string) {
       const sendTokenStore = useSendTokensStore();
