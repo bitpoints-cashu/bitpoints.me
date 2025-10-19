@@ -10,12 +10,14 @@ This release represents a complete rebrand from Cashu.me to **Bitpoints.me**, em
 ## 🌟 What's New
 
 ### Complete Rebrand
+
 - **New Package ID**: `me.bitpoints.wallet` (was `me.cashu.wallet`)
 - **New App Name**: Bitpoints.me
 - **Updated Branding**: Throughout the entire app
 - **New Documentation**: Comprehensive README and ABOUT explaining the open protocol merger
 
 ### Full Bluetooth Mesh Implementation
+
 Ported from [BitChat](https://github.com/jpgaviria2/bitchat), this is a **complete, production-ready implementation**:
 
 - ✅ **15,000+ lines** of Bluetooth mesh networking code
@@ -30,17 +32,20 @@ Ported from [BitChat](https://github.com/jpgaviria2/bitchat), this is a **comple
 ### Android Native Components
 
 **Core Services**:
+
 - `BluetoothMeshService.kt` - Main mesh networking service
 - `BluetoothEcashPlugin.kt` - Capacitor plugin bridge
 - `BluetoothEcashService.kt` - Token transmission service
 
 **Encryption** (Full Noise Protocol):
+
 - `NoiseEncryptionService.kt` - E2E encryption service
 - `NoiseSession.kt` - Per-peer encryption sessions
 - `NoiseSessionManager.kt` - Session lifecycle management
 - Complete crypto library (Curve25519, ChaCha20-Poly1305, Blake2b, etc.)
 
 **Mesh Networking**:
+
 - `BluetoothGattClientManager.kt` - BLE client operations (566 lines)
 - `BluetoothGattServerManager.kt` - BLE server operations (417 lines)
 - `MessageHandler.kt` - Ecash message processing (619 lines)
@@ -49,6 +54,7 @@ Ported from [BitChat](https://github.com/jpgaviria2/bitchat), this is a **comple
 - `FragmentManager.kt` - Message fragmentation (290 lines)
 
 **Protocol & Security**:
+
 - `BinaryProtocol.kt` - Efficient binary encoding
 - `SecurityManager.kt` - Rate limiting, attack prevention
 - `PowerManager.kt` - Battery optimization
@@ -66,16 +72,20 @@ Ported from [BitChat](https://github.com/jpgaviria2/bitchat), this is a **comple
 ## 💎 Why Bitpoints?
 
 ### Bitcoin-Backed Rewards
+
 Unlike traditional loyalty points that depreciate with inflation, Bitpoints are denominated in Bitcoin (satoshis), so they **appreciate** as Bitcoin's purchasing power increases.
 
 ### Universal Interoperability
+
 Built on open protocols (Cashu, Nostr, Bluetooth), Bitpoints work with:
+
 - ✅ Any Cashu-compatible wallet
 - ✅ Any Bitcoin/Lightning merchant
 - ✅ Any Nostr relay
 - ✅ Any Bluetooth mesh-compatible device
 
 ### Privacy by Default
+
 - Bearer tokens (no transaction history)
 - Noise Protocol encryption for mesh transfers
 - Ephemeral peer IDs
@@ -84,14 +94,17 @@ Built on open protocols (Cashu, Nostr, Bluetooth), Bitpoints work with:
 ## 📱 Installation
 
 ### Android APK
+
 Download: `bitpoints-v1.0.0-android.apk`
 
 **Requirements**:
+
 - Android 5.0+ (API 21+)
 - Bluetooth 4.0+ (for mesh networking)
 - Android 12+ recommended (best Bluetooth permission experience)
 
 **Permissions**:
+
 - Camera (QR code scanning)
 - Bluetooth (mesh networking)
 - Location (required for Bluetooth scanning on Android 12+)
@@ -99,6 +112,7 @@ Download: `bitpoints-v1.0.0-android.apk`
 - NFC (optional, for Boltcard support)
 
 ### First Launch
+
 1. Grant permissions when prompted
 2. Create or restore wallet
 3. Add a Cashu mint
@@ -107,19 +121,23 @@ Download: `bitpoints-v1.0.0-android.apk`
 ## 🔧 Technical Changes
 
 ### Package Migration
+
 All 80+ Java/Kotlin files migrated from `me.cashu.wallet` to `me.bitpoints.wallet`:
+
 - Updated package declarations
 - Updated all imports
 - Updated manifest and build configs
 - Regenerated app icons and splash screens
 
 ### Configuration Updates
+
 - `capacitor.config.ts`: Updated app ID and name
 - `package.json`: New name, description, and product name
 - `android/app/build.gradle`: New namespace and application ID
 - `android/app/src/main/res/values/strings.xml`: New app name
 
 ### Documentation
+
 - **README.md**: Complete rewrite emphasizing Bitcoin-backed rewards and open protocols
 - **ABOUT.md**: Technical deep dive into protocol merger and architecture
 - Multiple Bluetooth development guides included in main branch
@@ -133,12 +151,14 @@ All 80+ Java/Kotlin files migrated from `me.cashu.wallet` to `me.bitpoints.walle
 ## 🗺️ Roadmap
 
 ### v1.1 (Coming Soon)
+
 - iOS Bluetooth mesh implementation
 - Enhanced peer management UI
 - Location-based channels (geohash)
 - Social backup (NIP-60)
 
 ### v1.2
+
 - Multiple mint support
 - Mesh relay incentives
 - Network visualization
@@ -155,6 +175,7 @@ All 80+ Java/Kotlin files migrated from `me.cashu.wallet` to `me.bitpoints.walle
 ## 🙏 Credits
 
 This release brings together:
+
 - **Cashu Protocol** - Privacy-preserving ecash
 - **Nostr Protocol** - Decentralized identity
 - **BitChat** - Battle-tested Bluetooth mesh networking
@@ -167,6 +188,7 @@ Thank you to all the open source contributors who made this possible!
 **Android APK**: `bitpoints-v1.0.0-android.apk` (18 MB)
 
 **Package Details**:
+
 - Package ID: `me.bitpoints.wallet`
 - Version Code: 1
 - Version Name: 1.0
@@ -182,6 +204,3 @@ Thank you to all the open source contributors who made this possible!
 ---
 
 **Bitpoints.me** - Your rewards, your Bitcoin, your privacy.
-
-
-

@@ -61,7 +61,7 @@ export const useWelcomeStore = defineStore("welcome", {
       this.showWelcome = false;
       // For PWA, let Vue Router handle navigation
       // For Android app, use window.location for proper app behavior
-      if (typeof window !== 'undefined' && window.Capacitor) {
+      if (typeof window !== "undefined" && window.Capacitor) {
         // Android app - use window.location
         window.location.href =
           "/" + window.location.search + window.location.hash;

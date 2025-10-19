@@ -3,14 +3,15 @@
 ## The Vision
 
 Bitpoints.me represents a merger of three powerful open-source protocols to create a rewards system that is:
+
 - **Appreciating**: Denominated in Bitcoin, increasing in purchasing power over time
-- **Private**: Bearer tokens with no transaction surveillance  
+- **Private**: Bearer tokens with no transaction surveillance
 - **Interoperable**: Works with any Bitcoin/Lightning merchant globally
 - **Offline-capable**: Peer-to-peer transfers via Bluetooth mesh
 
 ## The Protocol Merger
 
-### 1. Cashu Ecash Protocol  
+### 1. Cashu Ecash Protocol
 
 Provides privacy-preserving ecash with blind signatures. The mint cannot link payments to users, ensuring transaction privacy even better than Lightning.
 
@@ -30,12 +31,12 @@ Offline peer-to-peer token transfer with Noise Protocol encryption. Multi-hop re
 
 ## Why These Three Protocols Together?
 
-| Feature | Cashu | Nostr | Bluetooth |
-|---------|-------|-------|-----------|
-| **Privacy** | ✅ Blind signatures | ✅ Pseudonymous | ✅ Ephemeral IDs |
-| **Offline** | ✅ Bearer tokens | ❌ Needs relays | ✅ Local mesh |
-| **Interoperable** | ✅ Any mint | ✅ Any relay | ✅ Open protocol |
-| **Decentralized** | ⚠️ Mint-based | ✅ Fully p2p | ✅ Mesh topology |
+| Feature           | Cashu               | Nostr           | Bluetooth        |
+| ----------------- | ------------------- | --------------- | ---------------- |
+| **Privacy**       | ✅ Blind signatures | ✅ Pseudonymous | ✅ Ephemeral IDs |
+| **Offline**       | ✅ Bearer tokens    | ❌ Needs relays | ✅ Local mesh    |
+| **Interoperable** | ✅ Any mint         | ✅ Any relay    | ✅ Open protocol |
+| **Decentralized** | ⚠️ Mint-based       | ✅ Fully p2p    | ✅ Mesh topology |
 
 **Together**: Maximum privacy, interoperability, and resilience.
 
@@ -44,6 +45,7 @@ Offline peer-to-peer token transfer with Noise Protocol encryption. Multi-hop re
 Traditional points **depreciate** (inflation). Bitcoin-denominated rewards **appreciate** (fixed 21M supply).
 
 Example:
+
 ```
 2020: 100 sats = 1 cent  →  Buys: 1 piece of candy
 2024: 100 sats = 10 cents →  Buys: 1 coffee
@@ -56,16 +58,19 @@ Your rewards grew 10x in purchasing power!
 Full Android implementation ported from BitChat:
 
 ### Core Services
+
 - `BluetoothMeshService.kt` - Main mesh networking service
-- `BluetoothEcashPlugin.kt` - Capacitor plugin bridge  
+- `BluetoothEcashPlugin.kt` - Capacitor plugin bridge
 - `BluetoothEcashService.kt` - Token transmission service
 
 ### Encryption
+
 - `NoiseEncryptionService.kt` - Noise Protocol (XX pattern)
 - `NoiseSession.kt` - Per-peer encryption sessions
 - Full Noise Protocol crypto library (Curve25519, ChaCha20-Poly1305)
 
 ### Mesh Networking
+
 - `BluetoothGattClientManager.kt` - BLE client operations
 - `BluetoothGattServerManager.kt` - BLE server operations
 - `MessageHandler.kt` - Ecash message processing
@@ -73,6 +78,7 @@ Full Android implementation ported from BitChat:
 - `PeerManager.kt` - Peer discovery and tracking
 
 ### Protocol
+
 - `BinaryProtocol.kt` - Efficient binary encoding
 - `FragmentManager.kt` - Large message fragmentation
 - `CompressionUtil.kt` - Message compression
@@ -90,12 +96,14 @@ Bitpoints.me is built **entirely** on open protocols for maximum interoperabilit
 ## Security Model
 
 ### Threat Model
+
 - User device is trusted
-- Mints may be curious but not malicious  
+- Mints may be curious but not malicious
 - Network adversaries can observe (but not break crypto)
 - Physical Bluetooth range attacks possible
 
 ### Mitigations
+
 - Blind signatures prevent mint tracking
 - Noise Protocol prevents network eavesdropping
 - RSSI gating limits Bluetooth range attacks
@@ -105,6 +113,7 @@ Bitpoints.me is built **entirely** on open protocols for maximum interoperabilit
 ## Roadmap
 
 ### Current (v0.2-beta)
+
 - ✅ Cashu wallet (mint/melt/swap)
 - ✅ Nostr identity (NIP-05)
 - ✅ Lightning address receiving
@@ -114,12 +123,14 @@ Bitpoints.me is built **entirely** on open protocols for maximum interoperabilit
 - ✅ Auto-redeem incoming tokens
 
 ### Near-term
+
 - iOS Bluetooth mesh implementation
 - Enhanced UI for mesh contacts
 - Location-based channels (geohash)
 - Social backup (NIP-60)
 
 ### Future
+
 - Multiple mint support
 - Lightning channel integration
 - NFC tap-to-pay (Boltcard)
@@ -131,7 +142,7 @@ Bitpoints.me stands on the shoulders of giants:
 
 - **Calle** and the Cashu community for revolutionary ecash
 - **fiatjaf** and Nostr contributors for decentralized identity
-- **BitChat** team for robust Bluetooth mesh implementation  
+- **BitChat** team for robust Bluetooth mesh implementation
 - **Bitcoin/Lightning** developers for the foundation
 
 Thank you to everyone building open protocols for freedom money.

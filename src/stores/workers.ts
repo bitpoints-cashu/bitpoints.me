@@ -110,7 +110,10 @@ export const useWorkersStore = defineStore("workers", {
           console.log("### checking lightning address for new claims");
           await npcStore.claimAllTokens();
         } catch (error) {
-          console.log("lightningAddressCheckWorker: error checking claims", error);
+          console.log(
+            "lightningAddressCheckWorker: error checking claims",
+            error
+          );
         }
       }, this.lightningAddressCheckInterval);
     },

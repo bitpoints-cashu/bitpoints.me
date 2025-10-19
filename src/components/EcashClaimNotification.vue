@@ -7,7 +7,10 @@
 
       <div class="banner-content">
         <div class="text-h6">
-          {{ unclaimedCount }} Ecash Token{{ unclaimedCount !== 1 ? 's' : '' }} Received
+          {{ unclaimedCount }} Ecash Token{{
+            unclaimedCount !== 1 ? "s" : ""
+          }}
+          Received
         </div>
         <div class="text-caption">
           Total: {{ unclaimedValue }} sats via Bluetooth
@@ -15,17 +18,8 @@
       </div>
 
       <template v-slot:action>
-        <q-btn
-          flat
-          label="Claim All"
-          @click="claimAll"
-          :loading="claiming"
-        />
-        <q-btn
-          flat
-          icon="expand_more"
-          @click="showDetails = !showDetails"
-        />
+        <q-btn flat label="Claim All" @click="claimAll" :loading="claiming" />
+        <q-btn flat icon="expand_more" @click="showDetails = !showDetails" />
       </template>
     </q-banner>
 
@@ -78,12 +72,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
-import { useBluetoothStore } from 'src/stores/bluetooth';
-import { notifySuccess, notifyError } from 'src/js/notify';
+import { defineComponent, ref, computed } from "vue";
+import { useBluetoothStore } from "src/stores/bluetooth";
+import { notifySuccess, notifyError } from "src/js/notify";
 
 export default defineComponent({
-  name: 'EcashClaimNotification',
+  name: "EcashClaimNotification",
 
   setup() {
     const bluetoothStore = useBluetoothStore();
@@ -92,20 +86,20 @@ export default defineComponent({
     const claimingTokens = ref(new Set<string>());
 
     const unclaimedTokens = computed(() =>
-      bluetoothStore.unclaimedTokens.filter(t => !t.claimed)
+      bluetoothStore.unclaimedTokens.filter((t) => !t.claimed)
     );
 
     const unclaimedCount = computed(() => unclaimedTokens.value.length);
 
     const unclaimedValue = computed(() =>
       unclaimedTokens.value
-        .filter(t => t.unit === 'sat')
+        .filter((t) => t.unit === "sat")
         .reduce((sum, t) => sum + t.amount, 0)
     );
 
     const formatNpub = (npub: string): string => {
-      if (!npub) return 'Unknown';
-      return npub.substring(0, 12) + '...' + npub.substring(npub.length - 6);
+      if (!npub) return "Unknown";
+      return npub.substring(0, 12) + "..." + npub.substring(npub.length - 6);
     };
 
     const formatTimestamp = (timestamp: number): string => {
@@ -113,7 +107,7 @@ export default defineComponent({
       const now = Date.now();
       const diff = now - timestamp;
 
-      if (diff < 60000) return 'Just now';
+      if (diff < 60000) return "Just now";
       if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
       if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
 
@@ -126,14 +120,14 @@ export default defineComponent({
       try {
         const success = await bluetoothStore.claimToken(tokenId);
         if (success) {
-          notifySuccess('Token claimed successfully!');
+          notifySuccess("Token claimed successfully!");
         }
       } catch (e) {
-        console.error('Failed to claim token:', e);
-        notifyError('Failed to claim token');
+        console.error("Failed to claim token:", e);
+        notifyError("Failed to claim token");
       } finally {
         claimingTokens.value.delete(tokenId);
-        claimingTokens.value = new Set(claimingTokens.value);  // Trigger reactivity
+        claimingTokens.value = new Set(claimingTokens.value); // Trigger reactivity
       }
     };
 
@@ -142,11 +136,11 @@ export default defineComponent({
 
       try {
         await bluetoothStore.autoClaimTokens();
-        notifySuccess('All tokens claimed!');
+        notifySuccess("All tokens claimed!");
         showDetails.value = false;
       } catch (e) {
-        console.error('Failed to claim tokens:', e);
-        notifyError('Some tokens could not be claimed');
+        console.error("Failed to claim tokens:", e);
+        notifyError("Some tokens could not be claimed");
       } finally {
         claiming.value = false;
       }
@@ -178,7 +172,3 @@ export default defineComponent({
   flex-grow: 1;
 }
 </style>
-
-
-
-

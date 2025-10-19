@@ -4,7 +4,11 @@
       <h6 class="q-mt-none q-mb-md">Send to Nearby</h6>
 
       <!-- Bluetooth status -->
-      <q-banner v-if="!bluetoothStore.isActive" class="bg-warning text-dark q-mb-md" rounded>
+      <q-banner
+        v-if="!bluetoothStore.isActive"
+        class="bg-warning text-dark q-mb-md"
+        rounded
+      >
         <template v-slot:avatar>
           <q-icon name="bluetooth_disabled" />
         </template>
@@ -15,13 +19,21 @@
       </q-banner>
 
       <!-- Scanning indicator -->
-      <div v-if="bluetoothStore.isActive && nearbyPeers.length === 0" class="text-center q-py-xl">
+      <div
+        v-if="bluetoothStore.isActive && nearbyPeers.length === 0"
+        class="text-center q-py-xl"
+      >
         <q-spinner-dots size="3em" color="primary" />
         <div class="q-mt-md text-grey-7">Scanning for nearby devices...</div>
       </div>
 
       <!-- Peer list -->
-      <q-list v-if="nearbyPeers.length > 0" bordered separator class="rounded-borders">
+      <q-list
+        v-if="nearbyPeers.length > 0"
+        bordered
+        separator
+        class="rounded-borders"
+      >
         <q-item
           v-for="peer in nearbyPeers"
           :key="peer.peerID"
@@ -31,14 +43,23 @@
           :class="{ 'bg-blue-1': selectedPeers.has(peer.peerID) }"
         >
           <q-item-section avatar>
-            <q-avatar :color="peer.isDirect ? 'green' : 'orange'" text-color="white">
-              <q-icon :name="peer.isDirect ? 'bluetooth_connected' : 'device_hub'" />
+            <q-avatar
+              :color="peer.isDirect ? 'green' : 'orange'"
+              text-color="white"
+            >
+              <q-icon
+                :name="peer.isDirect ? 'bluetooth_connected' : 'device_hub'"
+              />
             </q-avatar>
           </q-item-section>
 
           <q-item-section>
             <q-item-label>
-              {{ peer.nickname || peer.nostrNpub?.substring(0, 16) || peer.peerID.substring(0, 8) }}...
+              {{
+                peer.nickname ||
+                peer.nostrNpub?.substring(0, 16) ||
+                peer.peerID.substring(0, 8)
+              }}...
               <q-icon
                 v-if="isMutualFavorite(peer.peerID)"
                 name="favorite"
@@ -50,7 +71,8 @@
               </q-icon>
             </q-item-label>
             <q-item-label caption>
-              {{ peer.isDirect ? 'Direct' : 'Via mesh' }} • {{ formatLastSeen(peer.lastSeen) }}
+              {{ peer.isDirect ? "Direct" : "Via mesh" }} •
+              {{ formatLastSeen(peer.lastSeen) }}
             </q-item-label>
           </q-item-section>
 
@@ -65,7 +87,11 @@
                 :color="isFavorite(peer.peerID) ? 'pink' : 'grey'"
                 @click.stop="toggleFavorite(peer)"
               >
-                <q-tooltip>{{ isFavorite(peer.peerID) ? 'Remove from favorites' : 'Add to favorites' }}</q-tooltip>
+                <q-tooltip>{{
+                  isFavorite(peer.peerID)
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }}</q-tooltip>
               </q-btn>
               <q-checkbox
                 :model-value="selectedPeers.has(peer.peerID)"
@@ -114,12 +140,16 @@
           unelevated
           color="primary"
           class="full-width"
-          :disable="selectedPeers.size === 0 || !amount || amount <= 0 || sending"
+          :disable="
+            selectedPeers.size === 0 || !amount || amount <= 0 || sending
+          "
           :loading="sending"
           @click="sendToPeers"
         >
           <q-icon name="send" class="q-mr-sm" />
-          Send {{ amount || '' }} {{ unit }} to {{ selectedPeers.size }} peer{{ selectedPeers.size !== 1 ? 's' : '' }}
+          Send {{ amount || "" }} {{ unit }} to {{ selectedPeers.size }} peer{{
+            selectedPeers.size !== 1 ? "s" : ""
+          }}
         </q-btn>
 
         <!-- Broadcast button -->
@@ -140,22 +170,22 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
-import { useBluetoothStore } from 'src/stores/bluetooth';
-import { useFavoritesStore } from 'src/stores/favorites';
-import { useWalletStore } from 'src/stores/wallet';
-import { useMintsStore } from 'src/stores/mints';
-import { useProofsStore } from 'src/stores/proofs';
-import { useTokensStore } from 'src/stores/tokens';
-import { useNostrStore } from 'src/stores/nostr';
-import { notifySuccess, notifyError } from 'src/js/notify';
-import { Peer } from 'src/plugins/bluetooth-ecash';
-import { nip19 } from 'nostr-tools';
+import { defineComponent, ref, computed } from "vue";
+import { useBluetoothStore } from "src/stores/bluetooth";
+import { useFavoritesStore } from "src/stores/favorites";
+import { useWalletStore } from "src/stores/wallet";
+import { useMintsStore } from "src/stores/mints";
+import { useProofsStore } from "src/stores/proofs";
+import { useTokensStore } from "src/stores/tokens";
+import { useNostrStore } from "src/stores/nostr";
+import { notifySuccess, notifyError } from "src/js/notify";
+import { Peer } from "src/plugins/bluetooth-ecash";
+import { nip19 } from "nostr-tools";
 
 export default defineComponent({
-  name: 'NearbyContactsDialog',
+  name: "NearbyContactsDialog",
 
-  emits: ['close'],
+  emits: ["close"],
 
   setup(props, { emit }) {
     const bluetoothStore = useBluetoothStore();
@@ -168,7 +198,7 @@ export default defineComponent({
 
     const selectedPeers = ref(new Set<string>());
     const amount = ref<number | null>(null);
-    const memo = ref<string>('');
+    const memo = ref<string>("");
     const sending = ref(false);
 
     const nearbyPeers = computed(() => bluetoothStore.sortedPeers);
@@ -190,12 +220,12 @@ export default defineComponent({
 
     const sendToPeers = async () => {
       if (!amount.value || amount.value <= 0) {
-        notifyError('Please enter a valid amount');
+        notifyError("Please enter a valid amount");
         return;
       }
 
       if (selectedPeers.value.size === 0) {
-        notifyError('Please select at least one peer');
+        notifyError("Please select at least one peer");
         return;
       }
 
@@ -203,13 +233,18 @@ export default defineComponent({
 
       try {
         // Create token for sending
-        const sendAmount = Math.floor(amount.value * mintsStore.activeUnitCurrencyMultiplyer);
-        const mintWallet = walletStore.mintWallet(mintsStore.activeMintUrl, mintsStore.activeUnit);
+        const sendAmount = Math.floor(
+          amount.value * mintsStore.activeUnitCurrencyMultiplyer
+        );
+        const mintWallet = walletStore.mintWallet(
+          mintsStore.activeMintUrl,
+          mintsStore.activeUnit
+        );
 
         // Check if we have active proofs
         const activeProofs = mintsStore.activeProofs || [];
         if (activeProofs.length === 0) {
-          notifyError('No tokens available. Please receive tokens first.');
+          notifyError("No tokens available. Please receive tokens first.");
           sending.value = false;
           return;
         }
@@ -227,9 +262,12 @@ export default defineComponent({
         // Send to each selected peer
         let successCount = 0;
         for (const peerID of selectedPeers.value) {
-          console.log('🟢 [UI] About to call bluetoothStore.sendToken for peer:', peerID);
-          console.log('🟢 [UI] Token:', tokenBase64.substring(0, 50) + '...');
-          console.log('🟢 [UI] Amount:', sendAmount, unit.value);
+          console.log(
+            "🟢 [UI] About to call bluetoothStore.sendToken for peer:",
+            peerID
+          );
+          console.log("🟢 [UI] Token:", tokenBase64.substring(0, 50) + "...");
+          console.log("🟢 [UI] Amount:", sendAmount, unit.value);
 
           const messageId = await bluetoothStore.sendToken({
             token: tokenBase64,
@@ -238,10 +276,10 @@ export default defineComponent({
             mint: mintsStore.activeMintUrl,
             peerID: peerID,
             memo: memo.value || undefined,
-            senderNpub: nostrStore.pubkey || '',
+            senderNpub: nostrStore.pubkey || "",
           });
 
-          console.log('🟢 [UI] sendToken returned:', messageId);
+          console.log("🟢 [UI] sendToken returned:", messageId);
 
           if (messageId) {
             successCount++;
@@ -255,23 +293,28 @@ export default defineComponent({
             token: tokenBase64,
             mint: mintsStore.activeMintUrl,
             unit: unit.value,
-            label: memo.value ? `📡 Bluetooth: ${memo.value}` : '📡 Sent via Bluetooth',
+            label: memo.value
+              ? `📡 Bluetooth: ${memo.value}`
+              : "📡 Sent via Bluetooth",
           });
 
-          notifySuccess(`Sent ${amount.value} ${unit.value} to ${successCount} peer${successCount !== 1 ? 's' : ''}`);
+          notifySuccess(
+            `Sent ${amount.value} ${unit.value} to ${successCount} peer${
+              successCount !== 1 ? "s" : ""
+            }`
+          );
 
           // Reset form
           amount.value = null;
-          memo.value = '';
+          memo.value = "";
           selectedPeers.value.clear();
 
           // Close dialog after successful send
-          emit('close');
+          emit("close");
         }
-
       } catch (e) {
-        console.error('Failed to send tokens:', e);
-        notifyError('Failed to send tokens');
+        console.error("Failed to send tokens:", e);
+        notifyError("Failed to send tokens");
       } finally {
         sending.value = false;
       }
@@ -279,7 +322,7 @@ export default defineComponent({
 
     const broadcastToAll = async () => {
       if (!amount.value || amount.value <= 0) {
-        notifyError('Please enter a valid amount');
+        notifyError("Please enter a valid amount");
         return;
       }
 
@@ -287,13 +330,18 @@ export default defineComponent({
 
       try {
         // Create token for sending
-        const sendAmount = Math.floor(amount.value * mintsStore.activeUnitCurrencyMultiplyer);
-        const mintWallet = walletStore.mintWallet(mintsStore.activeMintUrl, mintsStore.activeUnit);
+        const sendAmount = Math.floor(
+          amount.value * mintsStore.activeUnitCurrencyMultiplyer
+        );
+        const mintWallet = walletStore.mintWallet(
+          mintsStore.activeMintUrl,
+          mintsStore.activeUnit
+        );
 
         // Check if we have active proofs
         const activeProofs = mintsStore.activeProofs || [];
         if (activeProofs.length === 0) {
-          notifyError('No tokens available. Please receive tokens first.');
+          notifyError("No tokens available. Please receive tokens first.");
           sending.value = false;
           return;
         }
@@ -315,7 +363,7 @@ export default defineComponent({
           unit: unit.value,
           mint: mintsStore.activeMintUrl,
           memo: memo.value || undefined,
-          senderNpub: nostrStore.pubkey || '',
+          senderNpub: nostrStore.pubkey || "",
         });
 
         if (messageId) {
@@ -325,22 +373,25 @@ export default defineComponent({
             token: tokenBase64,
             mint: mintsStore.activeMintUrl,
             unit: unit.value,
-            label: memo.value ? `📡 Broadcast: ${memo.value}` : '📡 Broadcast via Bluetooth',
+            label: memo.value
+              ? `📡 Broadcast: ${memo.value}`
+              : "📡 Broadcast via Bluetooth",
           });
 
-          notifySuccess(`Broadcasting ${amount.value} ${unit.value} to all nearby devices`);
+          notifySuccess(
+            `Broadcasting ${amount.value} ${unit.value} to all nearby devices`
+          );
 
           // Reset form
           amount.value = null;
-          memo.value = '';
+          memo.value = "";
 
           // Close dialog after successful broadcast
-          emit('close');
+          emit("close");
         }
-
       } catch (e) {
-        console.error('Failed to broadcast tokens:', e);
-        notifyError('Failed to broadcast tokens');
+        console.error("Failed to broadcast tokens:", e);
+        notifyError("Failed to broadcast tokens");
       } finally {
         sending.value = false;
       }
@@ -348,7 +399,7 @@ export default defineComponent({
 
     const formatLastSeen = (timestamp: number): string => {
       const seconds = Math.floor((Date.now() - timestamp) / 1000);
-      if (seconds < 60) return 'Just now';
+      if (seconds < 60) return "Just now";
       if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
       if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
       return `${Math.floor(seconds / 86400)}d ago`;
@@ -380,12 +431,21 @@ export default defineComponent({
           const hexPubkey = nostrStore.seedSignerPublicKey || nostrStore.pubkey;
           if (hexPubkey) {
             // Convert hex pubkey to npub format using bech32
-            const npub = hexPubkey.startsWith('npub') ? hexPubkey : nip19.npubEncode(hexPubkey);
-            await bluetoothStore.sendTextMessage(peer.peerID, `[UNFAVORITED]:${npub}`);
-            console.log(`📤 Sent unfavorite notification to ${peer.nickname} with npub: ${npub.substring(0, 16)}...`);
+            const npub = hexPubkey.startsWith("npub")
+              ? hexPubkey
+              : nip19.npubEncode(hexPubkey);
+            await bluetoothStore.sendTextMessage(
+              peer.peerID,
+              `[UNFAVORITED]:${npub}`
+            );
+            console.log(
+              `📤 Sent unfavorite notification to ${
+                peer.nickname
+              } with npub: ${npub.substring(0, 16)}...`
+            );
           }
         } catch (error) {
-          console.error('Failed to send unfavorite notification:', error);
+          console.error("Failed to send unfavorite notification:", error);
         }
 
         notifySuccess(`Removed ${peer.nickname} from favorites`);
@@ -393,7 +453,7 @@ export default defineComponent({
         // Add to favorites
         favoritesStore.addFavorite(
           peer.peerID,
-          peer.nickname || 'Unknown',
+          peer.nickname || "Unknown",
           peer.nostrNpub || null
         );
 
@@ -407,12 +467,21 @@ export default defineComponent({
           const hexPubkey = nostrStore.seedSignerPublicKey || nostrStore.pubkey;
           if (hexPubkey) {
             // Convert hex pubkey to npub format using bech32
-            const npub = hexPubkey.startsWith('npub') ? hexPubkey : nip19.npubEncode(hexPubkey);
-            await bluetoothStore.sendTextMessage(peer.peerID, `[FAVORITE_REQUEST]:${npub}`);
-            console.log(`📤 Sent favorite request to ${peer.nickname} with npub: ${npub.substring(0, 16)}...`);
+            const npub = hexPubkey.startsWith("npub")
+              ? hexPubkey
+              : nip19.npubEncode(hexPubkey);
+            await bluetoothStore.sendTextMessage(
+              peer.peerID,
+              `[FAVORITE_REQUEST]:${npub}`
+            );
+            console.log(
+              `📤 Sent favorite request to ${
+                peer.nickname
+              } with npub: ${npub.substring(0, 16)}...`
+            );
           }
         } catch (error) {
-          console.error('Failed to send favorite request:', error);
+          console.error("Failed to send favorite request:", error);
         }
 
         notifySuccess(`Sent favorite request to ${peer.nickname}`);
@@ -451,4 +520,3 @@ h6 {
   font-weight: 500;
 }
 </style>
-

@@ -290,21 +290,31 @@ export const useNostrStore = defineStore("nostr", {
     ) {
       // Decode npub to hex if necessary
       let recipientPubkeyHex = recipient;
-      if (recipient.startsWith('npub1')) {
+      if (recipient.startsWith("npub1")) {
         try {
           const decoded = nip19.decode(recipient);
-          if (decoded.type === 'npub') {
+          if (decoded.type === "npub") {
             recipientPubkeyHex = decoded.data as string;
-            console.log(`📤 Decoded npub to hex: ${recipientPubkeyHex.substring(0, 16)}...`);
+            console.log(
+              `📤 Decoded npub to hex: ${recipientPubkeyHex.substring(
+                0,
+                16
+              )}...`
+            );
           }
         } catch (e) {
-          console.error('❌ Failed to decode npub:', e);
+          console.error("❌ Failed to decode npub:", e);
           notifyError(`Invalid npub format: ${e}`);
           return;
         }
       }
 
-      console.log(`📤 Sending plaintext Cashu token to: ${recipientPubkeyHex.substring(0, 16)}...`);
+      console.log(
+        `📤 Sending plaintext Cashu token to: ${recipientPubkeyHex.substring(
+          0,
+          16
+        )}...`
+      );
       console.log(`📤 Message length: ${message.length} chars`);
 
       // Use wallet seed signer for consistency
@@ -322,7 +332,12 @@ export const useNostrStore = defineStore("nostr", {
       event.content = message; // No encryption - token is already a bearer token
       event.tags = [["p", recipientPubkeyHex]];
 
-      console.log(`📤 Signing event with our seedSigner: ${this.seedSignerPublicKey.substring(0, 16)}...`);
+      console.log(
+        `📤 Signing event with our seedSigner: ${this.seedSignerPublicKey.substring(
+          0,
+          16
+        )}...`
+      );
       await event.sign();
 
       console.log(`📤 Publishing to relays:`, this.relays);
@@ -331,7 +346,7 @@ export const useNostrStore = defineStore("nostr", {
         console.log(`✅ Event published successfully`);
         notifySuccess("Sent via Nostr");
       } catch (e) {
-        console.error('❌ Failed to publish event:', e);
+        console.error("❌ Failed to publish event:", e);
         notifyError(`Could not publish: ${e}`);
       }
     },
@@ -341,7 +356,7 @@ export const useNostrStore = defineStore("nostr", {
       let nip04DirectMessageEvents: Set<NDKEvent> = new Set();
       const fetchEventsPromise = new Promise<Set<NDKEvent>>((resolve) => {
         // Subscribe from 24 hours ago to catch recent messages
-        const oneDayAgo = Math.floor(Date.now() / 1000) - (24 * 60 * 60);
+        const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
         const subscribeFrom = this.lastEventTimestamp || oneDayAgo;
 
         console.log(
@@ -360,9 +375,18 @@ export const useNostrStore = defineStore("nostr", {
         );
         sub.on("event", (event: NDKEvent) => {
           console.log("📨 Nostr DM received from relay (kind 4)");
-          console.log("📨 Sender pubkey:", event.pubkey.substring(0, 16) + "...");
-          console.log("📨 Recipient (us):", this.seedSignerPublicKey.substring(0, 16) + "...");
-          console.log("📨 Content (plaintext Cashu):", event.content.substring(0, 50) + "...");
+          console.log(
+            "📨 Sender pubkey:",
+            event.pubkey.substring(0, 16) + "..."
+          );
+          console.log(
+            "📨 Recipient (us):",
+            this.seedSignerPublicKey.substring(0, 16) + "..."
+          );
+          console.log(
+            "📨 Content (plaintext Cashu):",
+            event.content.substring(0, 50) + "..."
+          );
 
           // No decryption needed - Cashu tokens are bearer tokens
           // We send them as plaintext for simplicity and compatibility
@@ -529,13 +553,16 @@ export const useNostrStore = defineStore("nostr", {
       }
     },
     parseMessageForEcash: async function (message: string) {
-      console.log('🔍 parseMessageForEcash called with message length:', message.length);
-      console.log('🔍 Message preview:', message.substring(0, 50) + '...');
+      console.log(
+        "🔍 parseMessageForEcash called with message length:",
+        message.length
+      );
+      console.log("🔍 Message preview:", message.substring(0, 50) + "...");
 
       // first check if the message can be converted to a json and then to a PaymentRequestPayload
       try {
         const payload = JSON.parse(message) as PaymentRequestPayload;
-        console.log('📦 Parsed as JSON payment request');
+        console.log("📦 Parsed as JSON payment request");
         if (payload) {
           const receiveStore = useReceiveTokensStore();
           const prStore = usePRStore();
@@ -574,7 +601,9 @@ export const useNostrStore = defineStore("nostr", {
           return;
         }
       } catch (e) {
-        console.log("📦 Not a JSON payment request, trying Cashu token parsing...");
+        console.log(
+          "📦 Not a JSON payment request, trying Cashu token parsing..."
+        );
       }
 
       console.log("🔍 Parsing message for Cashu tokens");
@@ -587,7 +616,9 @@ export const useNostrStore = defineStore("nostr", {
       console.log(`🔍 Found ${tokens.length} Cashu token(s) in message`);
 
       for (const tokenStr of tokens) {
-        console.log(`💰 Processing Cashu token: ${tokenStr.substring(0, 30)}...`);
+        console.log(
+          `💰 Processing Cashu token: ${tokenStr.substring(0, 30)}...`
+        );
 
         // Check if already in history AND claimed (amount < 0 means claimed)
         const tokenInHistory = tokensStore.tokenAlreadyInHistory(tokenStr);
@@ -596,7 +627,9 @@ export const useNostrStore = defineStore("nostr", {
             console.log("ℹ️ Token already claimed, skipping");
             continue;
           } else {
-            console.log("ℹ️ Token in history but not claimed yet, will auto-claim");
+            console.log(
+              "ℹ️ Token in history but not claimed yet, will auto-claim"
+            );
           }
         } else {
           // Add to history first if not already there
@@ -604,38 +637,38 @@ export const useNostrStore = defineStore("nostr", {
         }
 
         // Auto-claim for Nostr messages (we have internet connection)
-        console.log('💎 Auto-claiming Cashu token from Nostr...');
+        console.log("💎 Auto-claiming Cashu token from Nostr...");
         receiveStore.receiveData.tokensBase64 = tokenStr;
 
         try {
           const success = await receiveStore.receiveIfDecodes();
           if (success) {
-            console.log('✅ Token claimed successfully!');
-            notifySuccess('💰 Received ecash via Nostr!');
+            console.log("✅ Token claimed successfully!");
+            notifySuccess("💰 Received ecash via Nostr!");
           } else {
-            console.warn('⚠️ Auto-claim failed, showing receive dialog');
+            console.warn("⚠️ Auto-claim failed, showing receive dialog");
             receiveStore.showReceiveTokens = true;
           }
         } catch (error) {
-          console.error('❌ Auto-claim error:', error);
+          console.error("❌ Auto-claim error:", error);
           receiveStore.showReceiveTokens = true;
         }
       }
     },
     addPendingTokenToHistory: function (tokenStr: string, verbose = true) {
-      console.log('💾 addPendingTokenToHistory called');
+      console.log("💾 addPendingTokenToHistory called");
       const receiveStore = useReceiveTokensStore();
       const tokensStore = useTokensStore();
       if (tokensStore.tokenAlreadyInHistory(tokenStr)) {
-        console.log('ℹ️ Token already in history, skipping');
+        console.log("ℹ️ Token already in history, skipping");
         notifySuccess("Ecash already in history");
         receiveStore.showReceiveTokens = false;
         return;
       }
-      console.log('🔓 Decoding Cashu token...');
+      console.log("🔓 Decoding Cashu token...");
       const decodedToken = token.decode(tokenStr);
       if (decodedToken == undefined) {
-        console.error('❌ Failed to decode token');
+        console.error("❌ Failed to decode token");
         throw Error("could not decode token");
       }
       // get amount from decodedToken.token.proofs[..].amount
@@ -643,7 +676,9 @@ export const useNostrStore = defineStore("nostr", {
         .getProofs(decodedToken)
         .reduce((sum, el) => (sum += el.amount), 0);
 
-      console.log(`💰 Adding ${amount} ${token.getUnit(decodedToken)} to pending tokens`);
+      console.log(
+        `💰 Adding ${amount} ${token.getUnit(decodedToken)} to pending tokens`
+      );
 
       tokensStore.addPendingToken({
         amount: amount,
@@ -651,7 +686,7 @@ export const useNostrStore = defineStore("nostr", {
         mint: token.getMint(decodedToken),
         unit: token.getUnit(decodedToken),
       });
-      console.log('✅ Token added to pending history');
+      console.log("✅ Token added to pending history");
       receiveStore.showReceiveTokens = false;
       // show success notification
       if (verbose) {
@@ -663,15 +698,19 @@ export const useNostrStore = defineStore("nostr", {
      * Send ecash token via Nostr DM (for mutual favorites fallback)
      * Implements BitChat's Nostr fallback pattern
      */
-    async sendTokenViaNostr(token: string, recipientNpub: string, senderNickname: string = 'Bitpoints User') {
+    async sendTokenViaNostr(
+      token: string,
+      recipientNpub: string,
+      senderNickname: string = "Bitpoints User"
+    ) {
       try {
         if (!this.ndk || !this.connected) {
-          throw new Error('Nostr not connected');
+          throw new Error("Nostr not connected");
         }
 
         // Create token notification content
         const content = JSON.stringify({
-          type: 'BITPOINTS_TOKEN',
+          type: "BITPOINTS_TOKEN",
           token,
           timestamp: Date.now(),
           senderNpub: this.npub,
@@ -680,19 +719,25 @@ export const useNostrStore = defineStore("nostr", {
 
         // Encrypt and send as DM (NIP-04)
         const recipientHex = nip19.decode(recipientNpub).data as string;
-        const encrypted = await nip04.encrypt(this.privateKey, recipientHex, content);
+        const encrypted = await nip04.encrypt(
+          this.privateKey,
+          recipientHex,
+          content
+        );
 
         // Create DM event (kind 4)
         const dmEvent = new NDKEvent(this.ndk);
         dmEvent.kind = 4; // Encrypted Direct Message
         dmEvent.content = encrypted;
-        dmEvent.tags = [['p', recipientHex]];
+        dmEvent.tags = [["p", recipientHex]];
 
         await dmEvent.publish();
 
-        console.log(`📨 Sent token via Nostr to ${recipientNpub.substring(0, 16)}...`);
+        console.log(
+          `📨 Sent token via Nostr to ${recipientNpub.substring(0, 16)}...`
+        );
       } catch (error) {
-        console.error('Failed to send token via Nostr:', error);
+        console.error("Failed to send token via Nostr:", error);
         throw error;
       }
     },
@@ -703,16 +748,20 @@ export const useNostrStore = defineStore("nostr", {
      */
     async sendEncryptedDM(content: string, recipientNpub: string) {
       if (!this.ndk || !this.connected) {
-        throw new Error('Nostr not connected');
+        throw new Error("Nostr not connected");
       }
 
       const recipientHex = nip19.decode(recipientNpub).data as string;
-      const encrypted = await nip04.encrypt(this.privateKey, recipientHex, content);
+      const encrypted = await nip04.encrypt(
+        this.privateKey,
+        recipientHex,
+        content
+      );
 
       const dmEvent = new NDKEvent(this.ndk);
       dmEvent.kind = 4;
       dmEvent.content = encrypted;
-      dmEvent.tags = [['p', recipientHex]];
+      dmEvent.tags = [["p", recipientHex]];
 
       await dmEvent.publish();
     },
@@ -726,13 +775,13 @@ export const useNostrStore = defineStore("nostr", {
 
       const filter: NDKFilter = {
         kinds: [4], // Encrypted DMs
-        '#p': [this.pubkey],
+        "#p": [this.pubkey],
         since: Math.floor(Date.now() / 1000) - 86400, // Last 24 hours
       };
 
       const sub = this.ndk.subscribe(filter, { closeOnEose: false });
 
-      sub.on('event', async (event: NDKEvent) => {
+      sub.on("event", async (event: NDKEvent) => {
         try {
           // Decrypt DM
           const senderPubkey = event.pubkey;
@@ -745,8 +794,11 @@ export const useNostrStore = defineStore("nostr", {
           const data = JSON.parse(decrypted);
 
           // Handle Bitpoints token notification
-          if (data.type === 'BITPOINTS_TOKEN') {
-            console.log('📨 Received token via Nostr from', data.senderNpub?.substring(0, 16));
+          if (data.type === "BITPOINTS_TOKEN") {
+            console.log(
+              "📨 Received token via Nostr from",
+              data.senderNpub?.substring(0, 16)
+            );
 
             // Auto-redeem the token
             const receiveStore = useReceiveTokensStore();
@@ -756,15 +808,17 @@ export const useNostrStore = defineStore("nostr", {
             await walletStore.redeem();
 
             notifySuccess(
-              `Received tokens via Nostr from ${data.senderNickname || 'unknown'}!`
+              `Received tokens via Nostr from ${
+                data.senderNickname || "unknown"
+              }!`
             );
           }
         } catch (error) {
-          console.error('Failed to process Nostr DM:', error);
+          console.error("Failed to process Nostr DM:", error);
         }
       });
 
-      console.log('👂 Listening for Nostr token notifications');
+      console.log("👂 Listening for Nostr token notifications");
     },
   },
 });

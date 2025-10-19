@@ -140,12 +140,15 @@ export default {
     });
 
     // Watch for welcome completion and navigate to wallet (PWA only)
-    watch(() => welcomeStore.showWelcome, (newValue) => {
-      if (!newValue && !window.Capacitor) {
-        // Only for PWA - let Vue Router handle navigation
-        router.push('/');
+    watch(
+      () => welcomeStore.showWelcome,
+      (newValue) => {
+        if (!newValue && !window.Capacitor) {
+          // Only for PWA - let Vue Router handle navigation
+          router.push("/");
+        }
       }
-    });
+    );
 
     return {
       welcomeStore,

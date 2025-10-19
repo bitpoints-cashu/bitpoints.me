@@ -19,8 +19,8 @@
         hint="How you appear to nearby peers"
         outlined
         :rules="[
-          val => val && val.length >= 3 || 'Minimum 3 characters',
-          val => val && val.length <= 32 || 'Maximum 32 characters'
+          (val) => (val && val.length >= 3) || 'Minimum 3 characters',
+          (val) => (val && val.length <= 32) || 'Maximum 32 characters',
         ]"
       >
         <template #prepend>
@@ -52,25 +52,35 @@
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
-      <q-banner v-if="isDesktop && !bluetoothStore.isActive" dense class="bg-info text-white q-mb-sm" rounded>
+      <q-banner
+        v-if="isDesktop && !bluetoothStore.isActive"
+        dense
+        class="bg-info text-white q-mb-sm"
+        rounded
+      >
         <template v-slot:avatar>
           <q-icon name="info" />
         </template>
-        Click "Connect Device" to enable Bluetooth. Your browser will show available devices.
+        Click "Connect Device" to enable Bluetooth. Your browser will show
+        available devices.
       </q-banner>
 
       <q-list dense>
         <q-item>
           <q-item-section avatar>
             <q-icon
-              :name="bluetoothStore.isActive ? 'bluetooth_connected' : 'bluetooth_disabled'"
+              :name="
+                bluetoothStore.isActive
+                  ? 'bluetooth_connected'
+                  : 'bluetooth_disabled'
+              "
               :color="bluetoothStore.isActive ? 'positive' : 'grey'"
             />
           </q-item-section>
           <q-item-section>
             <q-item-label>Bluetooth Mesh</q-item-label>
             <q-item-label caption>
-              {{ bluetoothStore.isActive ? 'Active' : 'Disabled' }}
+              {{ bluetoothStore.isActive ? "Active" : "Disabled" }}
             </q-item-label>
           </q-item-section>
           <q-item-section side>
@@ -144,21 +154,30 @@
     <q-card-section v-if="!isDesktop">
       <div class="text-subtitle2 q-mb-sm">Always-On Mode</div>
       <div class="text-caption text-grey-6 q-mb-sm">
-        For kids' devices without consistent internet - keeps Bluetooth mesh active 24/7
+        For kids' devices without consistent internet - keeps Bluetooth mesh
+        active 24/7
       </div>
 
       <q-list dense>
         <q-item>
           <q-item-section avatar>
             <q-icon
-              :name="bluetoothStore.alwaysOnActive ? 'battery_charging_full' : 'battery_std'"
+              :name="
+                bluetoothStore.alwaysOnActive
+                  ? 'battery_charging_full'
+                  : 'battery_std'
+              "
               :color="bluetoothStore.alwaysOnActive ? 'positive' : 'grey'"
             />
           </q-item-section>
           <q-item-section>
             <q-item-label>Always Keep Running</q-item-label>
             <q-item-label caption>
-              {{ bluetoothStore.alwaysOnActive ? 'Active - Bluetooth mesh stays on 24/7' : 'Inactive - Normal battery usage' }}
+              {{
+                bluetoothStore.alwaysOnActive
+                  ? "Active - Bluetooth mesh stays on 24/7"
+                  : "Inactive - Normal battery usage"
+              }}
             </q-item-label>
           </q-item-section>
           <q-item-section side>
@@ -195,9 +214,16 @@
         <template v-slot:avatar>
           <q-icon name="battery_alert" />
         </template>
-        <strong>Battery Usage:</strong> Always-on mode uses more battery but ensures you can receive tokens anytime.
+        <strong>Battery Usage:</strong> Always-on mode uses more battery but
+        ensures you can receive tokens anytime.
         <template v-slot:action>
-          <q-btn flat dense size="sm" label="Learn More" @click="showBatteryInfo" />
+          <q-btn
+            flat
+            dense
+            size="sm"
+            label="Learn More"
+            @click="showBatteryInfo"
+          />
         </template>
       </q-banner>
     </q-card-section>
@@ -247,43 +273,43 @@
       <div class="text-caption text-grey-6">
         <q-icon name="info" size="xs" class="q-mr-xs" />
         <span v-if="isDesktop && !isWebBluetoothSupported">
-          ⚠️ Web Bluetooth not available. Please use <strong>Chrome</strong> or <strong>Edge</strong> browser.
+          ⚠️ Web Bluetooth not available. Please use <strong>Chrome</strong> or
+          <strong>Edge</strong> browser.
         </span>
         <span v-else-if="isDesktop">
-          💡 Click "Enable" to connect to a nearby Bluetooth device. The browser will show a device picker.
+          💡 Click "Enable" to connect to a nearby Bluetooth device. The browser
+          will show a device picker.
         </span>
-        <span v-else>
-          Bluetooth mesh enables offline token transfers
-        </span>
+        <span v-else> Bluetooth mesh enables offline token transfers </span>
       </div>
     </q-card-section>
   </q-card>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useBluetoothStore } from 'src/stores/bluetooth';
-import { useFavoritesStore } from 'src/stores/favorites';
-import { Capacitor } from '@capacitor/core';
-import { notifySuccess } from 'src/js/notify';
+import { ref, computed, onMounted } from "vue";
+import { useBluetoothStore } from "src/stores/bluetooth";
+import { useFavoritesStore } from "src/stores/favorites";
+import { Capacitor } from "@capacitor/core";
+import { notifySuccess } from "src/js/notify";
 
 const emit = defineEmits<{
-  (e: 'openNearbyDialog'): void;
-  (e: 'openContactsDialog'): void;
-  (e: 'openRequestsDialog'): void;
+  (e: "openNearbyDialog"): void;
+  (e: "openContactsDialog"): void;
+  (e: "openRequestsDialog"): void;
 }>();
 
 const bluetoothStore = useBluetoothStore();
 const favoritesStore = useFavoritesStore();
 
-const localNickname = ref('');
+const localNickname = ref("");
 const isDesktop = computed(() => !Capacitor.isNativePlatform());
 
 const isWebBluetoothSupported = computed(() => {
   try {
-    return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+    return typeof navigator !== "undefined" && "bluetooth" in navigator;
   } catch (error) {
-    console.error('Error checking Web Bluetooth support:', error);
+    console.error("Error checking Web Bluetooth support:", error);
     return false;
   }
 });
@@ -300,9 +326,9 @@ async function saveNickname() {
   try {
     // Update nickname in store
     await bluetoothStore.updateNickname(localNickname.value);
-    notifySuccess('Bluetooth name updated!');
+    notifySuccess("Bluetooth name updated!");
   } catch (error) {
-    console.error('Failed to update nickname:', error);
+    console.error("Failed to update nickname:", error);
   }
 }
 
@@ -319,31 +345,31 @@ async function connectDesktopDevice() {
     // For desktop, this will show the browser's device picker
     await bluetoothStore.startService();
   } catch (error) {
-    console.error('Failed to connect to Bluetooth device:', error);
+    console.error("Failed to connect to Bluetooth device:", error);
   }
 }
 
 function openNearbyDialog() {
-  emit('openNearbyDialog');
+  emit("openNearbyDialog");
 }
 
 function showNearbyContacts() {
-  emit('openNearbyDialog');
+  emit("openNearbyDialog");
 }
 
 function showFavorites() {
-  emit('openContactsDialog');
+  emit("openContactsDialog");
 }
 
 function showRequests() {
-  emit('openRequestsDialog');
+  emit("openRequestsDialog");
 }
 
 async function toggleAlwaysOnMode(enabled: boolean) {
   try {
     await bluetoothStore.toggleAlwaysOnMode(enabled);
   } catch (error) {
-    console.error('Failed to toggle always-on mode:', error);
+    console.error("Failed to toggle always-on mode:", error);
   }
 }
 
@@ -351,13 +377,13 @@ async function requestBatteryOptimization() {
   try {
     await bluetoothStore.requestBatteryOptimizationExemption();
   } catch (error) {
-    console.error('Failed to request battery optimization exemption:', error);
+    console.error("Failed to request battery optimization exemption:", error);
   }
 }
 
 function showBatteryInfo() {
   // Show info about battery usage
-  console.log('Show battery usage information');
+  console.log("Show battery usage information");
   // TODO: Implement battery info dialog
 }
 
@@ -376,4 +402,3 @@ onMounted(async () => {
   max-width: 600px;
 }
 </style>
-

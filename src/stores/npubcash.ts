@@ -58,7 +58,10 @@ export const useNPCStore = defineStore("npc", {
     // npcConnections: useLocalStorage<NPCConnection[]>("cashu.npc.connections", []),
     npcAddress: useLocalStorage<string>("cashu.npc.address", ""),
     npcDomain: useLocalStorage<string>("cashu.npc.domain", "bitpoints.me"),
-    baseURL: useLocalStorage<string>("cashu.npc.baseURL", "https://npubcash.bitpoints.me"),
+    baseURL: useLocalStorage<string>(
+      "cashu.npc.baseURL",
+      "https://npubcash.bitpoints.me"
+    ),
     npcLoading: false,
     // ndk: new NDK(),
     // signer: {} as NDKPrivateKeySigner,

@@ -13,7 +13,12 @@
       </div>
 
       <!-- Requests list -->
-      <q-list v-if="pendingRequests.length > 0" bordered separator class="rounded-borders">
+      <q-list
+        v-if="pendingRequests.length > 0"
+        bordered
+        separator
+        class="rounded-borders"
+      >
         <q-item
           v-for="request in pendingRequests"
           :key="request.peerNoisePublicKey"
@@ -67,16 +72,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
-import { useFavoritesStore, FavoritePendingRequest } from 'src/stores/favorites';
-import { useBluetoothStore } from 'src/stores/bluetooth';
-import { useNostrStore } from 'src/stores/nostr';
-import { notifySuccess } from 'src/js/notify';
-import { nip19 } from 'nostr-tools';
-import { formatDistanceToNow } from 'date-fns';
+import { defineComponent, computed } from "vue";
+import {
+  useFavoritesStore,
+  FavoritePendingRequest,
+} from "src/stores/favorites";
+import { useBluetoothStore } from "src/stores/bluetooth";
+import { useNostrStore } from "src/stores/nostr";
+import { notifySuccess } from "src/js/notify";
+import { nip19 } from "nostr-tools";
+import { formatDistanceToNow } from "date-fns";
 
 export default defineComponent({
-  name: 'FavoriteRequestsDialog',
+  name: "FavoriteRequestsDialog",
 
   setup() {
     const favoritesStore = useFavoritesStore();
@@ -86,7 +94,7 @@ export default defineComponent({
     const pendingRequests = computed(() => favoritesStore.pendingRequestsList);
 
     const formatNpub = (npub: string) => {
-      if (!npub) return 'No Nostr key';
+      if (!npub) return "No Nostr key";
       return `${npub.substring(0, 12)}...${npub.substring(npub.length - 4)}`;
     };
 
@@ -94,7 +102,7 @@ export default defineComponent({
       try {
         return formatDistanceToNow(new Date(date), { addSuffix: true });
       } catch (e) {
-        return 'Recently';
+        return "Recently";
       }
     };
 
@@ -110,14 +118,25 @@ export default defineComponent({
 
         const hexPubkey = nostrStore.seedSignerPublicKey || nostrStore.pubkey;
         if (hexPubkey) {
-          const npub = hexPubkey.startsWith('npub') ? hexPubkey : nip19.npubEncode(hexPubkey);
-          await bluetoothStore.sendTextMessage(request.peerNoisePublicKey, `[FAVORITE_ACCEPTED]:${npub}`);
-          console.log(`📤 Sent favorite acceptance to ${request.peerNickname} with npub: ${npub.substring(0, 16)}...`);
+          const npub = hexPubkey.startsWith("npub")
+            ? hexPubkey
+            : nip19.npubEncode(hexPubkey);
+          await bluetoothStore.sendTextMessage(
+            request.peerNoisePublicKey,
+            `[FAVORITE_ACCEPTED]:${npub}`
+          );
+          console.log(
+            `📤 Sent favorite acceptance to ${
+              request.peerNickname
+            } with npub: ${npub.substring(0, 16)}...`
+          );
         }
 
-        notifySuccess(`💕 You and ${request.peerNickname} are now mutual favorites!`);
+        notifySuccess(
+          `💕 You and ${request.peerNickname} are now mutual favorites!`
+        );
       } catch (error) {
-        console.error('Failed to accept favorite request:', error);
+        console.error("Failed to accept favorite request:", error);
       }
     };
 
@@ -143,4 +162,3 @@ export default defineComponent({
   max-width: 600px;
 }
 </style>
-

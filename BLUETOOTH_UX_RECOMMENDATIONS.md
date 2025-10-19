@@ -24,6 +24,7 @@ Make Bluetooth receiving explicit and visible.
 ### Implementation
 
 **Add to Wallet Page:**
+
 ```
 ┌─────────────────────────────────────┐
 │  Balance: 1,234 sats               │
@@ -35,6 +36,7 @@ Make Bluetooth receiving explicit and visible.
 ```
 
 **Benefits:**
+
 - ✅ Clear feedback that device is listening
 - ✅ Users know when they can receive
 - ✅ Can disable to save battery
@@ -42,6 +44,7 @@ Make Bluetooth receiving explicit and visible.
 - ✅ Prompts to enable Bluetooth if off
 
 **Code Changes:**
+
 ```typescript
 // In WalletPage.vue or components
 const isListening = ref(false);
@@ -73,6 +76,7 @@ Integrate Bluetooth as a receive option alongside QR codes.
 ### Implementation
 
 **Modify Receive Page:**
+
 ```
 ┌─────────────────────────────────────┐
 │  Receive Payment                    │
@@ -91,12 +95,14 @@ Integrate Bluetooth as a receive option alongside QR codes.
 ```
 
 **Benefits:**
+
 - ✅ Clear context (user is expecting payment)
 - ✅ Doesn't run in background unnecessarily
 - ✅ Explicit user action to receive
 - ✅ Better battery management
 
 **Considerations:**
+
 - ⚠️ Sender must wait for receiver to enable
 - ⚠️ Less spontaneous (can't receive if not expecting)
 
@@ -109,10 +115,12 @@ Combine both for flexibility:
 ### Smart Auto-Start with Visual Feedback
 
 1. **Default Behavior:**
+
    - Service auto-starts when app opens (if Bluetooth enabled)
    - Shows subtle indicator in nav bar: "📡 2 nearby"
 
 2. **Receive Page Enhancement:**
+
    - "Receive via Bluetooth" button
    - If service not running, prompts to start
    - Shows peer list and status
@@ -123,6 +131,7 @@ Combine both for flexibility:
    - "Battery optimization" options
 
 **UI Example:**
+
 ```
 Navigation Bar:
 [Home] [Wallet] [Settings]  📡2 ← Indicator
@@ -206,7 +215,9 @@ Create a simple component to show Bluetooth status:
     icon="bluetooth"
     :label="bluetoothStore.nearbyPeers.length.toString()"
   >
-    <q-tooltip>{{ bluetoothStore.nearbyPeers.length }} devices nearby</q-tooltip>
+    <q-tooltip
+      >{{ bluetoothStore.nearbyPeers.length }} devices nearby</q-tooltip
+    >
   </q-btn>
   <q-btn
     v-else
@@ -253,6 +264,7 @@ Create a simple component to show Bluetooth status:
 ## Root Cause Summary
 
 **Problem Found:**
+
 ```
 ❌ Bluetooth was disabled on device
 ❌ Service tried to start but failed silently
@@ -260,6 +272,7 @@ Create a simple component to show Bluetooth status:
 ```
 
 **Solution:**
+
 ```
 ✅ Check Bluetooth status before starting service
 ✅ Prompt user to enable if disabled
@@ -272,12 +285,14 @@ Create a simple component to show Bluetooth status:
 ## Recommended Implementation Order
 
 1. **Immediate (for testing):**
+
    - ✅ Added `isBluetoothEnabled()` method
    - ✅ Added `requestBluetoothEnable()` method
    - ⏳ Update `startService()` to check and prompt
    - ⏳ Add status indicator to nav bar
 
 2. **Short-term (polish):**
+
    - Add "Listen for Nearby" toggle to wallet page
    - Add Bluetooth option to receive flow
    - Show peer count and status
@@ -319,7 +334,3 @@ Would you prefer to:
 **D) Full UX** - Implement hybrid approach with all improvements
 
 Let me know and I'll implement it!
-
-
-
-

@@ -13,14 +13,23 @@
       </div>
 
       <!-- Contacts list -->
-      <q-list v-if="contacts.length > 0" bordered separator class="rounded-borders">
+      <q-list
+        v-if="contacts.length > 0"
+        bordered
+        separator
+        class="rounded-borders"
+      >
         <q-item
           v-for="contact in contacts"
           :key="contact.peerNoisePublicKey"
           clickable
           v-ripple
           @click="selectedContact = contact"
-          :class="{ 'bg-blue-1': selectedContact?.peerNoisePublicKey === contact.peerNoisePublicKey }"
+          :class="{
+            'bg-blue-1':
+              selectedContact?.peerNoisePublicKey ===
+              contact.peerNoisePublicKey,
+          }"
         >
           <q-item-section avatar>
             <q-avatar color="primary" text-color="white">
@@ -46,7 +55,8 @@
                 {{ formatNpub(contact.peerNostrNpub) }}
               </span>
               <span v-else class="text-warning">
-                <q-icon name="warning" size="xs" /> No Nostr key - Bluetooth only
+                <q-icon name="warning" size="xs" /> No Nostr key - Bluetooth
+                only
               </span>
             </q-item-label>
           </q-item-section>
@@ -74,7 +84,11 @@
                 @click.stop="openSendDialog(contact)"
               >
                 <q-tooltip>
-                  {{ contact.peerNostrNpub ? 'Send ecash via Nostr' : 'Nostr key required for remote send' }}
+                  {{
+                    contact.peerNostrNpub
+                      ? "Send ecash via Nostr"
+                      : "Nostr key required for remote send"
+                  }}
                 </q-tooltip>
               </q-btn>
             </div>
@@ -131,7 +145,13 @@
           </q-card-section>
 
           <q-card-actions align="right" class="q-pa-md">
-            <q-btn flat round icon="close" color="grey" @click="closeSendDialog">
+            <q-btn
+              flat
+              round
+              icon="close"
+              color="grey"
+              @click="closeSendDialog"
+            >
               <q-tooltip>Close</q-tooltip>
             </q-btn>
             <q-btn
@@ -149,17 +169,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
-import { useFavoritesStore, FavoriteRelationship } from 'src/stores/favorites';
-import { useNostrStore } from 'src/stores/nostr';
-import { useWalletStore } from 'src/stores/wallet';
-import { useMintsStore } from 'src/stores/mints';
-import { useProofsStore } from 'src/stores/proofs';
-import { useTokensStore } from 'src/stores/tokens';
-import { notifySuccess, notifyError } from 'src/js/notify';
+import { defineComponent, ref, computed } from "vue";
+import { useFavoritesStore, FavoriteRelationship } from "src/stores/favorites";
+import { useNostrStore } from "src/stores/nostr";
+import { useWalletStore } from "src/stores/wallet";
+import { useMintsStore } from "src/stores/mints";
+import { useProofsStore } from "src/stores/proofs";
+import { useTokensStore } from "src/stores/tokens";
+import { notifySuccess, notifyError } from "src/js/notify";
 
 export default defineComponent({
-  name: 'NostrContactsDialog',
+  name: "NostrContactsDialog",
 
   setup() {
     const favoritesStore = useFavoritesStore();
@@ -173,7 +193,7 @@ export default defineComponent({
     const showSendDialog = ref(false);
     const sendTarget = ref<FavoriteRelationship | null>(null);
     const sendAmount = ref<number | null>(null);
-    const sendMemo = ref<string>('');
+    const sendMemo = ref<string>("");
     const sending = ref(false);
 
     const contacts = computed(() => {
@@ -185,14 +205,14 @@ export default defineComponent({
     const unit = computed(() => mintsStore.activeUnit);
 
     const formatNpub = (npub: string | null): string => {
-      if (!npub) return 'No Nostr key';
+      if (!npub) return "No Nostr key";
       return npub.length > 16 ? `${npub.substring(0, 16)}...` : npub;
     };
 
     const openSendDialog = (contact: FavoriteRelationship) => {
       sendTarget.value = contact;
       sendAmount.value = null;
-      sendMemo.value = '';
+      sendMemo.value = "";
       showSendDialog.value = true;
     };
 
@@ -200,7 +220,7 @@ export default defineComponent({
       showSendDialog.value = false;
       sendTarget.value = null;
       sendAmount.value = null;
-      sendMemo.value = '';
+      sendMemo.value = "";
     };
 
     const removeFavorite = (contact: FavoriteRelationship) => {
@@ -210,17 +230,19 @@ export default defineComponent({
 
     const sendViaNostr = async () => {
       if (!sendTarget.value || !sendTarget.value.peerNostrNpub) {
-        notifyError('Contact does not have Nostr key');
+        notifyError("Contact does not have Nostr key");
         return;
       }
 
       if (!sendAmount.value || sendAmount.value <= 0) {
-        notifyError('Please enter a valid amount');
+        notifyError("Please enter a valid amount");
         return;
       }
 
       if (!nostrStore.pubkey) {
-        notifyError('Nostr not configured. Please set up your Nostr key first.');
+        notifyError(
+          "Nostr not configured. Please set up your Nostr key first."
+        );
         return;
       }
 
@@ -228,13 +250,18 @@ export default defineComponent({
 
       try {
         // Create token for sending
-        const actualAmount = Math.floor(sendAmount.value * mintsStore.activeUnitCurrencyMultiplyer);
-        const mintWallet = walletStore.mintWallet(mintsStore.activeMintUrl, mintsStore.activeUnit);
+        const actualAmount = Math.floor(
+          sendAmount.value * mintsStore.activeUnitCurrencyMultiplyer
+        );
+        const mintWallet = walletStore.mintWallet(
+          mintsStore.activeMintUrl,
+          mintsStore.activeUnit
+        );
 
         // Check if we have active proofs
         const activeProofs = mintsStore.activeProofs || [];
         if (activeProofs.length === 0) {
-          notifyError('No tokens available. Please receive tokens first.');
+          notifyError("No tokens available. Please receive tokens first.");
           sending.value = false;
           return;
         }
@@ -255,25 +282,41 @@ export default defineComponent({
           token: tokenBase64,
           mint: mintsStore.activeMintUrl,
           unit: unit.value,
-          label: sendMemo.value ? `📡 Nostr: ${sendMemo.value}` : `📡 Sent to ${sendTarget.value.peerNickname} via Nostr`,
+          label: sendMemo.value
+            ? `📡 Nostr: ${sendMemo.value}`
+            : `📡 Sent to ${sendTarget.value.peerNickname} via Nostr`,
         });
-        console.log('💾 Token saved to transaction history (can be recovered via QR)');
+        console.log(
+          "💾 Token saved to transaction history (can be recovered via QR)"
+        );
 
         // Build Nostr direct message content
         let messageContent = tokenBase64;
         if (sendMemo.value) {
-          messageContent += `\n---\nMemo: ${sendMemo.value}\nAmount: ${sendAmount.value} ${unit.value}\nFrom: ${nostrStore.pubkey.substring(0, 16)}...`;
+          messageContent += `\n---\nMemo: ${sendMemo.value}\nAmount: ${
+            sendAmount.value
+          } ${unit.value}\nFrom: ${nostrStore.pubkey.substring(0, 16)}...`;
         }
 
         // Send via Nostr DM (NIP-04)
-        console.log(`📤 Sending to npub: ${sendTarget.value.peerNostrNpub.substring(0, 20)}...`);
+        console.log(
+          `📤 Sending to npub: ${sendTarget.value.peerNostrNpub.substring(
+            0,
+            20
+          )}...`
+        );
         console.log(`📤 Message length: ${messageContent.length} chars`);
-        await nostrStore.sendNip04DirectMessage(sendTarget.value.peerNostrNpub, messageContent);
+        await nostrStore.sendNip04DirectMessage(
+          sendTarget.value.peerNostrNpub,
+          messageContent
+        );
 
-        notifySuccess(`Sent ${sendAmount.value} ${unit.value} to ${sendTarget.value.peerNickname} via Nostr!`);
+        notifySuccess(
+          `Sent ${sendAmount.value} ${unit.value} to ${sendTarget.value.peerNickname} via Nostr!`
+        );
         closeSendDialog();
       } catch (error) {
-        console.error('Failed to send via Nostr:', error);
+        console.error("Failed to send via Nostr:", error);
         notifyError(`Failed to send: ${error}`);
       } finally {
         sending.value = false;
@@ -305,4 +348,3 @@ export default defineComponent({
   margin: 0 auto;
 }
 </style>
-

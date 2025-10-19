@@ -6,13 +6,13 @@
 
 /* Bitpoints CSS Variables */
 :root {
-  --bitpoints-primary-orange: #FF6B35;
-  --bitpoints-secondary-purple: #6B4FBB;
-  --bitpoints-accent-orange: #FF8C42;
-  --bitpoints-warm-orange: #FFB366;
-  --bitpoints-cream: #FFF8F0;
-  --bitpoints-warm-white: #FFFEF7;
-  --bitpoints-off-white: #FAF9F7;
+  --bitpoints-primary-orange: #ff6b35;
+  --bitpoints-secondary-purple: #6b4fbb;
+  --bitpoints-accent-orange: #ff8c42;
+  --bitpoints-warm-orange: #ffb366;
+  --bitpoints-cream: #fff8f0;
+  --bitpoints-warm-white: #fffef7;
+  --bitpoints-off-white: #faf9f7;
   --bitpoints-charcoal: #2c2c2c;
   --bitpoints-soft-gray: #f8f9fa;
   --bitpoints-text-dark: #1a1a1a;
@@ -20,10 +20,22 @@
   --bitpoints-text-light: #666666;
   --bitpoints-shadow-soft: rgba(255, 107, 53, 0.1);
   --bitpoints-shadow-medium: rgba(255, 107, 53, 0.15);
-  --bitpoints-gradient-warm: linear-gradient(135deg, #FF6B35 0%, #FFB366 100%);
-  --bitpoints-gradient-subtle: linear-gradient(135deg, #FFFEF7 0%, #FAF9F7 100%);
-  --bitpoints-gradient-orange: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-  --bitpoints-gradient-purple: linear-gradient(135deg, #6B4FBB 0%, #8B5CF6 100%);
+  --bitpoints-gradient-warm: linear-gradient(135deg, #ff6b35 0%, #ffb366 100%);
+  --bitpoints-gradient-subtle: linear-gradient(
+    135deg,
+    #fffef7 0%,
+    #faf9f7 100%
+  );
+  --bitpoints-gradient-orange: linear-gradient(
+    135deg,
+    #ff6b35 0%,
+    #ff8c42 100%
+  );
+  --bitpoints-gradient-purple: linear-gradient(
+    135deg,
+    #6b4fbb 0%,
+    #8b5cf6 100%
+  );
 }
 
 /* Typography - Bitpoints Style */
@@ -172,4 +184,3 @@
     font-size: 1rem;
   }
 }
-

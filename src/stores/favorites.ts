@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia';
-import { useLocalStorage } from '@vueuse/core';
+import { defineStore } from "pinia";
+import { useLocalStorage } from "@vueuse/core";
 
 /**
  * Favorites Persistence Store
@@ -8,11 +8,11 @@ import { useLocalStorage } from '@vueuse/core';
  */
 
 export interface FavoriteRelationship {
-  peerNoisePublicKey: string;  // Hex-encoded Noise pubkey
+  peerNoisePublicKey: string; // Hex-encoded Noise pubkey
   peerNostrNpub: string | null; // Nostr npub for fallback routing
   peerNickname: string;
-  isFavorite: boolean;          // We favorited them
-  theyFavoritedUs: boolean;     // They favorited us
+  isFavorite: boolean; // We favorited them
+  theyFavoritedUs: boolean; // They favorited us
   favoritedAt: Date;
   lastUpdated: Date;
 }
@@ -24,10 +24,16 @@ export interface FavoritePendingRequest {
   receivedAt: Date;
 }
 
-export const useFavoritesStore = defineStore('favorites', {
+export const useFavoritesStore = defineStore("favorites", {
   state: () => ({
-    favorites: useLocalStorage<Record<string, FavoriteRelationship>>('bitpoints-favorites', {}),
-    pendingRequests: useLocalStorage<Record<string, FavoritePendingRequest>>('bitpoints-pending-favorites', {}),
+    favorites: useLocalStorage<Record<string, FavoriteRelationship>>(
+      "bitpoints-favorites",
+      {}
+    ),
+    pendingRequests: useLocalStorage<Record<string, FavoritePendingRequest>>(
+      "bitpoints-pending-favorites",
+      {}
+    ),
   }),
 
   getters: {
@@ -36,7 +42,7 @@ export const useFavoritesStore = defineStore('favorites', {
      */
     mutualFavorites: (state) => {
       return Object.values(state.favorites).filter(
-        f => f.isFavorite && f.theyFavoritedUs
+        (f) => f.isFavorite && f.theyFavoritedUs
       );
     },
 
@@ -44,7 +50,7 @@ export const useFavoritesStore = defineStore('favorites', {
      * Get favorites where we favorited them
      */
     myFavorites: (state) => {
-      return Object.values(state.favorites).filter(f => f.isFavorite);
+      return Object.values(state.favorites).filter((f) => f.isFavorite);
     },
 
     /**
@@ -52,7 +58,7 @@ export const useFavoritesStore = defineStore('favorites', {
      */
     favoritesWithNostr: (state) => {
       return Object.values(state.favorites).filter(
-        f => f.isFavorite && f.peerNostrNpub !== null
+        (f) => f.isFavorite && f.peerNostrNpub !== null
       );
     },
 
@@ -87,7 +93,12 @@ export const useFavoritesStore = defineStore('favorites', {
       peerNickname: string,
       peerNostrNpub: string | null = null
     ) {
-      console.log(`⭐️ Adding favorite: ${peerNickname} (${peerNoisePublicKey.substring(0, 16)}...)`);
+      console.log(
+        `⭐️ Adding favorite: ${peerNickname} (${peerNoisePublicKey.substring(
+          0,
+          16
+        )}...)`
+      );
 
       const existing = this.favorites[peerNoisePublicKey];
 
@@ -103,7 +114,9 @@ export const useFavoritesStore = defineStore('favorites', {
 
       // Log if this creates a mutual favorite
       if (relationship.isFavorite && relationship.theyFavoritedUs) {
-        console.log(`💕 Mutual favorite relationship established with ${peerNickname}!`);
+        console.log(
+          `💕 Mutual favorite relationship established with ${peerNickname}!`
+        );
       }
 
       this.favorites[peerNoisePublicKey] = relationship;
@@ -142,9 +155,13 @@ export const useFavoritesStore = defineStore('favorites', {
       peerNostrNpub?: string
     ) {
       const existing = this.favorites[peerNoisePublicKey];
-      const displayName = peerNickname ?? existing?.peerNickname ?? 'Unknown';
+      const displayName = peerNickname ?? existing?.peerNickname ?? "Unknown";
 
-      console.log(`📨 Received favorite notification: ${displayName} ${favorited ? 'favorited' : 'unfavorited'} us`);
+      console.log(
+        `📨 Received favorite notification: ${displayName} ${
+          favorited ? "favorited" : "unfavorited"
+        } us`
+      );
 
       const relationship: FavoriteRelationship = {
         peerNoisePublicKey,
@@ -164,7 +181,9 @@ export const useFavoritesStore = defineStore('favorites', {
 
         // Check if this creates a mutual favorite
         if (relationship.isFavorite && relationship.theyFavoritedUs) {
-          console.log(`💕 Mutual favorite relationship established with ${displayName}!`);
+          console.log(
+            `💕 Mutual favorite relationship established with ${displayName}!`
+          );
         }
       }
     },
@@ -210,7 +229,7 @@ export const useFavoritesStore = defineStore('favorites', {
      * Clear all favorites
      */
     clearAll() {
-      console.log('🧹 Clearing all favorites');
+      console.log("🧹 Clearing all favorites");
       this.favorites = {};
     },
 
@@ -222,7 +241,12 @@ export const useFavoritesStore = defineStore('favorites', {
       peerNickname: string,
       peerNostrNpub: string
     ) {
-      console.log(`📬 [STORE] Adding pending request: ${peerNickname} (${peerNoisePublicKey.substring(0, 16)}...)`);
+      console.log(
+        `📬 [STORE] Adding pending request: ${peerNickname} (${peerNoisePublicKey.substring(
+          0,
+          16
+        )}...)`
+      );
       console.log(`📬 [STORE] npub: ${peerNostrNpub.substring(0, 16)}...`);
 
       const request: FavoritePendingRequest = {
@@ -233,7 +257,10 @@ export const useFavoritesStore = defineStore('favorites', {
       };
 
       this.pendingRequests[peerNoisePublicKey] = request;
-      console.log(`📬 [STORE] Pending request saved. Total count:`, Object.keys(this.pendingRequests).length);
+      console.log(
+        `📬 [STORE] Pending request saved. Total count:`,
+        Object.keys(this.pendingRequests).length
+      );
       console.log(`📬 [STORE] Pending requests:`, this.pendingRequests);
     },
 
@@ -241,21 +268,30 @@ export const useFavoritesStore = defineStore('favorites', {
      * Remove a pending request
      */
     removePendingRequest(peerNoisePublicKey: string) {
-      console.log(`🗑️ Removing pending request from: ${peerNoisePublicKey.substring(0, 16)}...`);
+      console.log(
+        `🗑️ Removing pending request from: ${peerNoisePublicKey.substring(
+          0,
+          16
+        )}...`
+      );
       delete this.pendingRequests[peerNoisePublicKey];
     },
 
     /**
      * Accept a pending request and add to favorites
      */
-    acceptPendingRequest(peerNoisePublicKey: string): FavoritePendingRequest | null {
+    acceptPendingRequest(
+      peerNoisePublicKey: string
+    ): FavoritePendingRequest | null {
       const request = this.pendingRequests[peerNoisePublicKey];
       if (!request) {
         console.warn(`⚠️ No pending request found for ${peerNoisePublicKey}`);
         return null;
       }
 
-      console.log(`✅ Accepting favorite request from: ${request.peerNickname}`);
+      console.log(
+        `✅ Accepting favorite request from: ${request.peerNickname}`
+      );
 
       // Add to favorites
       this.addFavorite(
@@ -274,6 +310,3 @@ export const useFavoritesStore = defineStore('favorites', {
     },
   },
 });
-
-
-

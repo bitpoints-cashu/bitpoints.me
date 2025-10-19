@@ -1,15 +1,15 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin } from "@capacitor/core";
 
 /**
  * Peer information from Bluetooth mesh discovery
  * Maps to PeerInfo from Android PeerManager
  */
 export interface Peer {
-  peerID: string;  // Maps to 'id' field
+  peerID: string; // Maps to 'id' field
   nickname: string;
   lastSeen: number;
-  isDirect: boolean;  // Maps to 'isDirectConnection'
-  nostrNpub: string;  // Placeholder - not in native struct
+  isDirect: boolean; // Maps to 'isDirectConnection'
+  nostrNpub: string; // Placeholder - not in native struct
   isConnected: boolean;
 }
 
@@ -18,8 +18,8 @@ export interface Peer {
  */
 export interface EcashMessage {
   id: string;
-  sender: string;  // Nostr npub
-  senderPeerID: string;  // BLE peer ID
+  sender: string; // Nostr npub
+  senderPeerID: string; // BLE peer ID
   timestamp: number;
   amount: number;
   unit: string;
@@ -38,7 +38,7 @@ export interface SendTokenOptions {
   amount: number;
   unit: string;
   mint: string;
-  peerID?: string;  // Optional - null for broadcast
+  peerID?: string; // Optional - null for broadcast
   memo?: string;
   senderNpub: string;
 }
@@ -131,23 +131,32 @@ export interface BluetoothEcashPlugin {
    * Add event listeners for Bluetooth events
    */
   addListener(
-    eventName: 'ecashReceived' | 'peerDiscovered' | 'peerLost' | 'tokenSent' | 'tokenSendFailed' | 'tokenDelivered' | 'favoriteNotificationReceived' | 'favoriteRequestReceived' | 'favoriteAcceptedReceived',
+    eventName:
+      | "ecashReceived"
+      | "peerDiscovered"
+      | "peerLost"
+      | "tokenSent"
+      | "tokenSendFailed"
+      | "tokenDelivered"
+      | "favoriteNotificationReceived"
+      | "favoriteRequestReceived"
+      | "favoriteAcceptedReceived",
     listenerFunc: (event: any) => void
   ): Promise<{ remove: () => void }>;
 }
 
-const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>('BluetoothEcash', {
+const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
   web: () => ({
     // Web implementation (stub - Bluetooth not available in browser)
     startService: async () => {
-      console.warn('Bluetooth mesh not available in web browser');
+      console.warn("Bluetooth mesh not available in web browser");
     },
     stopService: async () => {},
-    setNickname: async () => ({ nickname: '' }),
-    getNickname: async () => ({ nickname: '' }),
+    setNickname: async () => ({ nickname: "" }),
+    getNickname: async () => ({ nickname: "" }),
     isBluetoothEnabled: async () => ({ enabled: false }),
     requestBluetoothEnable: async () => ({ requested: false }),
-    sendToken: async () => ({ messageId: '' }),
+    sendToken: async () => ({ messageId: "" }),
     sendTextMessage: async () => {},
     getAvailablePeers: async () => ({ peers: [] }),
     getUnclaimedTokens: async () => ({ tokens: [] }),
@@ -158,4 +167,3 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>('BluetoothEcash', {
 });
 
 export default BluetoothEcash;
-
