@@ -7,9 +7,7 @@
 
       <div class="banner-content">
         <div class="text-h6">
-          {{ unclaimedCount }} Ecash Token{{
-            unclaimedCount !== 1 ? "s" : ""
-          }}
+          {{ unclaimedCount }} Ecash Token{{ unclaimedCount !== 1 ? "s" : "" }}
           Received
         </div>
         <div class="text-caption">
