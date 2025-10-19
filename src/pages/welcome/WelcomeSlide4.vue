@@ -22,7 +22,7 @@
               IMPORTANT NOTICE: THESE TERMS OF SERVICE INCLUDE A MEDIATION-FIRST
               CLAUSE REQUIRING MEDIATION BEFORE ARBITRATION OR LITIGATION.
               PLEASE READ THESE TERMS CAREFULLY. IF YOU DO NOT AGREE, DO NOT USE
-              TRAILS COFFEE REWARDS.
+              BITPOINTS.
             </strong>
           </p>
           <p>
@@ -35,24 +35,24 @@
           </p>
           <p>
             <strong
-              >TRAILS COFFEE REWARDS DOES NOT HOLD ECASH, DOES NOT EXECUTE AND
-              CANNOT MONITOR TRANSACTIONS, AND DOES NOT OPERATE OR VERIFY ANY
+              >BITPOINTS DOES NOT HOLD ECASH, DOES NOT EXECUTE AND CANNOT
+              MONITOR TRANSACTIONS, AND DOES NOT OPERATE OR VERIFY ANY
               MINTS.</strong
             >
           </p>
           <p>
             These Terms of Service (these "Terms") constitute the entire
-            agreement and understanding between you ("you" or "your") and Trails
-            Coffee ("Trails Coffee," "we," "us," or "our") regarding your use of
-            the Trails Coffee Rewards app and any related applications,
-            software, code, or services (collectively, the "App" or "Services").
-            By accessing or using the App or Services, you acknowledge that you
-            have read, understand, and agree to be bound by these Terms. If you
-            do not agree, do not access or use the App or Services.
+            agreement and understanding between you ("you" or "your") and
+            Bitpoints ("Bitpoints," "we," "us," or "our") regarding your use of
+            the Bitpoints app and any related applications, software, code, or
+            services (collectively, the "App" or "Services"). By accessing or
+            using the App or Services, you acknowledge that you have read,
+            understand, and agree to be bound by these Terms. If you do not
+            agree, do not access or use the App or Services.
           </p>
           <p><strong>1. Nature of the Services</strong></p>
           <p>
-            1.1 <strong>Non-Custodial Web Application:</strong> Trails Coffee
+            1.1 <strong>Non-Custodial Web Application:</strong> Bitpoints
             provides a non-custodial web application ("rewards app") that is
             executed entirely on your device. Our App merely makes available
             client-side code implementing the open-source ecash protocol. We do
@@ -60,32 +60,31 @@
             your behalf.
           </p>
           <p>
-            1.2 <strong>No Control Over Mints:</strong> Trails Coffee does not
-            issue ecash and does not operate or control any Mint. The choice of
-            any Mint and any transaction or relationship you establish with that
-            Mint is solely between you and that Mint. Trails Coffee has no
+            1.2 <strong>No Control Over Mints:</strong> Bitpoints does not issue
+            ecash and does not operate or control any Mint. The choice of any
+            Mint and any transaction or relationship you establish with that
+            Mint is solely between you and that Mint. Bitpoints has no
             involvement, responsibility, or liability in any such interaction.
           </p>
           <p>
-            1.3 <strong>No Funds Access:</strong> At no time does Trails Coffee
-            have custody, possession, or control of your rewards. Transactions
-            occur solely by your actions and through your chosen Mint. We do not
+            1.3 <strong>No Funds Access:</strong> At no time does Bitpoints have
+            custody, possession, or control of your rewards. Transactions occur
+            solely by your actions and through your chosen Mint. We do not
             monitor, verify, or facilitate transfers between you and any Mint or
             other parties.
           </p>
           <p>
-            1.4 <strong>Web Server Only:</strong> Trails Coffee does not operate
-            any backend services for the ecash protocol. We only provide the
+            1.4 <strong>Web Server Only:</strong> Bitpoints does not operate any
+            backend services for the ecash protocol. We only provide the
             client-side application code.
           </p>
           <p>
             1.5 <strong>Open Source Code:</strong> The application code is based
             on open source software, meaning it can be self-hosted and run by
-            third parties using different domains. Trails Coffee has no control
+            third parties using different domains. Bitpoints has no control
             over, and does not endorse or assume responsibility for, any
-            instances of the code running outside of the Trails Coffee Rewards
-            service. Your use of any such third-party instances is at your own
-            risk.
+            instances of the code running outside of the Bitpoints service. Your
+            use of any such third-party instances is at your own risk.
           </p>
           <p>
             1.6 <strong>Code Disclaimer:</strong> The open-source code is
@@ -99,18 +98,18 @@
             agree that you use the App and Services at your own risk and for
             your own account. You alone are fully responsible for selecting
             Mints, conducting transactions, and safeguarding your rewards and
-            secret values. Trails Coffee is not a party to and disclaims any
+            secret values. Bitpoints is not a party to and disclaims any
             responsibility for any agreements, terms, or disputes between you
             and any Mint.
           </p>
           <p>
-            2.2 <strong>No Partnership with Mints:</strong> Trails Coffee is not
+            2.2 <strong>No Partnership with Mints:</strong> Bitpoints is not
             affiliated with, endorsed by, or responsible for any Mint. We make
             no representations, warranties, or guarantees about any Mint's
             integrity, legality, liquidity, or functionality. Your relationship
             with any Mint, including the issuance, redemption, or valuation of
-            ecash, is solely a matter between you and that Mint. Trails Coffee
-            is not a party to any transaction between you and any Mint or third
+            ecash, is solely a matter between you and that Mint. Bitpoints is
+            not a party to any transaction between you and any Mint or third
             party. No agency, partnership, or joint venture relationship is
             formed by your use of the App.
           </p>
@@ -155,8 +154,8 @@
           <p><strong>6. Risks and Limitation of Liability</strong></p>
           <p>
             6.1 <strong>No Liability for Interactions with Mints:</strong>
-            Trails Coffee is not liable for any transactions, disputes, or
-            issues arising from your dealings with Mints.
+            Bitpoints is not liable for any transactions, disputes, or issues
+            arising from your dealings with Mints.
           </p>
           <p>
             6.2 <strong>Assumption of Risk:</strong> You acknowledge
@@ -165,7 +164,7 @@
           </p>
           <p>
             6.3 <strong>Waiver of Accountability:</strong> By using the App, you
-            waive any right to hold Trails Coffee accountable for any damages,
+            waive any right to hold Bitpoints accountable for any damages,
             losses, or disputes arising from your use of the App or Services.
           </p>
           <p>
@@ -175,9 +174,9 @@
           </p>
           <p>
             6.5 <strong>Limitation of Liability:</strong> TO THE FULLEST EXTENT
-            PERMITTED BY LAW, TRAILS COFFEE IS NOT LIABLE FOR INDIRECT,
-            INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT
-            OF OR RELATED TO THESE TERMS, THE APP, OR THE SERVICES.
+            PERMITTED BY LAW, BITPOINTS IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
+            SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR
+            RELATED TO THESE TERMS, THE APP, OR THE SERVICES.
           </p>
           <p>
             6.6 <strong>Maximum Liability:</strong> To the maximum extent
@@ -188,10 +187,10 @@
           </p>
           <p><strong>7. Indemnification and Release</strong></p>
           <p>
-            You agree to indemnify and hold harmless Trails Coffee and its
+            You agree to indemnify and hold harmless Bitpoints and its
             affiliates from claims arising out of your use of the App or
             Services. If you have a dispute with any Mint or third party, you
-            release Trails Coffee from all related claims.
+            release Bitpoints from all related claims.
           </p>
           <p><strong>8. Mediation and Dispute Resolution</strong></p>
           <p>

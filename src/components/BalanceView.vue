@@ -255,9 +255,9 @@ export default defineComponent({
   animation-duration: 0.3s;
 }
 
-/* Trails Coffee gradient for balance */
+/* Bitpoints gradient for balance */
 h3 strong {
-  background: linear-gradient(135deg, #6b4423 0%, #cd853f 100%);
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

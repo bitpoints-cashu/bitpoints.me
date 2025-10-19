@@ -101,7 +101,7 @@
 
     <!-- Nearby Contacts Dialog -->
     <q-dialog v-model="showNearbyDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px;">
+      <q-card style="width: 100%; max-width: 600px">
         <NearbyContactsDialog @close="showNearbyDialog = false" />
         <q-card-actions align="right">
           <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -113,7 +113,7 @@
 
     <!-- Nostr Contacts Dialog -->
     <q-dialog v-model="showContactsDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px;">
+      <q-card style="width: 100%; max-width: 600px">
         <NostrContactsDialog />
         <q-card-actions align="right">
           <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -125,7 +125,7 @@
 
     <!-- Favorite Requests Dialog -->
     <q-dialog v-model="showRequestsDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px;">
+      <q-card style="width: 100%; max-width: 600px">
         <FavoriteRequestsDialog />
         <q-card-actions align="right">
           <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -210,13 +210,15 @@
         <q-item v-if="npcEnabled">
           <div class="row">
             <div class="col-12 q-mb-sm">
-              <q-item-label caption class="text-weight-medium">Domain:</q-item-label>
+              <q-item-label caption class="text-weight-medium"
+                >Domain:</q-item-label
+              >
               <q-input
                 outlined
                 v-model="npcDomain"
                 dense
                 rounded
-                placeholder="trailscoffee.com"
+                placeholder="bitpoints.me"
                 @blur="updateNPCConnection"
               >
                 <template v-slot:prepend>
@@ -1862,7 +1864,7 @@
                 IMPORTANT NOTICE: THESE TERMS OF SERVICE INCLUDE A
                 MEDIATION-FIRST CLAUSE REQUIRING MEDIATION BEFORE ARBITRATION OR
                 LITIGATION. PLEASE READ THESE TERMS CAREFULLY. IF YOU DO NOT
-                AGREE, DO NOT USE TRAILS COFFEE REWARDS.
+                AGREE, DO NOT USE BITPOINTS.
               </strong>
             </p>
             <p>
@@ -1875,42 +1877,40 @@
             <p>
               These Terms of Service (these "Terms") constitute the entire
               agreement and understanding between you ("you" or "your") and
-              Trails Coffee ("Trails Coffee," "we," "us," or "our") regarding
-              your use of the Trails Coffee Rewards app and any related
-              applications, software, code, or services (collectively, the "App"
-              or "Services"). By accessing or using the App or Services, you
-              acknowledge that you have read, understand, and agree to be bound
-              by these Terms. If you do not agree, do not access or use the App
-              or Services.
+              Bitpoints ("Bitpoints," "we," "us," or "our") regarding your use
+              of the Bitpoints app and any related applications, software, code,
+              or services (collectively, the "App" or "Services"). By accessing
+              or using the App or Services, you acknowledge that you have read,
+              understand, and agree to be bound by these Terms. If you do not
+              agree, do not access or use the App or Services.
             </p>
             <p><strong>1. Nature of the Services</strong></p>
             <p>
-              1.1 <strong>Non-Custodial Web Application:</strong> Trails Coffee
-              provides a non-custodial web application ("rewards app") that is
+              1.1 <strong>Non-Custodial Web Application:</strong> Bitpoints
+              provides a non-custodial web application ("wallet app") that is
               executed entirely on your device. Our App merely makes available
               client-side code implementing the open-source ecash protocol. We
               do not run a server that holds your rewards or executes
               transactions on your behalf.
             </p>
             <p>
-              1.2 <strong>No Control Over Mints:</strong> Trails Coffee does not
+              1.2 <strong>No Control Over Mints:</strong> Bitpoints does not
               issue ecash and does not operate or control any Mint. The choice
               of any Mint and any transaction or relationship you establish with
-              that Mint is solely between you and that Mint. Trails Coffee has
-              no involvement, responsibility, or liability in any such
-              interaction.
+              that Mint is solely between you and that Mint. Bitpoints has no
+              involvement, responsibility, or liability in any such interaction.
             </p>
             <p>
-              1.3 <strong>No Funds Access:</strong> At no time does Trails
-              Coffee have custody, possession, or control of your rewards.
-              Transactions occur solely by your actions and through your chosen
-              Mint. We do not monitor, verify, or facilitate transfers between
-              you and any Mint or other parties.
+              1.3 <strong>No Funds Access:</strong> At no time does Bitpoints
+              have custody, possession, or control of your rewards. Transactions
+              occur solely by your actions and through your chosen Mint. We do
+              not monitor, verify, or facilitate transfers between you and any
+              Mint or other parties.
             </p>
             <p>
-              1.4 <strong>Web Server Only:</strong> Trails Coffee does not
-              operate any backend services for the ecash protocol. We only
-              provide the client-side application code.
+              1.4 <strong>Web Server Only:</strong> Bitpoints does not operate
+              any backend services for the ecash protocol. We only provide the
+              client-side application code.
             </p>
             <p><strong>2. Use of the Services</strong></p>
             <p>
@@ -1932,7 +1932,7 @@
             </p>
             <p><strong>4. Limitation of Liability</strong></p>
             <p>
-              IN NO EVENT SHALL TRAILS COFFEE BE LIABLE FOR ANY INDIRECT,
+              IN NO EVENT SHALL BITPOINTS BE LIABLE FOR ANY INDIRECT,
               INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING
               WITHOUT LIMITATION, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER
               INTANGIBLE LOSSES, RESULTING FROM YOUR USE OF THE SERVICES.
@@ -1940,7 +1940,7 @@
             <p><strong>5. Contact Information</strong></p>
             <p>
               If you have any questions about these Terms, please contact us at
-              info@trailscoffee.com
+              info@bitpoints.me
             </p>
           </div>
         </div>
@@ -1977,7 +1977,12 @@
         </div>
       </q-card-section>
       <q-card-actions align="right">
-        <q-btn flat label="Copy Address" color="primary" @click="copyText(npcAddress)" />
+        <q-btn
+          flat
+          label="Copy Address"
+          color="primary"
+          @click="copyText(npcAddress)"
+        />
         <q-btn flat label="Close" color="primary" v-close-popup />
       </q-card-actions>
     </q-card>

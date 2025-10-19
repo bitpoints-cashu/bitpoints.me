@@ -121,16 +121,16 @@ export default {
 }
 h2 {
   font-weight: bold;
-  color: #6b4423; /* Trails Coffee brown */
+  color: #FF6B35; /* Bitpoints orange */
 }
 h3 {
-  color: #6b4423; /* Trails Coffee brown */
+  color: #FF6B35; /* Bitpoints orange */
 }
 h6 {
   font-weight: bold;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  color: #6b4423; /* Trails Coffee brown */
+  color: #FF6B35; /* Bitpoints orange */
 }
 p {
   font-size: large;

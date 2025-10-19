@@ -52,7 +52,10 @@
         </div>
 
         <!-- Bluetooth Nearby Sending (Android only) -->
-        <div v-if="isNativeApp" class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
+        <div
+          v-if="isNativeApp"
+          class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
+        >
           <q-btn
             rounded
             outline
@@ -73,7 +76,11 @@
           >
             <q-icon name="contacts" size="1.2rem" class="q-mr-sm" />
             <span>Contacts</span>
-            <q-badge v-if="favoritesStore.pendingCount > 0" color="red" floating>
+            <q-badge
+              v-if="favoritesStore.pendingCount > 0"
+              color="red"
+              floating
+            >
               {{ favoritesStore.pendingCount }}
             </q-badge>
           </q-btn>
@@ -96,7 +103,7 @@
 
         <!-- Nearby Contacts Dialog -->
         <q-dialog v-model="showNearbyDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px;">
+          <q-card style="width: 100%; max-width: 600px">
             <NearbyContactsDialog @close="showNearbyDialog = false" />
             <q-card-actions align="right">
               <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -108,7 +115,7 @@
 
         <!-- Nostr Contacts Dialog -->
         <q-dialog v-model="showContactsDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px;">
+          <q-card style="width: 100%; max-width: 600px">
             <NostrContactsDialog />
             <q-card-actions align="right">
               <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -120,7 +127,7 @@
 
         <!-- Favorite Requests Dialog -->
         <q-dialog v-model="showRequestsDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px;">
+          <q-card style="width: 100%; max-width: 600px">
             <FavoriteRequestsDialog />
             <q-card-actions align="right">
               <q-btn flat round icon="close" color="grey" v-close-popup>
@@ -214,7 +221,7 @@
     <div class="footer-section">
       <div class="row justify-center">
         <div class="col-12 col-sm-11 col-md-8 text-center">
-          <div class="trails-footer">
+          <div class="credits-footer">
             <p class="q-mb-xs text-caption text-grey-5">
               Built with <q-icon name="favorite" color="red" size="xs" /> using
               the open-source
@@ -335,17 +342,17 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.trails-footer {
+.credits-footer {
   padding: 0.5rem 0;
 }
 
-.trails-footer a {
+.credits-footer a {
   color: #6b4423 !important;
   text-decoration: none;
   transition: opacity 0.3s ease;
 }
 
-.trails-footer a:hover {
+.credits-footer a:hover {
   opacity: 0.8;
   text-decoration: underline;
 }
@@ -482,10 +489,13 @@ export default {
     isNativeApp: function () {
       // @ts-ignore
       // Electron should be treated as desktop, not native
-      if (window?.Capacitor && typeof window.Capacitor.getPlatform === 'function') {
+      if (
+        window?.Capacitor &&
+        typeof window.Capacitor.getPlatform === "function"
+      ) {
         const platform = window.Capacitor.getPlatform();
         // Only Android and iOS are truly native
-        return platform === 'android' || platform === 'ios';
+        return platform === "android" || platform === "ios";
       }
       return false;
     },
@@ -552,7 +562,11 @@ export default {
       "setProofs",
       "getKeysForKeyset",
     ]),
-    ...mapActions(useWorkersStore, ["clearAllWorkers", "invoiceCheckWorker", "lightningAddressCheckWorker"]),
+    ...mapActions(useWorkersStore, [
+      "clearAllWorkers",
+      "invoiceCheckWorker",
+      "lightningAddressCheckWorker",
+    ]),
     ...mapActions(useTokensStore, ["setTokenPaid"]),
     ...mapActions(useWalletStore, [
       "setInvoicePaid",
@@ -598,13 +612,15 @@ export default {
       return token.getMint(decoded_token);
     },
     autoClaimPendingNostrTokens: async function () {
-      console.log('🔍 Checking for pending Nostr tokens to auto-claim...');
+      console.log("🔍 Checking for pending Nostr tokens to auto-claim...");
       const tokensStore = useTokensStore();
       const receiveStore = useReceiveTokensStore();
 
       // Check if history is initialized
       if (!tokensStore.history || !Array.isArray(tokensStore.history)) {
-        console.log('ℹ️ Tokens history not yet initialized, skipping auto-claim');
+        console.log(
+          "ℹ️ Tokens history not yet initialized, skipping auto-claim"
+        );
         return;
       }
 
@@ -617,12 +633,18 @@ export default {
 
       for (const pendingToken of pendingTokens) {
         try {
-          console.log(`💎 Auto-claiming pending token: ${pendingToken.amount} ${pendingToken.unit}`);
+          console.log(
+            `💎 Auto-claiming pending token: ${pendingToken.amount} ${pendingToken.unit}`
+          );
           receiveStore.receiveData.tokensBase64 = pendingToken.token;
           const success = await receiveStore.receiveIfDecodes();
           if (success) {
-            console.log(`✅ Auto-claimed ${pendingToken.amount} ${pendingToken.unit}`);
-            notifySuccess(`💰 Auto-claimed ${pendingToken.amount} ${pendingToken.unit} from Nostr!`);
+            console.log(
+              `✅ Auto-claimed ${pendingToken.amount} ${pendingToken.unit}`
+            );
+            notifySuccess(
+              `💰 Auto-claimed ${pendingToken.amount} ${pendingToken.unit} from Nostr!`
+            );
           }
         } catch (error) {
           console.warn(`⚠️ Failed to auto-claim token:`, error);
@@ -630,7 +652,7 @@ export default {
       }
 
       if (pendingTokens.length > 0) {
-        console.log('✅ Finished auto-claiming pending tokens');
+        console.log("✅ Finished auto-claiming pending tokens");
       }
     },
     //
@@ -798,12 +820,14 @@ export default {
         if (this.isNativeApp) {
           // Only auto-start for native mobile apps
           await bluetoothStore.startService();
-          console.log('Bluetooth mesh service auto-started (native app)');
+          console.log("Bluetooth mesh service auto-started (native app)");
         } else {
-          console.log('💡 Bluetooth ready. Go to Settings → Bluetooth Mesh and click "Connect Device" to enable.');
+          console.log(
+            '💡 Bluetooth ready. Go to Settings → Bluetooth Mesh and click "Connect Device" to enable.'
+          );
         }
       } catch (e) {
-        console.error('Failed to initialize Bluetooth:', e);
+        console.error("Failed to initialize Bluetooth:", e);
       }
     },
     equalizeButtonWidths: function () {
@@ -1023,7 +1047,7 @@ export default {
     }
 
     // Subscribe to NIP-04 DMs for Nostr contacts feature
-    console.log('🔔 Subscribing to NIP-04 DMs for contacts...');
+    console.log("🔔 Subscribing to NIP-04 DMs for contacts...");
     this.subscribeToNip04DirectMessages();
 
     // Auto-claim any pending Nostr tokens from history

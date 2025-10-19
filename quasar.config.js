@@ -45,7 +45,7 @@ module.exports = configure(function (/* ctx */) {
     boot: ["base", "global-components", "cashu", "i18n"],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
-    css: ["app.scss", "base.scss", "trails-branding.scss"],
+    css: ["app.scss", "base.scss", "bitpoints-branding.scss"],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [

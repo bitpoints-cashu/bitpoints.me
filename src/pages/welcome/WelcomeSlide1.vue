@@ -4,8 +4,8 @@
     <div class="text-center">
       <transition appear enter-active-class="animated bounce">
         <img
-          src="~assets/trails-logo.png"
-          alt="Trails Coffee"
+          src="~assets/bitpoints-logo.png"
+          alt="Bitpoints"
           class="q-my-lg"
           style="max-width: 250px; height: auto"
         />

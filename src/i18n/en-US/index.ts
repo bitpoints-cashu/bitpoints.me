@@ -5,7 +5,7 @@ export default {
     },
     actions: {
       add_mint: {
-        label: "Add Coffee Shop",
+        label: "Add Mint",
       },
       cancel: {
         label: "Cancel",
@@ -43,7 +43,7 @@ export default {
     },
     inputs: {
       mint_url: {
-        label: "Coffee Shop URL",
+        label: "Mint URL",
       },
     },
   },
@@ -482,7 +482,7 @@ export default {
   terms_legal: {
     terms: {
       title: "Terms of Service",
-      description: "View the terms of service for Trails Coffee Rewards.",
+      description: "View the terms of service for Bitpoints.",
       button: "View Terms",
     },
   },
@@ -516,12 +516,12 @@ export default {
         label: "Invoices",
       },
       mints: {
-        label: "Trails Coffee",
+        label: "Bitpoints",
       },
     },
     install: {
       text: "Install",
-      tooltip: "Install Trails Coffee Rewards",
+      tooltip: "Install Bitpoints",
     },
   },
   AlreadyRunning: {
@@ -544,7 +544,7 @@ export default {
   },
   BalanceView: {
     mintUrl: {
-      label: "Trails Coffee",
+      label: "Bitpoints",
     },
     mintBalance: {
       label: "Rewards Balance",
@@ -568,21 +568,21 @@ export default {
     },
   },
   WelcomeSlide1: {
-    title: "Welcome to Trails Coffee Rewards",
-    text: "Your personal rewards account for Trails Coffee. Receive and manage your coffee rewards and gift cards securely.",
+    title: "Welcome to Bitpoints",
+    text: "Your personal Bitcoin-backed rewards wallet. Receive and manage your appreciating rewards securely.",
     actions: {
       more: {
         label: "Learn about rewards",
       },
     },
     p1: {
-      text: "This app uses ecash technology to securely manage your Trails Coffee rewards and gift cards. Your rewards are private and secure.",
+      text: "This app uses ecash technology to securely manage your Bitcoin-backed rewards. Your rewards are private and secure.",
       link: {
         text: "ecash.space",
       },
     },
     p2: {
-      text: "This app is connected to Trails Coffee's reward system. You can receive rewards from Trails Coffee and share them with friends.",
+      text: "This app is connected to the Cashu ecash network. You can receive rewards and share them with friends via Bluetooth or Nostr.",
     },
     p3: {
       text: "Your rewards are stored securely on your device. If you delete your browser data without a backup, you will lose your rewards.",

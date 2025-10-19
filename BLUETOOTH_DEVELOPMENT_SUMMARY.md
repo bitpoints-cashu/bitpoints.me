@@ -9,7 +9,8 @@
 
 ## 🎯 Project Objective
 
-Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu wallet to enable:
+Integrate bitchat's Bluetooth mesh networking stack into the Bitpoints wallet to enable:
+
 1. **Offline ecash token transfers** via Bluetooth
 2. **Peer-to-peer discovery** without internet
 3. **Mesh relay capability** for extended range
@@ -22,12 +23,14 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ### ✅ Completed (85%)
 
 #### 1. **Build System Integration**
+
 - ✅ Fixed 29 Kotlin compilation errors
 - ✅ Resolved package dependencies (bitchat → cashu.me)
 - ✅ Updated Gradle configuration
 - ✅ Added required permissions to AndroidManifest
 
 #### 2. **Core Bluetooth Mesh Networking**
+
 - ✅ BluetoothMeshService fully integrated
 - ✅ Peer discovery & connection management working
 - ✅ BLE GATT server & client operational
@@ -39,6 +42,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - ✅ Store-and-forward messaging
 
 #### 3. **Ecash Integration**
+
 - ✅ BluetoothEcashService created
 - ✅ EcashMessage data model
 - ✅ Custom packet type (0xE1) handler
@@ -46,6 +50,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - ✅ Token serialization via proofsStore
 
 #### 4. **Frontend Integration**
+
 - ✅ Capacitor plugin bridge (BluetoothEcashPlugin)
 - ✅ TypeScript interface definitions
 - ✅ Bluetooth store (Pinia)
@@ -54,6 +59,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - ✅ Bluetooth enable/disable controls
 
 #### 5. **Transaction History Integration** ⭐
+
 - ✅ All Bluetooth sends saved to history
 - ✅ QR code generation for each token
 - ✅ 📡 icon indicator for Bluetooth sends
@@ -61,6 +67,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - ✅ Works with ANY Cashu wallet
 
 #### 6. **Documentation**
+
 - ✅ BLUETOOTH_IMPLEMENTATION_STATUS.md
 - ✅ BLUETOOTH_MESH_PROGRESS.md
 - ✅ BLUETOOTH_FINAL_STATUS.md
@@ -72,9 +79,11 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ### ⚠️ Known Issues (15%)
 
 #### 1. **Frontend-Native Call Chain** 🔴 CRITICAL
+
 **Issue**: `bluetoothStore.sendToken()` not invoking native `BluetoothEcash.sendToken()`
 
 **Evidence**:
+
 - Frontend logs: "Token sent: [object Object]" ✅
 - Transaction history created ✅
 - Native logs: NO "🚀 sendToken called" ❌
@@ -85,6 +94,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 **Location**: `src/stores/bluetooth.ts` → `BluetoothEcash.sendToken()`
 
 #### 2. **Receive Notification Handler**
+
 **Issue**: No UI notification when ecash packet arrives
 
 **Status**: Infrastructure ready, needs frontend event listener
@@ -92,11 +102,13 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 **Location**: `src/stores/bluetooth.ts` → `handleEcashReceived()`
 
 #### 3. **Auto-Claim Functionality**
+
 **Issue**: Received tokens require manual claim
 
 **Status**: Basic structure exists, needs testing
 
 #### 4. **Multi-Device Testing**
+
 **Status**: Only tested with 2 devices, mesh relay untested
 
 ---
@@ -108,20 +120,24 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 #### Core Mesh Networking
 
 1. **PowerManager.kt**
+
    - Changed: Flow-based connection limits → direct properties
    - Reason: Simplified access pattern
    - Lines: 40-60
 
 2. **BluetoothConnectionManager.kt**
+
    - Changed: Removed Flow collection for limits
    - Added: Direct powerManager property access
    - Lines: 150-180
 
 3. **BluetoothConnectionTracker.kt**
+
    - Changed: Connection limit checks use PowerManager directly
    - Lines: 80-100
 
 4. **DebugSettingsManager.kt**
+
    - Added: Stub methods for logging
      - `logPeerConnection()`
      - `logPeerDisconnection()`
@@ -131,12 +147,14 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
    - Lines: 45-90
 
 5. **BluetoothMeshService.kt**
+
    - Added: `handleCustomPacket()` delegate method
    - Added: `didReceiveCustomPacket()` interface method
    - Purpose: Route custom packet types (like ecash) to app layer
    - Lines: 484-488, 1210-1212
 
 6. **PacketProcessor.kt**
+
    - Added: Custom packet handling in message routing
    - Added: `handleCustomPacket()` to delegate interface
    - Changed: Unknown packet types → forward to custom handler
@@ -149,6 +167,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 #### Ecash-Specific
 
 8. **BluetoothEcashService.kt**
+
    - Changed: Packet creation to include recipientID
    - Added: `hexToBytes()` helper function
    - Added: `didReceiveCustomPacket()` implementation
@@ -156,6 +175,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
    - Lines: 172-182, 97-105, 312-325
 
 9. **BluetoothEcashPlugin.kt**
+
    - Added: Enhanced logging (🚀 📦 emojis)
    - Added: `isBluetoothEnabled()` method
    - Added: `requestBluetoothEnable()` method
@@ -170,17 +190,20 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 #### Stub Implementations
 
 11. **FileUtils.kt** (NEW FILE)
+
     - Created: Stub for bitchat file utilities
     - Methods: `saveIncomingFile()`, `messageTypeForMime()`
     - Reason: Remove bitchat dependency
     - Lines: All
 
 12. **FavoritesPersistenceService.kt**
+
     - Added: `FavoriteStatus` data class
     - Changed: `getFavoriteStatus()` return type
     - Lines: 25-30, 50-55
 
 13. **MessageHandler.kt**
+
     - Changed: Import from stub FileUtils
     - Lines: 15
 
@@ -193,12 +216,14 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 #### Core Integration
 
 15. **capacitor.config.ts**
+
     - Changed: `webDir` from `dist/pwa/` → `dist/spa/`
     - Added: `android.includePlugins: ["BluetoothEcash"]`
     - Critical: Correct web asset path
     - Lines: 6, 8-10
 
 16. **src/plugins/bluetooth-ecash.ts**
+
     - Added: `isBluetoothEnabled()` interface
     - Added: `requestBluetoothEnable()` interface
     - Purpose: TypeScript definitions for new methods
@@ -214,6 +239,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 #### UI Components
 
 18. **src/components/NearbyContactsDialog.vue**
+
     - Added: `useTokensStore` import
     - Added: Transaction history integration
     - Changed: `sendToPeers()` → adds to history
@@ -223,6 +249,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
     - Lines: 120-127, 217-225, 285-292
 
 19. **src/components/EcashClaimNotification.vue**
+
     - Purpose: Display unclaimed Bluetooth tokens
     - Features: Claim button, batch claim
     - Status: UI ready, needs backend integration
@@ -236,14 +263,17 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ### Configuration - 4 Files Modified
 
 21. **android/app/build.gradle**
+
     - Updated: Dependencies for Bluetooth
     - Lines: Various
 
 22. **android/build.gradle**
+
     - Updated: Project-level dependencies
     - Lines: Various
 
 23. **android/capacitor.settings.gradle**
+
     - Updated: Capacitor plugin configuration
     - Lines: Various
 
@@ -254,17 +284,20 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ### Data Models
 
 25. **EcashMessage.kt**
+
     - Structure: Data class for ecash packets
     - Fields: sender, amount, unit, cashuToken, mint, memo
     - Methods: `toBinaryPayload()`, `fromBinaryPayload()`
     - Lines: All
 
 26. **DeliveryStatus.kt**
+
     - Types: Sending, Sent, Delivered, Claimed, Failed
     - Purpose: Track token delivery state
     - Lines: All
 
 27. **PeerManager.kt**
+
     - Modified: Various peer management methods
     - Lines: Various
 
@@ -285,13 +318,15 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ## 🧪 Testing Performed
 
 ### Device Configuration
-- **Device 1**: "Trails User" (d7f5fb8535f74965) - Has tokens
-- **Device 2**: "Trails User" (b108372f3e9f84a3) - Receiving device
+
+- **Device 1**: "Bitpoints User" (d7f5fb8535f74965) - Has tokens
+- **Device 2**: "Bitpoints User" (b108372f3e9f84a3) - Receiving device
 - **Device 3**: "jp" (f904484fb0255d7f) - bitchat user
 
 ### Tests Completed
 
 #### ✅ Peer Discovery (PASS)
+
 - Device 1 discovers Device 2: ✅
 - Device 2 discovers Device 1: ✅
 - Device discovers bitchat user "jp": ✅
@@ -299,6 +334,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - Connection status indicators: ✅
 
 #### ✅ Transaction History (PASS)
+
 - Send creates history entry: ✅
 - 📡 Icon displays: ✅
 - QR code generated: ✅
@@ -306,6 +342,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - Works with external Cashu wallets: ✅
 
 #### ⚠️ Token Transmission (FAIL)
+
 - Frontend creates token: ✅
 - Frontend calls sendToken: ❌
 - Native receives call: ❌
@@ -313,6 +350,7 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 - Packet arrives at Device 2: ❌
 
 #### 🔶 Receive Flow (UNTESTED)
+
 - Packet reception: Not tested (no packets sent)
 - Notification display: Not tested
 - Claim functionality: Not tested
@@ -321,17 +359,21 @@ Integrate bitchat's Bluetooth mesh networking stack into the Trails Coffee Cashu
 ### Log Analysis
 
 **Device 1 (Sender)**:
+
 ```
 10-15 21:29:20.221 I Capacitor/Console: Token sent: [object Object]
 ```
+
 - Frontend thinks it sent ✅
 - No native sendToken call ❌
 
 **Device 2 (Receiver)**:
+
 ```
 PacketProcessor: Processing packet type 1 (ANNOUNCE)
 PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 ```
+
 - Receives ANNOUNCE packets ✅
 - Receives SYNC packets ✅
 - NO ecash packets (type 0xE1) ❌
@@ -347,6 +389,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Steps**:
 
 1. **Add Debug Logging** (15 minutes)
+
    ```typescript
    // In src/stores/bluetooth.ts
    async sendToken(options: SendTokenOptions): Promise<string | null> {
@@ -367,6 +410,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    ```
 
 2. **Test Send Operation** (10 minutes)
+
    - Rebuild web assets: `npm run build`
    - Sync to Android: `npx cap sync android`
    - Install on device
@@ -374,6 +418,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    - Check console logs for [1], [2], [3], [4]
 
 3. **Identify Break Point** (varies)
+
    - If [1] missing: Frontend not calling store method
    - If [2] missing: Early return in try block
    - If [3] missing: Native call failing/hanging
@@ -388,6 +433,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Expected Outcome**: Native `sendToken` logs appear with 🚀 emoji
 
 **Files to Modify**:
+
 - `src/stores/bluetooth.ts`
 - Possibly `src/components/NearbyContactsDialog.vue`
 
@@ -402,6 +448,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Steps**:
 
 1. **Monitor Both Devices** (setup)
+
    ```bash
    # Terminal 1 - Device 1 (Sender)
    adb -s DEVICE1_SERIAL logcat -s BluetoothEcashService:* BluetoothEcashPlugin:*
@@ -411,6 +458,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    ```
 
 2. **Send Test Token** (5 minutes)
+
    - Device 1: Send 1 sat to Device 2
    - Watch Device 1 logs for:
      ```
@@ -434,6 +482,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Expected Outcome**: Device 2 receives type 0xE1 packet
 
 **Files to Check**:
+
 - `BluetoothEcashService.kt` (packet creation)
 - `PacketProcessor.kt` (custom packet routing)
 - `BluetoothMeshService.kt` (delegate forwarding)
@@ -449,16 +498,19 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Steps**:
 
 1. **Verify Native Handler** (5 minutes)
+
    ```kotlin
    // In BluetoothEcashService.kt - handleIncomingEcashPacket()
    Log.i(TAG, "✅ Ecash token received: ${message.amount} ${message.unit}")
    delegate?.onEcashReceived(message)
    ```
+
    - Add log if not present
    - Verify delegate is set
    - Verify method is called
 
 2. **Check Plugin Event** (10 minutes)
+
    ```kotlin
    // In BluetoothEcashPlugin.kt
    override fun onEcashReceived(message: EcashMessage) {
@@ -466,17 +518,20 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
        notifyListeners("ecashReceived", jsObjectFromMessage(message))
    }
    ```
+
    - Verify event emission
    - Check event name matches frontend listener
 
 3. **Verify Frontend Listener** (10 minutes)
+
    ```typescript
    // In src/stores/bluetooth.ts or WalletPage.vue
-   BluetoothEcash.addListener('ecashReceived', (data) => {
-     console.log('📬 Ecash received event:', data);
+   BluetoothEcash.addListener("ecashReceived", (data) => {
+     console.log("📬 Ecash received event:", data);
      bluetoothStore.handleEcashReceived(data);
    });
    ```
+
    - Check listener is registered on app start
    - Verify event name matches native emission
    - Check `handleEcashReceived()` implementation
@@ -490,6 +545,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Expected Outcome**: Notification banner with "Received X sats" + Claim button
 
 **Files to Modify**:
+
 - `BluetoothEcashPlugin.kt` (if event emission missing)
 - `src/stores/bluetooth.ts` (listener registration)
 - `src/components/EcashClaimNotification.vue` (UI display)
@@ -505,11 +561,13 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Steps**:
 
 1. **Review Current Implementation** (5 minutes)
+
    - Check `src/stores/bluetooth.ts` → `claimToken()`
    - Verify it calls `receiveStore.receiveIfDecodes()`
    - Check success/failure handling
 
 2. **Test Claim Flow** (10 minutes)
+
    - Receive token on Device 2
    - Tap "Claim" button
    - Monitor logs for:
@@ -521,6 +579,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    - Verify balance increases
 
 3. **Implement Auto-Claim** (optional, 15 minutes)
+
    ```typescript
    // In handleEcashReceived()
    if (navigator.onLine) {
@@ -539,6 +598,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Expected Outcome**: Token automatically added to wallet or manual claim works
 
 **Files to Modify**:
+
 - `src/stores/bluetooth.ts` (claim logic)
 - `src/components/EcashClaimNotification.vue` (claim button)
 
@@ -551,11 +611,13 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Prerequisites**: Phases 1-4 complete
 
 **Setup**:
+
 - Device A: Has tokens (sender)
 - Device B: Middle relay (not in range of C)
 - Device C: Final recipient (not in range of A)
 
 **Test Cases**:
+
 1. A → C via B relay (should work)
 2. C receives notification (should work)
 3. C claims token (should work)
@@ -571,14 +633,16 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 **Goal**: Simplify protocol for better interoperability
 
 **Rationale**:
+
 - Current binary approach is complex
-- Only works between Trails users
+- Only works between Bitpoints users
 - Text messages work with bitchat immediately
 - Transaction history already provides backup
 
 **Implementation** (2-4 hours):
 
 1. **Modify Send Logic**
+
    ```kotlin
    // Instead of custom 0xE1 packet
    fun sendTokenAsText(token: String, peerID: String) {
@@ -593,6 +657,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    ```
 
 2. **Handle Text Reception**
+
    ```kotlin
    override fun didReceiveMessage(message: BitchatMessage) {
        if (message.content.startsWith("cashu")) {
@@ -608,6 +673,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
    ```
 
 3. **Benefits**:
+
    - ✅ Works with bitchat users
    - ✅ Works with any Bluetooth messaging app
    - ✅ Simpler debugging
@@ -655,12 +721,14 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 ### What Worked Well
 
 1. **Transaction History Integration** ⭐
+
    - Unexpected benefit: Perfect fallback mechanism
    - QR codes ensure 100% reliability
    - Works with any Cashu wallet
    - Users already understand QR scanning
 
 2. **Systematic Debugging**
+
    - Fixed 29 build errors methodically
    - Emoji logs (🚀📦) made tracking easier
    - Device-specific logging helped isolate issues
@@ -673,11 +741,13 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 ### Challenges Encountered
 
 1. **Complex Call Chain**
+
    - Frontend → Store → Capacitor → Native
    - Silent failures hard to debug
    - Need more intermediate logging
 
 2. **Device Time Differences**
+
    - Caused initial confusion in logs
    - Learned to check device clocks
    - Timestamp validation commented out (intentional)
@@ -690,6 +760,7 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 ### Recommendations
 
 1. **For Future Integration Projects**:
+
    - Add extensive logging from day 1
    - Test each layer independently
    - Consider simpler approaches first
@@ -708,18 +779,21 @@ PacketProcessor: Processing packet type 33 (REQUEST_SYNC)
 ### Key Files
 
 **Android**:
+
 - `android/app/src/main/java/me/cashu/wallet/BluetoothEcashService.kt` - Main service
 - `android/app/src/main/java/me/cashu/wallet/BluetoothEcashPlugin.kt` - Capacitor bridge
 - `android/app/src/main/java/me/cashu/wallet/mesh/BluetoothMeshService.kt` - Mesh networking
 - `android/app/src/main/java/me/cashu/wallet/mesh/PacketProcessor.kt` - Packet routing
 
 **Frontend**:
+
 - `src/stores/bluetooth.ts` - State management
 - `src/components/NearbyContactsDialog.vue` - Send UI
 - `src/components/EcashClaimNotification.vue` - Receive UI
 - `src/plugins/bluetooth-ecash.ts` - TypeScript interface
 
 **Documentation**:
+
 - `BLUETOOTH_IMPLEMENTATION_STATUS.md` - Technical status
 - `BLUETOOTH_FINAL_STATUS.md` - Analysis & recommendations
 - `BLUETOOTH_TESTING_GUIDE.md` - Test procedures
@@ -742,7 +816,7 @@ The Bluetooth mesh integration is **85% complete** with the foundational network
 
 ### Key Achievement
 
-**Transaction History + QR Codes** = Production-ready offline ecash transfer solution that works with ANY Cashu wallet, not just Trails users.
+**Transaction History + QR Codes** = Production-ready offline ecash transfer solution that works with ANY Cashu wallet, not just Bitpoints users.
 
 ### Critical Path
 
@@ -751,6 +825,7 @@ The single blocking issue is the **frontend-to-native call chain** for `sendToke
 ### Alternative Path
 
 If the binary protocol proves too complex, switching to **text-based tokens** would provide:
+
 - Faster time to market
 - Broader compatibility (bitchat, any BT app)
 - Simpler debugging
@@ -769,7 +844,3 @@ If the binary protocol proves too complex, switching to **text-based tokens** wo
 **Commit**: `f4a584d`
 **Ready for**: Beta testing with debugging support
 **Next Milestone**: `bluetooth-mesh-beta-v0.2` - Full token delivery working
-
-
-
-

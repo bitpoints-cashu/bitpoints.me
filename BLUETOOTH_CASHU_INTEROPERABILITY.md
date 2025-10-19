@@ -10,28 +10,32 @@ This implementation uses **plain TEXT messaging** to transfer Cashu tokens via B
 
 ## ✅ Confirmed Working Integrations
 
-### Trails Coffee Rewards App ↔ Trails Coffee Rewards App
+### Bitpoints ↔ Bitpoints
+
 - ✅ Bidirectional transfers
 - ✅ Peer discovery
 - ✅ Transaction history
 - ✅ QR code backup
 - ✅ Auto-claim when online
 
-### Trails Coffee Rewards App ↔ bitchat
-- ✅ Send from Trails → bitchat
+### Bitpoints ↔ bitchat
+
+- ✅ Send from Bitpoints → bitchat
 - ✅ Receive in bitchat as text message
 - ✅ Copy/paste token to claim
 
 ### Universal Compatibility (Theory)
+
 Any Cashu wallet supporting Bluetooth text messaging:
+
 - ✅ eNuts (if Bluetooth messaging added)
-- ✅ Minibits (if Bluetooth messaging added)
 - ✅ Cashu.me web wallet (with Bluetooth API)
 - ✅ Any custom Cashu implementation
 
 ## 🔧 Technical Implementation
 
 ### Protocol: Plain TEXT
+
 ```
 Message Format (Simple):
 cashuBo2FteB5odHRwczovL2VjYXNoLnRyYWlsc2NvZmZlZS5j...
@@ -45,12 +49,14 @@ From: npub1abc...
 ```
 
 ### Why Plain TEXT?
+
 1. **Bearer Tokens**: Cashu tokens are already bearer tokens (possession = ownership)
 2. **No Additional Encryption Needed**: Token itself is the authentication
 3. **Maximum Compatibility**: Works with any text-capable Bluetooth app
 4. **Simple Integration**: Any app can parse and handle Cashu tokens
 
 ### Security Model
+
 - **Cashu Protocol Security**: Blind signatures prevent mint fraud
 - **Bearer Token Security**: Token holder can claim (like cash)
 - **Bluetooth Security**: BLE pairing and encryption at transport layer
@@ -58,9 +64,10 @@ From: npub1abc...
 
 ## 📱 Integration Guide for Other Wallets
 
-### To Add Trails-Compatible Bluetooth to Your Cashu Wallet:
+### To Add Bitpoints-Compatible Bluetooth to Your Cashu Wallet:
 
 #### 1. Send Tokens
+
 ```typescript
 // Send Cashu token as plain text via Bluetooth
 const cashuToken = "cashuBo2Ft..."; // Your serialized token
@@ -68,6 +75,7 @@ await bluetooth.sendTextMessage(cashuToken, targetDeviceId);
 ```
 
 #### 2. Receive Tokens
+
 ```typescript
 // Listen for incoming text messages
 bluetooth.onMessage((message: string) => {
@@ -84,11 +92,11 @@ bluetooth.onMessage((message: string) => {
       token,
       amount: metadata?.amount,
       memo: metadata?.memo,
-      from: metadata?.from
+      from: metadata?.from,
     });
 
     // Notify user
-    showNotification(`Received ${metadata?.amount || '?'} sats via Bluetooth!`);
+    showNotification(`Received ${metadata?.amount || "?"} sats via Bluetooth!`);
 
     // Auto-claim if online
     if (navigator.onLine) {
@@ -99,6 +107,7 @@ bluetooth.onMessage((message: string) => {
 ```
 
 #### 3. Claim Tokens
+
 ```typescript
 // Standard Cashu claim process
 async function claimToken(token: string) {
@@ -123,15 +132,18 @@ async function claimToken(token: string) {
 ## 🔄 Bluetooth Mesh Protocol Compatibility
 
 ### Works with bitchat Bluetooth Mesh
+
 This implementation uses the **bitchat Bluetooth mesh protocol**:
+
 - Standard MESSAGE packet type (type 2)
 - Ed25519 signatures for identity verification (optional for TEXT)
 - Noise protocol support (optional, not required for Cashu)
 - Multi-hop mesh relay capability
 
 ### Message Type: `MessageType.MESSAGE` (type 2)
+
 ```kotlin
-// Trails sends using standard MESSAGE type
+// Bitpoints sends using standard MESSAGE type
 val packet = BitchatPacket(
     version = 1u,
     type = MessageType.MESSAGE.value, // type 2
@@ -146,6 +158,7 @@ val packet = BitchatPacket(
 ## 🚀 Future Enhancements
 
 ### Possible Improvements:
+
 1. **NFC Support**: Tap-to-transfer tokens
 2. **QR Code Hybrid**: Fallback to QR if Bluetooth fails
 3. **Multi-hop Relay**: Route tokens through mesh network
@@ -154,6 +167,7 @@ val packet = BitchatPacket(
 6. **Batch Transfers**: Send multiple tokens in one message
 
 ### Protocol Extensions:
+
 - **Token Request**: Request specific amount from peer
 - **Split Payments**: Collaborative payments from multiple peers
 - **Token Exchange**: Atomic swap between different mints
@@ -161,6 +175,7 @@ val packet = BitchatPacket(
 ## 📊 Performance Characteristics
 
 ### Measured Performance:
+
 - **Peer Discovery**: ~2-5 seconds
 - **Token Transfer**: ~200-500ms (local)
 - **Claim Time**: 1-3 seconds (depends on mint)
@@ -168,6 +183,7 @@ val packet = BitchatPacket(
 - **Throughput**: ~1 transaction per second
 
 ### Battery Impact:
+
 - **Idle Scanning**: ~2-5% per hour
 - **Active Transfer**: <1% per transaction
 - **Background Service**: ~5-10% per day
@@ -175,12 +191,14 @@ val packet = BitchatPacket(
 ## 🔐 Security Considerations
 
 ### Trust Model:
+
 1. **Mint Trust**: Users must trust the mint (same as regular Cashu)
 2. **Peer Identity**: Optional Ed25519 verification via bitchat protocol
 3. **Token Validity**: Validated on first claim attempt
 4. **Double-Spend Protection**: Handled by mint
 
 ### Attack Vectors & Mitigations:
+
 1. **Token Interception**: ✅ Tokens are bearer - first claimer wins
 2. **Fake Tokens**: ✅ Mint validates signatures on claim
 3. **Replay Attacks**: ✅ Mint tracks spent tokens
@@ -190,12 +208,14 @@ val packet = BitchatPacket(
 ## 📚 Resources
 
 ### Documentation:
+
 - [Cashu Protocol Specification](https://github.com/cashubtc/nuts)
 - [bitchat Bluetooth Mesh](https://github.com/retrohacker/bitchat)
 - [NUT-00: Token Format](https://github.com/cashubtc/nuts/blob/main/00.md)
 
 ### Example Code:
-- Trails Implementation: `android/app/src/main/java/me/cashu/wallet/BluetoothEcashService.kt`
+
+- Bitpoints Implementation: `android/app/src/main/java/me/bitpoints/wallet/BluetoothEcashService.kt`
 - Frontend Integration: `src/stores/bluetooth.ts`
 - UI Components: `src/components/NearbyContactsDialog.vue`
 
@@ -214,9 +234,7 @@ By using **plain TEXT messaging** with **standard Cashu token format**, this imp
 ---
 
 ## 🏷️ Version: v0.2.1-beta
-**Status**: Production-ready for Trails Coffee deployment
-**Tested**: ✅ Trails ↔ Trails, ✅ Trails ↔ bitchat
+
+**Status**: Production-ready for Bitpoints deployment
+**Tested**: ✅ Bitpoints ↔ Bitpoints, ✅ Bitpoints ↔ bitchat
 **License**: MIT (same as parent project)
-
-
-

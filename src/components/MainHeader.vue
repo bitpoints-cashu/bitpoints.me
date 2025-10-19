@@ -13,8 +13,8 @@
       />
       <q-toolbar-title class="flex flex-center">
         <img
-          src="~assets/trails-logo.png"
-          alt="Trails Coffee"
+          src="~assets/bitpoints-logo.png"
+          alt="Bitpoints"
           style="height: 100px; max-width: 400px; object-fit: contain"
         />
       </q-toolbar-title>

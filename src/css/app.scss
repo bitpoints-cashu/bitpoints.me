@@ -1,10 +1,10 @@
 // app global css in SCSS form
 
-// Import Trails Coffee fonts
+// Import Bitpoints fonts
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap");
 
-// Apply Trails Coffee typography
+// Apply Bitpoints typography
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
@@ -50,18 +50,18 @@ body,
 }
 
 .custom-btn {
-  background: linear-gradient(135deg, #6b4423 0%, #8b4513 100%) !important;
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%) !important;
   color: white;
   border-radius: 16px;
   height: 80px;
-  box-shadow: 0 8px 25px rgba(107, 68, 35, 0.3);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
   font-size: 18px;
   transition: all 0.3s ease;
 }
 
 .custom-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(107, 68, 35, 0.4);
+  box-shadow: 0 12px 35px rgba(255, 107, 53, 0.4);
 }
 
 .custom-btn-text {
@@ -70,7 +70,7 @@ body,
 }
 
 .icon-background {
-  background: rgba(107, 68, 35, 0.1);
+  background: rgba(255, 107, 53, 0.1);
   border-radius: 12px;
   padding: 12px;
   display: flex;

@@ -12,6 +12,7 @@
 ## Features
 
 ### 💰 Cashu Ecash Wallet
+
 - Full-featured Cashu protocol implementation
 - Support for multiple mints
 - Token swapping and melting
@@ -19,6 +20,7 @@
 - QR code send/receive
 
 ### 📡 Bluetooth Mesh Networking
+
 - **Peer-to-peer transfers** without internet
 - **Mesh relaying** for extended range
 - **Encrypted communication** using Noise Protocol
@@ -26,6 +28,7 @@
 - **Interoperable** with bitchat and other mesh apps
 
 ### 🔗 Nostr Integration
+
 - **Auto-claim** tokens received via Nostr
 - **Startup recovery** for pending tokens
 - **Favorite contacts** with mutual key exchange
@@ -33,6 +36,7 @@
 - **Plaintext bearer tokens** for simplicity
 
 ### 🎯 User Experience
+
 - **Modern UI** with Quasar Framework
 - **Always-on service** for background operation
 - **Transaction history** with QR recovery
@@ -42,9 +46,11 @@
 ## Installation
 
 ### Android APK
+
 Download the latest release from [GitHub Releases](https://github.com/bitpoints-cashu/bitpoints.me/releases)
 
 **Requirements:**
+
 - Android 12 or higher
 - ~30 MB storage
 - Bluetooth for P2P transfers
@@ -91,6 +97,7 @@ cd android && ./gradlew assembleRelease
 ## Architecture
 
 ### Bluetooth Mesh
+
 - **GATT-based** communication
 - **Noise Protocol** encryption
 - **Message relaying** for mesh coverage
@@ -98,6 +105,7 @@ cd android && ./gradlew assembleRelease
 - **Custom packet format** (MESSAGE, ANNOUNCE, SYNC)
 
 ### Nostr Messaging
+
 - **NIP-04** direct messages (plaintext tokens)
 - **Auto-claim** on receipt
 - **24-hour message lookback**
@@ -105,6 +113,7 @@ cd android && ./gradlew assembleRelease
 - **Mutual favorites** with key exchange
 
 ### Auto-Claim System
+
 ```
 ┌─────────────────────────────────┐
 │  Nostr Message Received         │
@@ -134,16 +143,19 @@ cd android && ./gradlew assembleRelease
 ## Security
 
 ### Cashu Tokens
+
 - **Bearer instruments** - No personal data
 - **One-time use** - Cannot be double-spent
 - **Mint verification** - All tokens verified by mint
 
 ### Bluetooth
+
 - **Noise Protocol** - Modern cryptographic framework
 - **Ephemeral keys** - New keys per session
 - **Peer verification** - Prevent MITM attacks
 
 ### Nostr
+
 - **Key authentication** - Messages signed with Nostr keys
 - **No encryption needed** - Bearer tokens don't require encryption
 - **Transaction backup** - Always recoverable from history
@@ -151,6 +163,7 @@ cd android && ./gradlew assembleRelease
 ## Development
 
 ### Project Structure
+
 ```
 bitpoints.me/
 ├── src/                    # Vue frontend
@@ -169,6 +182,7 @@ bitpoints.me/
 ```
 
 ### Testing
+
 ```bash
 # Run unit tests
 npm run test
@@ -193,18 +207,21 @@ adb logcat | grep "BluetoothEcash"
 ## Roadmap
 
 ### v0.2.0
+
 - [ ] iOS support
 - [ ] Web Bluetooth for desktop
 - [ ] NIP-17 sealed messages
 - [ ] Multi-mint token swaps
 
 ### v0.3.0
+
 - [ ] Group payments
 - [ ] Token splitting/combining
 - [ ] Merchant mode
 - [ ] Point-of-sale interface
 
 ### v1.0.0
+
 - [ ] Production release
 - [ ] App store publishing
 - [ ] Full i18n support
@@ -227,23 +244,26 @@ MIT License - See [LICENSE.md](LICENSE.md)
 ## Credits
 
 ### Built With
+
 - [Cashu Protocol](https://github.com/cashubtc) - Privacy-focused ecash
 - [Nostr Protocol](https://github.com/nostr-protocol/nips) - Decentralized messaging
 - [Quasar Framework](https://quasar.dev) - Vue.js UI framework
 - [Capacitor](https://capacitorjs.com) - Native app wrapper
 
 ### Inspired By
+
 - [bitchat](https://github.com/permissionlesstech/bitchat) - Bluetooth mesh messaging
 - [eNuts](https://github.com/cashubtc/eNuts) - Cashu mobile wallet
 
 ### Special Thanks
+
 - Cashu community for the amazing protocol
 - Nostr community for decentralized infrastructure
 - All contributors and testers
 
 ## Links
 
-- **Website**: [bitpoints.me](https://bitpoints.me) *(coming soon)*
+- **Website**: [bitpoints.me](https://bitpoints.me) _(coming soon)_
 - **GitHub**: [github.com/bitpoints-cashu/bitpoints.me](https://github.com/bitpoints-cashu/bitpoints.me)
 - **Releases**: [GitHub Releases](https://github.com/bitpoints-cashu/bitpoints.me/releases)
 - **Issues**: [GitHub Issues](https://github.com/bitpoints-cashu/bitpoints.me/issues)
@@ -253,10 +273,10 @@ MIT License - See [LICENSE.md](LICENSE.md)
 
 - **GitHub**: [@bitpoints-cashu](https://github.com/bitpoints-cashu)
 - **Email**: bitpoints@btclearn.org
-- **Nostr**: *(coming soon)*
+- **Nostr**: _(coming soon)_
 
 ---
 
 **Made with ⚡ for the Cashu and Nostr communities**
 
-*"Peer-to-peer payments without permission"*
+_"Peer-to-peer payments without permission"_
