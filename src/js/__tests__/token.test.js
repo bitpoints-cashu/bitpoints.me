@@ -13,7 +13,7 @@ describe("token", () => {
     it("should properly decode a V4 token", () => {
       const decoded = token.decode(VALID_V4_TOKEN);
       expect(decoded.proofs.length).toEqual(1);
-      expect(decoded.mint).toEqual("https://ecash.trailscoffee.com/Bitcoin");
+      expect(decoded.mint).toEqual("https://mint.minibits.cash/Bitcoin");
       expect(decoded.proofs.length).toEqual(1);
     });
 
