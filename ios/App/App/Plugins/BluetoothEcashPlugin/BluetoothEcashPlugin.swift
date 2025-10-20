@@ -14,26 +14,32 @@ public class BluetoothEcashPlugin: CAPPlugin {
 
     override public func load() {
         super.load()
-        print("BluetoothEcashPlugin loaded")
+        print("🔵 BluetoothEcashPlugin loaded")
 
         // Initialize service
         bluetoothService = BluetoothEcashService()
         bluetoothService?.delegate = self
+        print("🔵 BluetoothEcashPlugin service initialized")
     }
 
     // MARK: - Plugin Methods
 
     @objc func startService(_ call: CAPPluginCall) {
+        print("🔵 BluetoothEcashPlugin startService called")
         guard let bluetoothService = bluetoothService else {
+            print("🔵 BluetoothEcashPlugin ERROR: Bluetooth service not initialized")
             call.reject("Bluetooth service not initialized")
             return
         }
 
+        print("🔵 BluetoothEcashPlugin starting Bluetooth service...")
         bluetoothService.startService { [weak self] result in
             switch result {
             case .success:
+                print("🔵 BluetoothEcashPlugin service started successfully")
                 call.resolve()
             case .failure(let error):
+                print("🔵 BluetoothEcashPlugin ERROR: Failed to start service: \(error.localizedDescription)")
                 call.reject("Failed to start service: \(error.localizedDescription)")
             }
         }

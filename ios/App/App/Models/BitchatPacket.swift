@@ -2,89 +2,75 @@
 // BitchatPacket.swift
 // bitpoints.me
 //
-// Ported from bitchat for cross-platform compatibility
+// Binary packet format for Bluetooth mesh networking
+// Ported from Android BinaryProtocol.kt
 //
 
 import Foundation
 
-/// The core packet structure for all BitChat protocol messages.
-/// Encapsulates all data needed for routing through the mesh network,
-/// including TTL for hop limiting and optional encryption.
-/// - Note: Packets larger than BLE MTU (512 bytes) are automatically fragmented
-struct BitchatPacket: Codable {
-    let version: UInt8
-    let type: UInt8
-    let senderID: Data
-    let recipientID: Data?
-    let timestamp: UInt64
-    let payload: Data
-    var signature: Data?
+/// BitchatPacket - Binary packet format for mesh networking
+struct BitchatPacket {
+    let type: MessageHandler.MessageType
     var ttl: UInt8
-
-    init(type: UInt8, senderID: Data, recipientID: Data?, timestamp: UInt64, payload: Data, signature: Data?, ttl: UInt8) {
-        self.version = 1
+    let payload: Data
+    let timestamp: Date
+    
+    init(type: MessageHandler.MessageType, ttl: UInt8, payload: Data, timestamp: Date = Date()) {
         self.type = type
-        self.senderID = senderID
-        self.recipientID = recipientID
+        self.ttl = ttl
+        self.payload = payload
         self.timestamp = timestamp
-        self.payload = payload
-        self.signature = signature
-        self.ttl = ttl
     }
+}
 
-    // Convenience initializer for new binary format
-    init(type: UInt8, ttl: UInt8, senderID: PeerID, payload: Data) {
-        self.version = 1
-        self.type = type
-        // Convert hex string peer ID to binary data (8 bytes)
-        var senderData = Data()
-        var tempID = senderID.id
-        while tempID.count >= 2 {
-            let hexByte = String(tempID.prefix(2))
-            if let byte = UInt8(hexByte, radix: 16) {
-                senderData.append(byte)
-            }
-            tempID = String(tempID.dropFirst(2))
+// MARK: - Serialization
+
+extension BitchatPacket {
+    /// Serialize packet to binary data
+    func toData() throws -> Data {
+        var data = Data()
+        
+        // Message type (1 byte)
+        data.append(type.rawValue)
+        
+        // TTL (1 byte)
+        data.append(ttl)
+        
+        // Payload length (2 bytes, big endian)
+        let payloadLength = UInt16(payload.count)
+        data.append(UInt8(payloadLength >> 8))
+        data.append(UInt8(payloadLength & 0xFF))
+        
+        // Payload
+        data.append(payload)
+        
+        return data
+    }
+    
+    /// Deserialize packet from binary data
+    static func fromData(_ data: Data) throws -> BitchatPacket {
+        guard data.count >= 4 else {
+            throw PacketError.invalidSize
         }
-        self.senderID = senderData
-        self.recipientID = nil
-        self.timestamp = UInt64(Date().timeIntervalSince1970 * 1000) // milliseconds
-        self.payload = payload
-        self.signature = nil
-        self.ttl = ttl
+        
+        let type = MessageHandler.MessageType(rawValue: data[0]) ?? .unknown
+        let ttl = data[1]
+        let payloadLength = UInt16(data[2]) << 8 | UInt16(data[3])
+        
+        guard data.count >= 4 + Int(payloadLength) else {
+            throw PacketError.invalidPayloadSize
+        }
+        
+        let payload = data.subdata(in: 4..<4+Int(payloadLength))
+        
+        return BitchatPacket(type: type, ttl: ttl, payload: payload)
     }
+}
 
-    var data: Data? {
-        BinaryProtocol.encode(self)
-    }
+// MARK: - Errors
 
-    func toBinaryData(padding: Bool = true) -> Data? {
-        BinaryProtocol.encode(self, padding: padding)
-    }
-
-    // Backward-compatible helper (defaults to padded encoding)
-    func toBinaryData() -> Data? {
-        toBinaryData(padding: true)
-    }
-
-    /// Create binary representation for signing (without signature and TTL fields)
-    /// TTL is excluded because it changes during packet relay operations
-    func toBinaryDataForSigning() -> Data? {
-        // Create a copy without signature and with fixed TTL for signing
-        // TTL must be excluded because it changes during relay
-        let unsignedPacket = BitchatPacket(
-            type: type,
-            senderID: senderID,
-            recipientID: recipientID,
-            timestamp: timestamp,
-            payload: payload,
-            signature: nil, // Remove signature for signing
-            ttl: 0 // Use fixed TTL=0 for signing to ensure relay compatibility
-        )
-        return BinaryProtocol.encode(unsignedPacket)
-    }
-
-    static func from(_ data: Data) -> BitchatPacket? {
-        BinaryProtocol.decode(data)
-    }
+enum PacketError: Error {
+    case invalidSize
+    case invalidPayloadSize
+    case invalidType
 }

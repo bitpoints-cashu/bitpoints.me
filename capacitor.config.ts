@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
     includePlugins: ["BluetoothEcash"],
   },
   ios: {
-    includePlugins: ["BluetoothEcash"],
+    includePlugins: ["BluetoothEcash", "Camera"],
   },
 };
 

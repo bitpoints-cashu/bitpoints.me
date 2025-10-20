@@ -1,12 +1,11 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Cashu.me</string>
+	<string>bitpoints.me</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,7 +21,27 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
-	<true />
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The app uses the camera to scan QR codes.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+		<string>audio</string>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>external-accessory</string>
+		<string>location</string>
+		<string>push-to-talk</string>
+		<string>remote-notification</string>
+		<string>nearby-interaction</string>
+		<string>voip</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -43,17 +62,6 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<true />
-  <key>NSCameraUsageDescription</key>
-  <string>The app uses the camera to scan QR codes.</string>
-  <key>NSBluetoothAlwaysUsageDescription</key>
-  <string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
-  <key>NSBluetoothPeripheralUsageDescription</key>
-  <string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
-  <key>UIBackgroundModes</key>
-  <array>
-    <string>bluetooth-central</string>
-    <string>bluetooth-peripheral</string>
-  </array>
+	<true/>
 </dict>
 </plist>

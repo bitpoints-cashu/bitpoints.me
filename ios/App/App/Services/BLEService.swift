@@ -97,18 +97,43 @@ final class BLEService: NSObject {
         myPeerIDData = peerID.id.data(using: .utf8) ?? Data()
 
         print("BLEService: Initialized with peer ID: \(peerID)")
+        
+        // Initialize BLE managers on background queue to prevent main thread blocking
+        // This prevents app freezes during BLE operations
+        centralManager = CBCentralManager(delegate: self, queue: bleQueue)
+        peripheralManager = CBPeripheralManager(delegate: self, queue: bleQueue)
+        
+        print("BLEService: BLE managers initialized")
     }
 
     // MARK: - Service Control
 
     func startService() {
         print("BLEService: Starting service")
+        
+        // Check if we're running on simulator
+        #if targetEnvironment(simulator)
+        print("BLEService: Running on iOS Simulator - Bluetooth will not work")
+        return
+        #endif
 
-        // Start central manager for scanning
-        centralManager = CBCentralManager(delegate: self, queue: bleQueue)
-
-        // Start peripheral manager for advertising
-        peripheralManager = CBPeripheralManager(delegate: self, queue: bleQueue)
+        // Start BLE services if not already running
+        if centralManager?.state == .poweredOn {
+            centralManager?.scanForPeripherals(
+                withServices: [BLEService.serviceUUID],
+                options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+            )
+            print("BLEService: Started scanning for peripherals")
+        } else {
+            print("BLEService: Central manager not ready, state: \(centralManager?.state.rawValue ?? -1)")
+        }
+        
+        // Start advertising if peripheral manager is ready
+        if peripheralManager?.state == .poweredOn {
+            startAdvertising()
+        } else {
+            print("BLEService: Peripheral manager not ready, state: \(peripheralManager?.state.rawValue ?? -1)")
+        }
     }
 
     func stopService() {
@@ -129,6 +154,33 @@ final class BLEService: NSObject {
         peripherals.removeAll()
         peers.removeAll()
         subscribedCentrals.removeAll()
+    }
+    
+    private func startAdvertising() {
+        print("BLEService: Starting advertising")
+        
+        // Create service
+        let service = CBMutableService(type: BLEService.serviceUUID, primary: true)
+        
+        // Create characteristic
+        characteristic = CBMutableCharacteristic(
+            type: BLEService.characteristicUUID,
+            properties: [.read, .write, .notify],
+            value: nil,
+            permissions: [.readable, .writeable]
+        )
+        
+        service.characteristics = [characteristic!]
+        
+        // Add service
+        peripheralManager?.add(service)
+        
+        // Start advertising
+        let advertisementData: [String: Any] = [
+            CBAdvertisementDataServiceUUIDsKey: [BLEService.serviceUUID]
+        ]
+        peripheralManager?.startAdvertising(advertisementData)
+        print("BLEService: Started advertising")
     }
 
     // MARK: - Message Sending
