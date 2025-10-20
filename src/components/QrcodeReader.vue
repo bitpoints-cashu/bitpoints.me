@@ -2,8 +2,10 @@
 import QrScanner from "qr-scanner";
 import { URDecoder } from "@gandlaf21/bc-ur";
 import { useCameraStore } from "src/stores/camera";
+import { useWatchIntegration } from "src/stores/watchIntegration";
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { useUiStore } from "src/stores/ui";
+import { notifySuccess, notifyWarning } from "src/js/notify";
 
 export default {
   emits: ["decode"],
@@ -61,6 +63,12 @@ export default {
         position: "top",
         timeout: 5000,
       });
+    }
+  },
+  setup() {
+    const watchIntegration = useWatchIntegration()
+    return {
+      watchIntegration
     }
   },
   computed: {
@@ -134,9 +142,20 @@ export default {
       }
     },
     handleResult(result: QrScanner.ScanResult) {
+      const qrData = result.data
+      
+      // Check if this is a watch pairing QR code
+      const watchConnection = this.watchIntegration.parseWatchQR(qrData)
+      if (watchConnection) {
+        this.watchIntegration.addWatch(watchConnection)
+        notifySuccess(`Watch "${watchConnection.name}" paired successfully!`)
+        this.qrScanner?.stop()
+        return
+      }
+      
       // if this is a multipart-qr code, do not yet emit
-      if (result.data.toLowerCase().startsWith("ur:")) {
-        this.urDecoder?.receivePart(result.data);
+      if (qrData.toLowerCase().startsWith("ur:")) {
+        this.urDecoder?.receivePart(qrData);
         this.urDecoderProgress =
           this.urDecoder?.estimatedPercentComplete() || 0;
         if (this.urDecoder?.isComplete() && this.urDecoder?.isSuccess()) {

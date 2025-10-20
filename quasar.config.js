@@ -88,6 +88,12 @@ module.exports = configure(function (/* ctx */) {
       extendViteConf(viteConf) {
         viteConf.define = viteConf.define || {};
         viteConf.define.GIT_COMMIT = JSON.stringify(resolveGitCommit());
+
+        // Wear OS specific configuration
+        if (process.env.CAPACITOR_TARGET === "wear") {
+          viteConf.define.WEAR_OS = JSON.stringify(true);
+          viteConf.define.IS_WATCH = JSON.stringify(true);
+        }
       },
       // viteVuePluginOptions: {},
 
@@ -184,6 +190,12 @@ module.exports = configure(function (/* ctx */) {
     // Full list of options: https://v2.quasar.dev/quasar-cli/developing-capacitor-apps/configuring-capacitor
     capacitor: {
       hideSplashscreen: false,
+
+      // Wear OS specific configuration
+      android: {
+        path:
+          process.env.CAPACITOR_TARGET === "wear" ? "android/wear" : "android",
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli/developing-electron-apps/configuring-electron

@@ -1,0 +1,8 @@
+{
+	"appId": "me.bitpoints.wear",
+	"appName": "Bitpoints Wear",
+	"webDir": "dist/wear/",
+	"android": {
+		"path": "android/wear"
+	}
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <!-- Wear OS specific colors -->
+    <color name="wear_primary">#1976D2</color>
+    <color name="wear_secondary">#FF4081</color>
+    <color name="wear_background">#000000</color>
+    <color name="wear_surface">#121212</color>
+    <color name="wear_on_surface">#FFFFFF</color>
+</resources>
+

@@ -1,0 +1,381 @@
+/* Wear OS Optimized Styles for Bitpoints Wallet */
+
+/* Base styles for watch screens (280px - 480px) */
+@media screen and (max-width: 480px) {
+  /* Root and body adjustments */
+  body {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    background: #000 !important;
+    color: #fff !important;
+    overflow-x: hidden !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+
+  /* Page container */
+  .q-page {
+    padding: 4px !important;
+    margin: 0 !important;
+    min-height: auto !important;
+  }
+
+  /* Hide elements not suitable for watch */
+  .q-toolbar,
+  .q-footer,
+  .q-tabs,
+  .q-stepper,
+  .q-carousel,
+  .q-breadcrumbs,
+  .q-pagination,
+  .q-table__top,
+  .q-table__bottom {
+    display: none !important;
+  }
+
+  /* Buttons - larger touch targets */
+  .q-btn {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    font-size: 16px !important;
+    margin: 4px 0 !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+  }
+
+  .q-btn--round {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+
+  /* Cards - simplified */
+  .q-card {
+    margin: 4px 0 !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .q-card__section {
+    padding: 8px !important;
+  }
+
+  /* Input fields */
+  .q-input {
+    font-size: 16px !important;
+    margin: 4px 0 !important;
+  }
+
+  .q-field__control {
+    min-height: 48px !important;
+    padding: 8px !important;
+  }
+
+  .q-field__native {
+    font-size: 16px !important;
+    padding: 8px !important;
+  }
+
+  /* Lists - simplified */
+  .q-list {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .q-item {
+    min-height: 48px !important;
+    padding: 8px !important;
+    font-size: 14px !important;
+  }
+
+  .q-item__section {
+    padding: 0 4px !important;
+  }
+
+  /* Dialogs - full screen on watch */
+  .q-dialog {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .q-dialog__inner {
+    padding: 8px !important;
+    max-height: 100vh !important;
+  }
+
+  .q-dialog__backdrop {
+    background: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  /* Navigation */
+  .q-page-container {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Typography */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 8px 0 !important;
+    line-height: 1.2 !important;
+  }
+
+  h1 {
+    font-size: 20px !important;
+  }
+  h2 {
+    font-size: 18px !important;
+  }
+  h3 {
+    font-size: 16px !important;
+  }
+  h4 {
+    font-size: 14px !important;
+  }
+
+  p {
+    margin: 4px 0 !important;
+    font-size: 14px !important;
+  }
+
+  /* Balance display */
+  .balance-display {
+    font-size: 24px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    margin: 16px 0 !important;
+    padding: 16px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+  }
+
+  /* QR Code container */
+  .qrcode-container {
+    text-align: center !important;
+    padding: 16px !important;
+    margin: 8px 0 !important;
+  }
+
+  .qrcode-container canvas {
+    max-width: 200px !important;
+    max-height: 200px !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* Transaction history */
+  .transaction-item {
+    padding: 8px !important;
+    margin: 2px 0 !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .transaction-amount {
+    font-size: 16px !important;
+    font-weight: bold !important;
+  }
+
+  .transaction-time {
+    font-size: 12px !important;
+    opacity: 0.7 !important;
+  }
+
+  /* Bluetooth peer list */
+  .peer-item {
+    padding: 12px !important;
+    margin: 4px 0 !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .peer-name {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+
+  .peer-status {
+    font-size: 12px !important;
+    opacity: 0.7 !important;
+  }
+
+  /* Ambient mode styles */
+  .ambient-mode {
+    background: #000 !important;
+    color: #fff !important;
+  }
+
+  .ambient-mode .q-btn,
+  .ambient-mode .q-card,
+  .ambient-mode .q-input {
+    opacity: 0.8 !important;
+  }
+
+  .ambient-mode .balance-display {
+    font-size: 20px !important;
+    opacity: 0.9 !important;
+  }
+
+  /* Loading states */
+  .q-spinner {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  /* Notifications */
+  .q-notification {
+    margin: 4px !important;
+    padding: 8px !important;
+    font-size: 14px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Form elements */
+  .q-form {
+    padding: 0 !important;
+  }
+
+  .q-field {
+    margin: 8px 0 !important;
+  }
+
+  /* Scrollable areas */
+  .q-scrollarea {
+    max-height: 300px !important;
+  }
+
+  /* Icons */
+  .q-icon {
+    font-size: 20px !important;
+  }
+
+  .q-btn .q-icon {
+    font-size: 18px !important;
+  }
+
+  /* Specific to Bitpoints components */
+  .bitpoints-header {
+    text-align: center !important;
+    padding: 8px !important;
+    margin: 0 0 16px 0 !important;
+  }
+
+  .bitpoints-logo {
+    width: 32px !important;
+    height: 32px !important;
+    margin: 0 auto 8px auto !important;
+  }
+
+  .quick-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin: 16px 0 !important;
+  }
+
+  .quick-action-btn {
+    width: 100% !important;
+    min-height: 56px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+
+  /* Settings page */
+  .settings-section {
+    margin: 16px 0 !important;
+  }
+
+  .settings-item {
+    padding: 12px !important;
+    margin: 4px 0 !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  /* Status indicators */
+  .status-indicator {
+    display: inline-block !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    margin-right: 8px !important;
+  }
+
+  .status-connected {
+    background: #4caf50 !important;
+  }
+
+  .status-disconnected {
+    background: #f44336 !important;
+  }
+
+  .status-scanning {
+    background: #ff9800 !important;
+    animation: pulse 1s infinite !important;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+/* Round screen adjustments */
+@media screen and (max-width: 400px) and (aspect-ratio: 1/1) {
+  .q-page {
+    padding: 8px !important;
+  }
+
+  .balance-display {
+    font-size: 20px !important;
+    padding: 12px !important;
+  }
+
+  .qrcode-container canvas {
+    max-width: 160px !important;
+    max-height: 160px !important;
+  }
+}
+
+/* Landscape orientation (if supported) */
+@media screen and (orientation: landscape) and (max-height: 300px) {
+  .q-page {
+    padding: 2px !important;
+  }
+
+  .balance-display {
+    font-size: 18px !important;
+    padding: 8px !important;
+    margin: 8px 0 !important;
+  }
+
+  .quick-actions {
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+
+  .quick-action-btn {
+    flex: 1 !important;
+    min-height: 48px !important;
+    font-size: 14px !important;
+  }
+}
+
