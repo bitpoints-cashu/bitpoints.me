@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { registerPlugin } from "@capacitor/core";
 
 /**
@@ -143,7 +144,20 @@ export interface BluetoothEcashPlugin {
       | "favoriteAcceptedReceived",
     listenerFunc: (event: any) => void
   ): Promise<{ remove: () => void }>;
+
+  // iOS specific methods
+  getActivePeers?(): Promise<{ peers: Peer[] }>;
+  openAppSettings?(): Promise<void>;
+  startAlwaysOnMode?(): Promise<void>;
+  stopAlwaysOnMode?(): Promise<void>;
+  isAlwaysOnActive?(): Promise<{ active: boolean }>;
+  requestBatteryOptimizationExemption?(): Promise<void>;
 }
+
+console.log(
+  "🔵 [BluetoothEcash] Registering plugin, platform:",
+  Capacitor.getPlatform()
+);
 
 const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
   web: () => ({
@@ -165,5 +179,7 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
     addListener: async () => ({ remove: () => {} }),
   }),
 });
+
+console.log("🔵 [BluetoothEcash] Plugin registered successfully");
 
 export default BluetoothEcash;
