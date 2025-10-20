@@ -244,6 +244,20 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
         this.isInitialized = true;
         console.log("Bluetooth ecash service initialized");
+
+        // Debug token state on startup
+        this.debugTokenState();
+
+        // Clear localStorage if there are too many tokens (indicates accumulation issue)
+        if (this.unclaimedTokens.length > 50) {
+          console.log(
+            `🧹 Too many tokens (${this.unclaimedTokens.length}), clearing localStorage`
+          );
+          this.clearAllUnclaimedTokens();
+        } else {
+          // Auto-claim all unclaimed tokens on startup to clean up already-spent tokens
+          this.cleanupUnclaimedTokensOnStartup().catch(console.error);
+        }
       } catch (e) {
         console.error("Failed to initialize Bluetooth service:", e);
       }
@@ -489,6 +503,32 @@ export const useBluetoothStore = defineStore("bluetooth", {
         }
       } catch (e) {
         console.error("Failed to claim token:", e);
+
+        // Check if the error is "Token already spent"
+        const errorMessage = e?.message || e?.toString() || "";
+        if (
+          errorMessage.includes("Token already spent") ||
+          errorMessage.includes("already spent")
+        ) {
+          console.log(
+            `Token ${messageId} already spent, removing from unclaimed list`
+          );
+
+          // Remove the token from unclaimed list instead of showing error
+          const index = this.unclaimedTokens.findIndex(
+            (t) => t.id === messageId
+          );
+          if (index !== -1) {
+            this.unclaimedTokens.splice(index, 1);
+            console.log(
+              `Removed already spent token ${messageId} from unclaimed list`
+            );
+          }
+
+          return true; // Return success since we handled it
+        }
+
+        // For other errors, show notification
         notifyError("Failed to claim token");
         return false;
       }
@@ -510,6 +550,186 @@ export const useBluetoothStore = defineStore("bluetooth", {
         await this.claimToken(token.id);
         // Small delay between claims
         await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    },
+
+    /**
+     * Silently claim all unclaimed tokens (for manual "Claim All" button)
+     */
+    async autoClaimTokensSilently() {
+      console.log("🔧 Starting autoClaimTokensSilently...");
+
+      if (!navigator.onLine) {
+        console.log("Offline - skipping silent auto-claim");
+        return;
+      }
+
+      const unclaimed = this.unclaimedTokens.filter((t) => !t.claimed);
+      console.log(`Silently claiming ${unclaimed.length} tokens`);
+
+      for (const token of unclaimed) {
+        try {
+          await this.claimTokenSilently(token.id);
+        } catch (error) {
+          console.log(`Failed to claim token ${token.id}:`, error);
+        }
+        // Small delay between claims
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+
+      console.log(
+        `Silent claim completed. Remaining unclaimed tokens: ${
+          this.unclaimedTokens.filter((t) => !t.claimed).length
+        }`
+      );
+    },
+
+    /**
+     * Clean up unclaimed tokens on startup - silently remove already-spent tokens
+     */
+    async cleanupUnclaimedTokensOnStartup() {
+      console.log("🔧 Starting cleanupUnclaimedTokensOnStartup...");
+
+      if (!navigator.onLine) {
+        console.log("Offline - skipping startup cleanup");
+        return;
+      }
+
+      const unclaimed = this.unclaimedTokens.filter((t) => !t.claimed);
+      console.log(`Found ${unclaimed.length} unclaimed tokens`);
+
+      if (unclaimed.length === 0) {
+        console.log("No unclaimed tokens to clean up");
+        return;
+      }
+
+      console.log(
+        `Cleaning up ${unclaimed.length} unclaimed tokens on startup...`
+      );
+
+      for (const token of unclaimed) {
+        try {
+          // Try to claim the token silently
+          const success = await this.claimTokenSilently(token.id);
+          if (success) {
+            console.log(`Successfully claimed token ${token.id}`);
+          }
+        } catch (error) {
+          console.log(`Failed to claim token ${token.id}:`, error);
+        }
+
+        // Small delay between claims
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+
+      console.log(
+        `Startup cleanup completed. Remaining unclaimed tokens: ${
+          this.unclaimedTokens.filter((t) => !t.claimed).length
+        }`
+      );
+    },
+
+    /**
+     * Force clear all unclaimed tokens (manual cleanup button)
+     */
+    clearAllUnclaimedTokens() {
+      const before = this.unclaimedTokens.length;
+      this.unclaimedTokens = [];
+
+      // Also clear from localStorage to prevent reload on restart
+      localStorage.removeItem("bluetooth-unclaimed-tokens");
+
+      console.log(
+        `🧹 Force cleared ${before} unclaimed tokens from memory and localStorage`
+      );
+      notifySuccess(`Cleared ${before} unclaimed tokens`);
+    },
+
+    /**
+     * Debug method to log current token state
+     */
+    debugTokenState() {
+      console.log(
+        `🔍 Debug: Total unclaimed tokens: ${this.unclaimedTokens.length}`
+      );
+      console.log(
+        `🔍 Debug: Claimed tokens: ${
+          this.unclaimedTokens.filter((t) => t.claimed).length
+        }`
+      );
+      console.log(
+        `🔍 Debug: Unclaimed tokens: ${
+          this.unclaimedTokens.filter((t) => !t.claimed).length
+        }`
+      );
+      this.unclaimedTokens.forEach((token, index) => {
+        console.log(
+          `🔍 Token ${index}: ID=${token.id}, Amount=${token.amount}, Claimed=${token.claimed}`
+        );
+      });
+    },
+
+    /**
+     * Claim a token silently without showing notifications to user
+     */
+    async claimTokenSilently(messageId: string) {
+      try {
+        const message = this.unclaimedTokens.find((t) => t.id === messageId);
+        if (!message) {
+          return false;
+        }
+
+        // Use wallet store to receive the token
+        const walletStore = useWalletStore();
+        const receiveStore = useReceiveTokensStore();
+
+        receiveStore.receiveData.tokensBase64 = message.cashuToken;
+        const success = await receiveStore.receiveIfDecodes();
+
+        if (success) {
+          // Mark as claimed
+          await BluetoothEcash.markTokenClaimed({ messageId });
+
+          const index = this.unclaimedTokens.findIndex(
+            (t) => t.id === messageId
+          );
+          if (index !== -1) {
+            this.unclaimedTokens[index] = { ...message, claimed: true };
+          }
+
+          // Add sender to contacts
+          this.addContact(message.sender, message.senderPeerID);
+          return true;
+        } else {
+          return false;
+        }
+      } catch (e) {
+        // Check if the error is "Token already spent"
+        const errorMessage = e?.message || e?.toString() || "";
+        if (
+          errorMessage.includes("Token already spent") ||
+          errorMessage.includes("already spent")
+        ) {
+          console.log(
+            `Token ${messageId} already spent, removing from unclaimed list`
+          );
+
+          // Remove the token from unclaimed list silently
+          const index = this.unclaimedTokens.findIndex(
+            (t) => t.id === messageId
+          );
+          if (index !== -1) {
+            this.unclaimedTokens.splice(index, 1);
+            console.log(
+              `Removed already spent token ${messageId} from unclaimed list`
+            );
+          }
+
+          return true; // Return success since we handled it
+        }
+
+        // For other errors, return false
+        return false;
       }
     },
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bitpoints</string>
+    <string name="title_activity_main">Bitpoints</string>
+    <string name="package_name">me.bitpoints.wallet</string>
+    <string name="custom_url_scheme">me.bitpoints.wallet</string>
+</resources>

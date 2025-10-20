@@ -1,0 +1,13 @@
+{
+  "name": "bitpoints",
+  "version": "0.1.2",
+  "description": "Bitcoin-backed rewards wallet merging Cashu ecash, Nostr identity, and Bluetooth mesh protocols for maximum interoperability and privacy",
+  "author": "Bitpoints.me",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}

@@ -93,6 +93,7 @@ class BluetoothEcashService(private val context: Context) {
                         }
                     }
 
+
                     // Create EcashMessage
                     val ecashMessage = EcashMessage(
                         id = UUID.randomUUID().toString(),

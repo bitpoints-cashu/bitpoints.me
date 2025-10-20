@@ -17,6 +17,7 @@
 
       <template v-slot:action>
         <q-btn flat label="Claim All" @click="claimAll" :loading="claiming" />
+        <q-btn flat label="Clear All" @click="clearAll" color="negative" />
         <q-btn flat icon="expand_more" @click="showDetails = !showDetails" />
       </template>
     </q-banner>
@@ -116,9 +117,9 @@ export default defineComponent({
       claimingTokens.value.add(tokenId);
 
       try {
-        const success = await bluetoothStore.claimToken(tokenId);
+        const success = await bluetoothStore.claimTokenSilently(tokenId);
         if (success) {
-          notifySuccess("Token claimed successfully!");
+          notifySuccess("Token processed successfully!");
         }
       } catch (e) {
         console.error("Failed to claim token:", e);
@@ -133,8 +134,8 @@ export default defineComponent({
       claiming.value = true;
 
       try {
-        await bluetoothStore.autoClaimTokens();
-        notifySuccess("All tokens claimed!");
+        await bluetoothStore.autoClaimTokensSilently();
+        notifySuccess("All tokens processed!");
         showDetails.value = false;
       } catch (e) {
         console.error("Failed to claim tokens:", e);
@@ -142,6 +143,11 @@ export default defineComponent({
       } finally {
         claiming.value = false;
       }
+    };
+
+    const clearAll = () => {
+      bluetoothStore.clearAllUnclaimedTokens();
+      showDetails.value = false;
     };
 
     return {
@@ -156,6 +162,7 @@ export default defineComponent({
       formatTimestamp,
       claimSingle,
       claimAll,
+      clearAll,
     };
   },
 });
