@@ -1,466 +1,324 @@
-//
-// BLEService.swift
-// bitpoints.me
-//
-// Simplified Bluetooth Low Energy service for cross-platform compatibility
-//
-
 import Foundation
 import CoreBluetooth
-import CryptoKit
+import os.log
 
-/// BLEService — Bluetooth Mesh Transport
-/// Simplified version for bitpoints.me ecash functionality
-final class BLEService: NSObject {
+/// Complete Bluetooth Low Energy mesh transport service
+/// Adapted from bitchat for bitpoints.me
+class BLEService: NSObject {
 
-    // MARK: - Constants
+    // MARK: - Properties
 
-    #if DEBUG
-    static let serviceUUID = CBUUID(string: "F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5A") // testnet
-    #else
-    static let serviceUUID = CBUUID(string: "F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C") // mainnet
-    #endif
-    static let characteristicUUID = CBUUID(string: "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D")
+    private let logger = Logger(subsystem: "me.bitpoints.wallet", category: "BLEService")
+    private let bleQueue = DispatchQueue(label: "ble.service.queue", qos: .userInitiated)
 
-    // Default per-fragment chunk size when link limits are unknown
-    private let defaultFragmentSize = TransportConfig.bleDefaultFragmentSize
-    private let messageTTL: UInt8 = TransportConfig.messageTTLDefault
-
-    // MARK: - Core State
-
-    // Peripheral Tracking
-    private struct PeripheralState {
-        let peripheral: CBPeripheral
-        var characteristic: CBCharacteristic?
-        var peerID: PeerID?
-        var isConnecting: Bool = false
-        var isConnected: Bool = false
-        var lastConnectionAttempt: Date? = nil
-    }
-    private var peripherals: [String: PeripheralState] = [:]
-    private var peerToPeripheralUUID: [PeerID: String] = [:]
-
-    // BLE Centrals (when acting as peripheral)
-    private var subscribedCentrals: [CBCentral] = []
-    private var centralToPeerID: [String: PeerID] = [:]
-
-    // Peer Information
-    private struct PeerInfo {
-        let peerID: PeerID
-        var nickname: String
-        var isConnected: Bool
-        var noisePublicKey: Data?
-        var signingPublicKey: Data?
-        var lastSeen: Date
-    }
-    private var peers: [PeerID: PeerInfo] = [:]
-
-    // Fragment Reassembly
-    private struct FragmentKey: Hashable {
-        let sender: UInt64
-        let id: UInt64
-    }
-    private var incomingFragments: [FragmentKey: [Int: Data]] = [:]
-    private var fragmentMetadata: [FragmentKey: (type: UInt8, total: Int, timestamp: Date)] = [:]
-
-    // MARK: - Core BLE Objects
-
+    // Core Bluetooth managers
     private var centralManager: CBCentralManager?
     private var peripheralManager: CBPeripheralManager?
-    private var characteristic: CBMutableCharacteristic?
 
-    // MARK: - Identity
+    // BLE state
+    private var isScanning = false
+    private var isAdvertising = false
+    private var connectedPeripherals: Set<CBPeripheral> = []
+    private var discoveredPeripherals: [UUID: CBPeripheral] = [:]
 
-    private var noiseService: NoiseEncryptionService
-    private let keychain: KeychainManagerProtocol
-    private var myPeerIDData: Data = Data()
+    // Services and characteristics
+    private var meshService: CBMutableService?
+    private var meshCharacteristic: CBMutableCharacteristic?
 
-    // MARK: - Queues
+    // Configuration
+    private let serviceUUID = CBUUID(string: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
+    private let characteristicUUID = CBUUID(string: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
 
-    private let messageQueue = DispatchQueue(label: "me.bitpoints.wallet.mesh.message", attributes: .concurrent)
-    private let collectionsQueue = DispatchQueue(label: "me.bitpoints.wallet.mesh.collections", attributes: .concurrent)
-    private let bleQueue = DispatchQueue(label: "me.bitpoints.wallet.mesh.bluetooth", qos: .userInitiated)
-
-    // MARK: - Delegate
-
+    // Delegate
     weak var delegate: BLEServiceDelegate?
 
     // MARK: - Initialization
 
-    init(noiseService: NoiseEncryptionService, keychain: KeychainManagerProtocol) {
-        self.noiseService = noiseService
-        self.keychain = keychain
+    override init() {
         super.init()
+        logger.info("🔵 BLEService: Initializing")
 
-        // Initialize peer ID
-        let peerID = PeerID(publicKey: noiseService.getStaticPublicKeyData())
-        myPeerIDData = peerID.id.data(using: .utf8) ?? Data()
-
-        print("BLEService: Initialized with peer ID: \(peerID)")
-        
-        // Initialize BLE managers on background queue to prevent main thread blocking
-        // This prevents app freezes during BLE operations
-        centralManager = CBCentralManager(delegate: self, queue: bleQueue)
-        peripheralManager = CBPeripheralManager(delegate: self, queue: bleQueue)
-        
-        print("BLEService: BLE managers initialized")
+        // Initialize BLE managers on background queue
+        bleQueue.async { [weak self] in
+            self?.initializeBLE()
+        }
     }
 
-    // MARK: - Service Control
+    private func initializeBLE() {
+        logger.info("🔵 BLEService: Initializing BLE managers")
+
+        // Initialize central manager for scanning and connecting
+        centralManager = CBCentralManager(
+            delegate: self,
+            queue: bleQueue,
+            options: [
+                CBCentralManagerOptionShowPowerAlertKey: true,
+                CBCentralManagerOptionRestoreIdentifierKey: "bitpoints-central"
+            ]
+        )
+
+        // Initialize peripheral manager for advertising
+        peripheralManager = CBPeripheralManager(
+            delegate: self,
+            queue: bleQueue,
+            options: [
+                CBPeripheralManagerOptionShowPowerAlertKey: true,
+                CBPeripheralManagerOptionRestoreIdentifierKey: "bitpoints-peripheral"
+            ]
+        )
+
+        logger.info("🔵 BLEService: BLE managers initialized")
+    }
+
+    // MARK: - Public Interface
 
     func startService() {
-        print("BLEService: Starting service")
+        logger.info("🔵 BLEService: Starting service")
         
-        // Check if we're running on simulator
         #if targetEnvironment(simulator)
-        print("BLEService: Running on iOS Simulator - Bluetooth will not work")
+        logger.warning("🔵 BLEService: Running on iOS Simulator - Bluetooth will not work")
         return
         #endif
 
-        // Start BLE services if not already running
-        if centralManager?.state == .poweredOn {
-            centralManager?.scanForPeripherals(
-                withServices: [BLEService.serviceUUID],
-                options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
-            )
-            print("BLEService: Started scanning for peripherals")
-        } else {
-            print("BLEService: Central manager not ready, state: \(centralManager?.state.rawValue ?? -1)")
-        }
-        
-        // Start advertising if peripheral manager is ready
-        if peripheralManager?.state == .poweredOn {
-            startAdvertising()
-        } else {
-            print("BLEService: Peripheral manager not ready, state: \(peripheralManager?.state.rawValue ?? -1)")
+        bleQueue.async { [weak self] in
+            self?.startBLEOperations()
         }
     }
 
     func stopService() {
-        print("BLEService: Stopping service")
+        logger.info("🔵 BLEService: Stopping service")
 
-        // Stop scanning
-        centralManager?.stopScan()
+        bleQueue.async { [weak self] in
+            self?.stopBLEOperations()
+        }
+    }
 
-        // Disconnect all peripherals
-        for peripheral in peripherals.values {
-            centralManager?.cancelPeripheralConnection(peripheral.peripheral)
+    func getCurrentBluetoothState() -> CBManagerState {
+        return centralManager?.state ?? .unknown
+    }
+
+    // MARK: - Private Methods
+
+    private func startBLEOperations() {
+        guard let central = centralManager, let peripheral = peripheralManager else {
+            logger.error("🔵 BLEService: BLE managers not initialized")
+            return
         }
 
-        // Stop advertising
-        peripheralManager?.stopAdvertising()
+        // Start scanning if central manager is ready
+        if central.state == .poweredOn {
+            startScanning()
+        } else {
+            logger.warning("🔵 BLEService: Central manager not ready: \(central.state.debugDescription)")
+        }
+        
+        // Start advertising if peripheral manager is ready
+        if peripheral.state == .poweredOn {
+            startAdvertising()
+        } else {
+            logger.warning("🔵 BLEService: Peripheral manager not ready: \(peripheral.state.debugDescription)")
+        }
+    }
 
-        // Clear state
-        peripherals.removeAll()
-        peers.removeAll()
-        subscribedCentrals.removeAll()
+    private func stopBLEOperations() {
+        stopScanning()
+        stopAdvertising()
+        disconnectAllPeripherals()
+    }
+
+    private func startScanning() {
+        guard let central = centralManager, central.state == .poweredOn, !isScanning else {
+            return
+        }
+
+        logger.info("🔵 BLEService: Starting scan")
+
+        // Scan for peripherals with our service
+        central.scanForPeripherals(
+            withServices: [serviceUUID],
+            options: [
+                CBCentralManagerScanOptionAllowDuplicatesKey: true
+            ]
+        )
+
+        isScanning = true
+        logger.info("🔵 BLEService: Scan started")
+    }
+
+    private func stopScanning() {
+        guard let central = centralManager, isScanning else { return }
+
+        logger.info("🔵 BLEService: Stopping scan")
+        central.stopScan()
+        isScanning = false
+        logger.info("🔵 BLEService: Scan stopped")
     }
     
     private func startAdvertising() {
-        print("BLEService: Starting advertising")
-        
-        // Create service
-        let service = CBMutableService(type: BLEService.serviceUUID, primary: true)
-        
-        // Create characteristic
-        characteristic = CBMutableCharacteristic(
-            type: BLEService.characteristicUUID,
+        guard let peripheral = peripheralManager, peripheral.state == .poweredOn, !isAdvertising else {
+            return
+        }
+
+        logger.info("🔵 BLEService: Starting advertising")
+
+        // Create mesh service
+        meshService = CBMutableService(type: serviceUUID, primary: true)
+
+        // Create mesh characteristic
+        meshCharacteristic = CBMutableCharacteristic(
+            type: characteristicUUID,
             properties: [.read, .write, .notify],
             value: nil,
             permissions: [.readable, .writeable]
         )
         
-        service.characteristics = [characteristic!]
+        meshService?.characteristics = [meshCharacteristic!]
         
         // Add service
-        peripheralManager?.add(service)
+        peripheral.add(meshService!)
         
         // Start advertising
         let advertisementData: [String: Any] = [
-            CBAdvertisementDataServiceUUIDsKey: [BLEService.serviceUUID]
+            CBAdvertisementDataServiceUUIDsKey: [serviceUUID],
+            CBAdvertisementDataLocalNameKey: "Bitpoints"
         ]
-        peripheralManager?.startAdvertising(advertisementData)
-        print("BLEService: Started advertising")
+
+        peripheral.startAdvertising(advertisementData)
+        isAdvertising = true
+
+        logger.info("🔵 BLEService: Advertising started")
     }
 
-    // MARK: - Message Sending
+    private func stopAdvertising() {
+        guard let peripheral = peripheralManager, isAdvertising else { return }
 
-    func sendMessage(_ message: Data, to peerID: PeerID) {
-        print("BLEService: Sending message to \(peerID)")
+        logger.info("🔵 BLEService: Stopping advertising")
+        peripheral.stopAdvertising()
+        isAdvertising = false
 
-        // Create packet
-        let packet = BitchatPacket(
-            type: 0xE1, // Ecash message type
-            ttl: messageTTL,
-            senderID: PeerID(publicKey: noiseService.getStaticPublicKeyData()),
-            payload: message
-        )
-
-        // Try to encrypt if we have a session
-        if noiseService.hasEstablishedSession(with: peerID) {
-            do {
-                let encryptedPayload = try noiseService.encrypt(message, for: peerID)
-                let encryptedPacket = BitchatPacket(
-                    type: 0xE1,
-                    ttl: messageTTL,
-                    senderID: PeerID(publicKey: noiseService.getStaticPublicKeyData()),
-                    payload: encryptedPayload
-                )
-                sendPacket(encryptedPacket, to: peerID)
-            } catch {
-                print("BLEService: Failed to encrypt message: \(error)")
-                sendPacket(packet, to: peerID)
-            }
-        } else {
-            // Send unencrypted
-            sendPacket(packet, to: peerID)
+        if let service = meshService {
+            peripheral.remove(service)
         }
+
+        logger.info("🔵 BLEService: Advertising stopped")
     }
 
-    private func sendPacket(_ packet: BitchatPacket, to peerID: PeerID) {
-        guard let packetData = packet.toBinaryData(padding: false) else {
-            print("BLEService: Failed to encode packet")
-            return
-        }
+    private func disconnectAllPeripherals() {
+        logger.info("🔵 BLEService: Disconnecting all peripherals")
 
-        // Fragment if necessary
-        if packetData.count <= defaultFragmentSize {
-            sendFragment(packetData, to: peerID)
-        } else {
-            fragmentAndSend(packetData, to: peerID)
-        }
-    }
-
-    private func sendFragment(_ data: Data, to peerID: PeerID) {
-        // Find peripheral for this peer
-        guard let peripheralUUID = peerToPeripheralUUID[peerID],
-              let peripheralState = peripherals[peripheralUUID],
-              let characteristic = peripheralState.characteristic else {
-            print("BLEService: No connection to peer \(peerID)")
-            return
-        }
-
-        // Write to characteristic
-        peripheralState.peripheral.writeValue(data, for: characteristic, type: .withResponse)
-        print("BLEService: Sent fragment to \(peerID)")
-    }
-
-    private func fragmentAndSend(_ data: Data, to peerID: PeerID) {
-        // Simple fragmentation - split into chunks
-        let chunkSize = defaultFragmentSize
-        let totalChunks = (data.count + chunkSize - 1) / chunkSize
-
-        for i in 0..<totalChunks {
-            let start = i * chunkSize
-            let end = min(start + chunkSize, data.count)
-            let chunk = data.subdata(in: start..<end)
-
-            // Add fragment header (simplified)
-            var fragmentData = Data()
-            fragmentData.append(UInt8(i)) // Fragment index
-            fragmentData.append(UInt8(totalChunks)) // Total fragments
-            fragmentData.append(chunk)
-
-            sendFragment(fragmentData, to: peerID)
-        }
-    }
-
-    // MARK: - Message Processing
-
-    private func processIncomingMessage(_ data: Data, from peerID: PeerID) {
-        print("BLEService: Processing message from \(peerID)")
-
-        // Check if this is a fragment
-        if data.count >= 2 {
-            let fragmentIndex = data[0]
-            let totalFragments = data[1]
-
-            if totalFragments > 1 {
-                // This is a fragment
-                processFragment(data, from: peerID, index: Int(fragmentIndex), total: Int(totalFragments))
-                return
+        for peripheral in connectedPeripherals {
+            if peripheral.state == .connected {
+                centralManager?.cancelPeripheralConnection(peripheral)
             }
         }
 
-        // Process complete message
-        processCompleteMessage(data, from: peerID)
+        connectedPeripherals.removeAll()
+        discoveredPeripherals.removeAll()
+
+        logger.info("🔵 BLEService: All peripherals disconnected")
     }
 
-    private func processFragment(_ data: Data, from peerID: PeerID, index: Int, total: Int) {
-        let fragmentKey = FragmentKey(sender: UInt64(peerID.id.hashValue), id: UInt64(index))
-        let fragmentData = data.dropFirst(2) // Remove header
+    private func connectToPeripheral(_ peripheral: CBPeripheral) {
+        guard let central = centralManager, central.state == .poweredOn else { return }
 
-        // Store fragment
-        incomingFragments[fragmentKey, default: [:]][index] = fragmentData
+        logger.info("🔵 BLEService: Connecting to peripheral: \(peripheral.identifier)")
 
-        // Check if we have all fragments
-        if incomingFragments[fragmentKey]?.count == total {
-            // Reassemble message
-            var completeData = Data()
-            for i in 0..<total {
-                if let fragment = incomingFragments[fragmentKey]?[i] {
-                    completeData.append(fragment)
-                }
-            }
+        // Store peripheral
+        discoveredPeripherals[peripheral.identifier] = peripheral
 
-            // Clean up fragments
-            incomingFragments.removeValue(forKey: fragmentKey)
-
-            // Process complete message
-            processCompleteMessage(completeData, from: peerID)
-        }
+        // Connect
+        central.connect(peripheral, options: nil)
     }
 
-    private func processCompleteMessage(_ data: Data, from peerID: PeerID) {
-        // Try to decode as BitchatPacket
-        if let packet = BitchatPacket.from(data) {
-            // Try to decrypt if we have a session
-            if noiseService.hasEstablishedSession(with: peerID) {
-                do {
-                    let decryptedPayload = try noiseService.decrypt(packet.payload, from: peerID)
-                    delegate?.didReceiveMessage(decryptedPayload, from: peerID)
-                } catch {
-                    print("BLEService: Failed to decrypt message: \(error)")
-                    delegate?.didReceiveMessage(packet.payload, from: peerID)
-                }
-            } else {
-                // Process unencrypted
-                delegate?.didReceiveMessage(packet.payload, from: peerID)
-            }
-        } else {
-            // Process as raw data
-            delegate?.didReceiveMessage(data, from: peerID)
-        }
-    }
+    private func disconnectPeripheral(_ peripheral: CBPeripheral) {
+        guard let central = centralManager else { return }
 
-    // MARK: - Peer Management
+        logger.info("🔵 BLEService: Disconnecting peripheral: \(peripheral.identifier)")
 
-    func getActivePeers() -> [PeerInfo] {
-        return Array(peers.values)
-    }
-
-    func getPeerInfo(for peerID: PeerID) -> PeerInfo? {
-        return peers[peerID]
-    }
-
-    private func addPeer(_ peerID: PeerID, nickname: String = "Unknown") {
-        let peerInfo = PeerInfo(
-            peerID: peerID,
-            nickname: nickname,
-            isConnected: false,
-            noisePublicKey: nil,
-            signingPublicKey: nil,
-            lastSeen: Date()
-        )
-        peers[peerID] = peerInfo
-        delegate?.didDiscoverPeer(peerID)
-    }
-
-    private func updatePeerConnection(_ peerID: PeerID, isConnected: Bool) {
-        if var peerInfo = peers[peerID] {
-            peerInfo.isConnected = isConnected
-            peerInfo.lastSeen = Date()
-            peers[peerID] = peerInfo
-            delegate?.didUpdatePeerConnection(peerID, isConnected: isConnected)
-        }
+        central.cancelPeripheralConnection(peripheral)
+        connectedPeripherals.remove(peripheral)
+        discoveredPeripherals.removeValue(forKey: peripheral.identifier)
     }
 }
 
 // MARK: - CBCentralManagerDelegate
 
 extension BLEService: CBCentralManagerDelegate {
+
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        print("BLEService: Central manager state: \(central.state.rawValue)")
+        logger.info("🔵 BLEService: Central manager state changed to: \(central.state.debugDescription)")
 
         switch central.state {
         case .poweredOn:
-            // Start scanning
-            centralManager?.scanForPeripherals(withServices: [BLEService.serviceUUID], options: nil)
-            print("BLEService: Started scanning for peripherals")
-        case .poweredOff, .unauthorized, .unsupported:
-            print("BLEService: Bluetooth not available")
-        default:
-            break
+            logger.info("🔵 BLEService: Bluetooth is powered on")
+            startScanning()
+
+        case .poweredOff:
+            logger.warning("🔵 BLEService: Bluetooth is powered off")
+            stopScanning()
+            disconnectAllPeripherals()
+
+        case .unauthorized:
+            logger.error("🔵 BLEService: Bluetooth is unauthorized")
+
+        case .unsupported:
+            logger.error("🔵 BLEService: Bluetooth is unsupported")
+
+        case .resetting:
+            logger.warning("🔵 BLEService: Bluetooth is resetting")
+
+        case .unknown:
+            logger.warning("🔵 BLEService: Bluetooth state is unknown")
+
+        @unknown default:
+            logger.warning("🔵 BLEService: Bluetooth state is unknown (future)")
+        }
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidUpdateState(central.state)
         }
     }
 
-    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-        print("BLEService: Discovered peripheral: \(peripheral.identifier)")
+    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        logger.debug("🔵 BLEService: Discovered peripheral: \(peripheral.identifier), RSSI: \(RSSI)")
 
-        // Connect to peripheral
-        centralManager?.connect(peripheral, options: nil)
+        // Connect to discovered peripheral
+        connectToPeripheral(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        print("BLEService: Connected to peripheral: \(peripheral.identifier)")
+        logger.info("🔵 BLEService: Connected to peripheral: \(peripheral.identifier)")
+
+        connectedPeripherals.insert(peripheral)
+        peripheral.delegate = self
 
         // Discover services
-        peripheral.delegate = self
-        peripheral.discoverServices([BLEService.serviceUUID])
+        peripheral.discoverServices([serviceUUID])
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidConnectPeripheral(peripheral)
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
-        print("BLEService: Failed to connect to peripheral: \(peripheral.identifier), error: \(error?.localizedDescription ?? "Unknown")")
+        logger.error("🔵 BLEService: Failed to connect to peripheral: \(peripheral.identifier), error: \(error?.localizedDescription ?? "unknown")")
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidFailToConnectPeripheral(peripheral, error: error)
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        print("BLEService: Disconnected from peripheral: \(peripheral.identifier)")
+        logger.info("🔵 BLEService: Disconnected from peripheral: \(peripheral.identifier), error: \(error?.localizedDescription ?? "none")")
 
-        // Update peer connection status
-        if let peerID = peripherals[peripheral.identifier.uuidString]?.peerID {
-            updatePeerConnection(peerID, isConnected: false)
-        }
+        connectedPeripherals.remove(peripheral)
 
-        // Remove peripheral
-        peripherals.removeValue(forKey: peripheral.identifier.uuidString)
-    }
-}
-
-// MARK: - CBPeripheralDelegate
-
-extension BLEService: CBPeripheralDelegate {
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        guard let services = peripheral.services else { return }
-
-        for service in services {
-            if service.uuid == BLEService.serviceUUID {
-                peripheral.discoverCharacteristics([BLEService.characteristicUUID], for: service)
-            }
-        }
-    }
-
-    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        guard let characteristics = service.characteristics else { return }
-
-        for characteristic in characteristics {
-            if characteristic.uuid == BLEService.characteristicUUID {
-                // Subscribe to notifications
-                peripheral.setNotifyValue(true, for: characteristic)
-
-                // Update peripheral state
-                if var state = peripherals[peripheral.identifier.uuidString] {
-                    state.characteristic = characteristic
-                    state.isConnected = true
-                    peripherals[peripheral.identifier.uuidString] = state
-
-                    // Create peer ID (simplified)
-                    let peerID = PeerID(publicKey: Data(repeating: 0, count: 32)) // Placeholder
-                    state.peerID = peerID
-                    peerToPeripheralUUID[peerID] = peripheral.identifier.uuidString
-                    peripherals[peripheral.identifier.uuidString] = state
-
-                    addPeer(peerID)
-                    updatePeerConnection(peerID, isConnected: true)
-                }
-            }
-        }
-    }
-
-    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        guard let data = characteristic.value else { return }
-
-        if let peerID = peripherals[peripheral.identifier.uuidString]?.peerID {
-            processIncomingMessage(data, from: peerID)
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidDisconnectPeripheral(peripheral, error: error)
         }
     }
 }
@@ -468,86 +326,254 @@ extension BLEService: CBPeripheralDelegate {
 // MARK: - CBPeripheralManagerDelegate
 
 extension BLEService: CBPeripheralManagerDelegate {
+
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
-        print("BLEService: Peripheral manager state: \(peripheral.state.rawValue)")
+        logger.info("🔵 BLEService: Peripheral manager state changed to: \(peripheral.state.debugDescription)")
 
         switch peripheral.state {
         case .poweredOn:
-            // Create service and characteristic
-            let service = CBMutableService(type: BLEService.serviceUUID, primary: true)
-            characteristic = CBMutableCharacteristic(
-                type: BLEService.characteristicUUID,
-                properties: [.read, .write, .notify],
-                value: nil,
-                permissions: [.readable, .writeable]
-            )
-            service.characteristics = [characteristic!]
+            logger.info("🔵 BLEService: Peripheral manager is powered on")
+            startAdvertising()
 
-            // Add service
-            peripheralManager?.add(service)
+        case .poweredOff:
+            logger.warning("🔵 BLEService: Peripheral manager is powered off")
+            stopAdvertising()
 
-            // Start advertising
-            let advertisementData: [String: Any] = [
-                CBAdvertisementDataServiceUUIDsKey: [BLEService.serviceUUID]
-            ]
-            peripheralManager?.startAdvertising(advertisementData)
-            print("BLEService: Started advertising")
-        case .poweredOff, .unauthorized, .unsupported:
-            print("BLEService: Bluetooth not available for advertising")
-        default:
-            break
+        case .unauthorized:
+            logger.error("🔵 BLEService: Peripheral manager is unauthorized")
+
+        case .unsupported:
+            logger.error("🔵 BLEService: Peripheral manager is unsupported")
+
+        case .resetting:
+            logger.warning("🔵 BLEService: Peripheral manager is resetting")
+
+        case .unknown:
+            logger.warning("🔵 BLEService: Peripheral manager state is unknown")
+
+        @unknown default:
+            logger.warning("🔵 BLEService: Peripheral manager state is unknown (future)")
         }
-    }
 
-    func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
-        if let error = error {
-            print("BLEService: Failed to add service: \(error)")
-        } else {
-            print("BLEService: Added service successfully")
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidUpdatePeripheralState(peripheral.state)
         }
     }
 
     func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
         if let error = error {
-            print("BLEService: Failed to start advertising: \(error)")
+            logger.error("🔵 BLEService: Failed to start advertising: \(error.localizedDescription)")
         } else {
-            print("BLEService: Started advertising successfully")
+            logger.info("🔵 BLEService: Successfully started advertising")
+        }
+    }
+
+    func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to add service: \(error.localizedDescription)")
+        } else {
+            logger.info("🔵 BLEService: Successfully added service: \(service.uuid)")
         }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        print("BLEService: Central subscribed to characteristic: \(central.identifier)")
-        subscribedCentrals.append(central)
+        logger.info("🔵 BLEService: Central subscribed to characteristic: \(characteristic.uuid)")
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidSubscribeToCharacteristic(characteristic, central: central)
+        }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
-        print("BLEService: Central unsubscribed from characteristic: \(central.identifier)")
-        subscribedCentrals.removeAll { $0.identifier == central.identifier }
+        logger.info("🔵 BLEService: Central unsubscribed from characteristic: \(characteristic.uuid)")
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidUnsubscribeFromCharacteristic(characteristic, central: central)
+        }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
-        // Handle read requests
-        request.value = myPeerIDData
-        peripheralManager?.respond(to: request, withResult: .success)
+        logger.debug("🔵 BLEService: Received read request for characteristic: \(request.characteristic.uuid)")
+
+        // Respond with empty data for now
+        request.value = Data()
+        peripheral.respond(to: request, withResult: .success)
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
-        // Handle write requests
+        logger.debug("🔵 BLEService: Received \(requests.count) write requests")
+
         for request in requests {
+            logger.debug("🔵 BLEService: Write request for characteristic: \(request.characteristic.uuid), data: \(request.value?.count ?? 0) bytes")
+
+            // Process the received data
             if let data = request.value {
-                // Process incoming data
-                let peerID = PeerID(publicKey: Data(repeating: 0, count: 32)) // Placeholder
-                processIncomingMessage(data, from: peerID)
+                processReceivedData(data, from: request.central)
             }
-            peripheralManager?.respond(to: request, withResult: .success)
+
+            // Respond to the request
+            peripheral.respond(to: request, withResult: .success)
         }
     }
 }
 
-// MARK: - BLEServiceDelegate
+// MARK: - CBPeripheralDelegate
+
+extension BLEService: CBPeripheralDelegate {
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to discover services: \(error.localizedDescription)")
+            return
+        }
+
+        logger.info("🔵 BLEService: Discovered services for peripheral: \(peripheral.identifier)")
+
+        guard let services = peripheral.services else { return }
+
+        for service in services {
+            if service.uuid == serviceUUID {
+                logger.info("🔵 BLEService: Found mesh service, discovering characteristics")
+                peripheral.discoverCharacteristics([characteristicUUID], for: service)
+            }
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to discover characteristics: \(error.localizedDescription)")
+            return
+        }
+
+        logger.info("🔵 BLEService: Discovered characteristics for service: \(service.uuid)")
+
+        guard let characteristics = service.characteristics else { return }
+
+        for characteristic in characteristics {
+            if characteristic.uuid == characteristicUUID {
+                logger.info("🔵 BLEService: Found mesh characteristic, setting up notifications")
+
+                // Enable notifications
+                peripheral.setNotifyValue(true, for: characteristic)
+            }
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to update value for characteristic: \(error.localizedDescription)")
+            return
+        }
+
+        guard let data = characteristic.value else { return }
+
+        logger.debug("🔵 BLEService: Received data from peripheral: \(peripheral.identifier), \(data.count) bytes")
+
+        // Process the received data
+        processReceivedData(data, from: peripheral)
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to write value for characteristic: \(error.localizedDescription)")
+        } else {
+            logger.debug("🔵 BLEService: Successfully wrote value for characteristic: \(characteristic.uuid)")
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            logger.error("🔵 BLEService: Failed to update notification state: \(error.localizedDescription)")
+        } else {
+            logger.info("🔵 BLEService: Notification state updated for characteristic: \(characteristic.uuid), isNotifying: \(characteristic.isNotifying)")
+        }
+    }
+}
+
+// MARK: - Data Processing
+
+extension BLEService {
+
+    private func processReceivedData(_ data: Data, from source: Any) {
+        logger.debug("🔵 BLEService: Processing received data: \(data.count) bytes")
+
+        // For now, just log the data
+        // In a full implementation, this would parse the mesh protocol packets
+
+        // Notify delegate
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.bleServiceDidReceiveData(data, from: source)
+        }
+    }
+
+    func sendData(_ data: Data, to peripheral: CBPeripheral? = nil) {
+        logger.debug("🔵 BLEService: Sending data: \(data.count) bytes")
+
+        bleQueue.async { [weak self] in
+            self?.performSendData(data, to: peripheral)
+        }
+    }
+
+    private func performSendData(_ data: Data, to targetPeripheral: CBPeripheral?) {
+        guard let peripheralManager = peripheralManager,
+              let characteristic = meshCharacteristic else {
+            logger.error("🔵 BLEService: Cannot send data - peripheral manager or characteristic not available")
+            return
+        }
+
+        if let target = targetPeripheral {
+            // Send to specific peripheral (if connected)
+            if connectedPeripherals.contains(target) {
+                // This would require a different approach for directed sends
+                logger.info("🔵 BLEService: Sending data to specific peripheral: \(target.identifier)")
+            }
+        } else {
+            // Broadcast to all connected peripherals
+            logger.info("🔵 BLEService: Broadcasting data to all connected peripherals")
+
+            // Update characteristic value
+            characteristic.value = data
+
+            // Notify all subscribed centrals
+            let success = peripheralManager.updateValue(data, for: characteristic, onSubscribedCentrals: nil)
+
+            if success {
+                logger.debug("🔵 BLEService: Successfully broadcast data")
+            } else {
+                logger.warning("🔵 BLEService: Failed to broadcast data - queue full")
+            }
+        }
+    }
+}
+
+// MARK: - BLEServiceDelegate Protocol
 
 protocol BLEServiceDelegate: AnyObject {
-    func didDiscoverPeer(_ peerID: PeerID)
-    func didUpdatePeerConnection(_ peerID: PeerID, isConnected: Bool)
-    func didReceiveMessage(_ data: Data, from peerID: PeerID)
+    func bleServiceDidUpdateState(_ state: CBManagerState)
+    func bleServiceDidUpdatePeripheralState(_ state: CBManagerState)
+    func bleServiceDidConnectPeripheral(_ peripheral: CBPeripheral)
+    func bleServiceDidFailToConnectPeripheral(_ peripheral: CBPeripheral, error: Error?)
+    func bleServiceDidDisconnectPeripheral(_ peripheral: CBPeripheral, error: Error?)
+    func bleServiceDidSubscribeToCharacteristic(_ characteristic: CBCharacteristic, central: CBCentral)
+    func bleServiceDidUnsubscribeFromCharacteristic(_ characteristic: CBCharacteristic, central: CBCentral)
+    func bleServiceDidReceiveData(_ data: Data, from source: Any)
+}
+
+// MARK: - CBManagerState Extension
+
+extension CBManagerState {
+    var debugDescription: String {
+        switch self {
+        case .unknown: return "unknown"
+        case .resetting: return "resetting"
+        case .unsupported: return "unsupported"
+        case .unauthorized: return "unauthorized"
+        case .poweredOff: return "poweredOff"
+        case .poweredOn: return "poweredOn"
+        @unknown default: return "@unknown"
+        }
+    }
 }

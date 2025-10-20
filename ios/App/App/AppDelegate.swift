@@ -1,4 +1,5 @@
 import UIKit
+import CoreBluetooth
 import Capacitor
 
 @UIApplicationMain
@@ -9,6 +10,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         print("🚀 AppDelegate: Application did finish launching")
+        // Proactively trigger Bluetooth authorization on cold start
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: {
+            _ = CBCentralManager(delegate: nil, queue: nil)
+            _ = CBPeripheralManager(delegate: nil, queue: nil)
+        })
         return true
     }
 

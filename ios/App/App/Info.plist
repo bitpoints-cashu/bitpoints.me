@@ -26,21 +26,24 @@
 	<string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>This app uses Bluetooth to send and receive ecash tokens offline with nearby devices.</string>
+	<key>NSBluetoothAlwaysAllowed</key>
+	<true/>
+	<key>NSBluetoothAlways</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>bitpoints.me uses the local network to discover and connect to nearby peers.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_meshchat._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>The app uses the camera to scan QR codes.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
 		<string>bluetooth-peripheral</string>
-		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
-		<string>external-accessory</string>
-		<string>location</string>
-		<string>push-to-talk</string>
-		<string>remote-notification</string>
-		<string>nearby-interaction</string>
-		<string>voip</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

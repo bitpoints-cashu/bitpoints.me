@@ -30,7 +30,11 @@ enum TransportConfig {
     static let bleDynamicRSSIThresholdDefault: Int = -90
     static let bleConnectionCandidatesMax: Int = 100
     static let blePendingWriteBufferCapBytes: Int = 1_000_000
-    static let blePendingNotificationsCapCount: Int = 20
+    static let bleNotificationAssemblerHardCapBytes: Int = 8 * 1024 * 1024
+    static let bleAssemblerStallResetMs: Int = 250
+    static let blePendingNotificationsCapCount: Int = 128
+    static let bleNotificationRetryDelayMs: Int = 25
+    static let bleNotificationRetryMaxAttempts: Int = 80
 
     // Nostr
     static let nostrReadAckInterval: TimeInterval = 0.35 // ~3 per second
@@ -94,101 +98,19 @@ enum TransportConfig {
     static let bleFragmentSpacingDirectedMs: Int = 4
     static let bleAnnounceIntervalSeconds: TimeInterval = 4.0
     static let bleDutyOnDurationDense: TimeInterval = 3.0
-    static let bleDutyOffDurationDense: TimeInterval = 15.0
-    static let bleConnectedAnnounceBaseSecondsDense: TimeInterval = 30.0
-    static let bleConnectedAnnounceBaseSecondsSparse: TimeInterval = 15.0
-    static let bleConnectedAnnounceJitterDense: TimeInterval = 8.0
-    static let bleConnectedAnnounceJitterSparse: TimeInterval = 4.0
+    static let bleDutyOffDurationDense: TimeInterval = 7.0
 
-    // Location
-    static let locationDistanceFilterMeters: Double = 1000
-    // Live (channel sheet open) distance threshold for meaningful updates
-    static let locationDistanceFilterLiveMeters: Double = 10.0
-    static let locationLiveRefreshInterval: TimeInterval = 5.0
+    // BLE announce delays
+    static let bleInitialAnnounceDelaySeconds: TimeInterval = 2.0
+    static let blePostAnnounceDelaySeconds: TimeInterval = 0.5
 
-    // Notifications (geohash)
-    static let uiGeoNotifyCooldownSeconds: TimeInterval = 60.0
-    static let uiGeoNotifySnippetMaxLen: Int = 80
+    // BLE disconnect debounce
+    static let bleDisconnectNotifyDebounceSeconds: TimeInterval = 2.0
+    static let bleReconnectLogDebounceSeconds: TimeInterval = 5.0
 
-    // Nostr geohash
-    static let nostrGeohashInitialLookbackSeconds: TimeInterval = 3600
-    static let nostrGeohashInitialLimit: Int = 200
-    static let nostrGeoRelayCount: Int = 5
-    static let nostrGeohashSampleLookbackSeconds: TimeInterval = 300
-    static let nostrGeohashSampleLimit: Int = 100
-    static let nostrDMSubscribeLookbackSeconds: TimeInterval = 86400
+    // BLE connection timeout
+    static let bleConnectionTimeoutSeconds: TimeInterval = 10.0
 
-    // Nostr helpers
-    static let nostrShortKeyDisplayLength: Int = 8
-    static let nostrConvKeyPrefixLength: Int = 16
-
-    // Compression
-    static let compressionThresholdBytes: Int = 100
-
-    // Message deduplication
-    static let messageDedupMaxAgeSeconds: TimeInterval = 300
-    static let messageDedupMaxCount: Int = 1000
-
-    // Verification QR
-    static let verificationQRMaxAgeSeconds: TimeInterval = 5 * 60
-
-    // Nostr relay backoff
-    static let nostrRelayInitialBackoffSeconds: TimeInterval = 1.0
-    static let nostrRelayMaxBackoffSeconds: TimeInterval = 300.0
-    static let nostrRelayBackoffMultiplier: Double = 2.0
-    static let nostrRelayMaxReconnectAttempts: Int = 10
-    static let nostrRelayDefaultFetchLimit: Int = 100
-
-    // Geo relay directory
-    static let geoRelayFetchIntervalSeconds: TimeInterval = 60 * 60 * 24
-
-    // BLE operational delays
-    static let bleInitialAnnounceDelaySeconds: TimeInterval = 0.6
-    static let bleConnectTimeoutSeconds: TimeInterval = 8.0
-    static let bleRestartScanDelaySeconds: TimeInterval = 0.1
-    static let blePostSubscribeAnnounceDelaySeconds: TimeInterval = 0.05
-    static let blePostAnnounceDelaySeconds: TimeInterval = 0.4
-    static let bleForceAnnounceMinIntervalSeconds: TimeInterval = 0.15
-
-    // Store-and-forward for directed packets at relays
-    static let bleDirectedSpoolWindowSeconds: TimeInterval = 15.0
-
-    // Log/UI debounce windows
-    // Shorter debounce so UI reacts faster while still suppressing duplicate callbacks
-    static let bleDisconnectNotifyDebounceSeconds: TimeInterval = 0.9
-    static let bleReconnectLogDebounceSeconds: TimeInterval = 2.0
-
-    // Weak-link cooldown after connection timeouts
-    static let bleWeakLinkCooldownSeconds: TimeInterval = 30.0
-    static let bleWeakLinkRSSICutoff: Int = -90
-
-    // Content hashing / formatting
-    static let contentKeyPrefixLength: Int = 256
-    static let uiLongMessageLengthThreshold: Int = 2000
-    static let uiVeryLongTokenThreshold: Int = 512
-    static let uiLongMessageLineLimit: Int = 30
-    static let uiFingerprintSampleCount: Int = 3
-
-    // UI swipe/gesture thresholds
-    static let uiBackSwipeTranslationLarge: CGFloat = 50
-    static let uiBackSwipeTranslationSmall: CGFloat = 30
-    static let uiBackSwipeVelocityThreshold: CGFloat = 300
-
-    // UI color tuning
-    static let uiColorHueAvoidanceDelta: Double = 0.05
-    static let uiColorHueOffset: Double = 0.12
-    // Peer list palette
-    static let uiPeerPaletteSlots: Int = 36
-    static let uiPeerPaletteRingBrightnessDeltaLight: Double = 0.07
-    static let uiPeerPaletteRingBrightnessDeltaDark: Double = -0.07
-
-    // UI windowing (infinite scroll)
-    static let uiWindowInitialCountPublic: Int = 300
-    static let uiWindowInitialCountPrivate: Int = 300
-    static let uiWindowStepCount: Int = 200
-
-    // Share extension
-    static let uiShareExtensionDismissDelaySeconds: TimeInterval = 2.0
-    static let uiShareAcceptWindowSeconds: TimeInterval = 30.0
-    static let uiMigrationCutoffSeconds: TimeInterval = 24 * 60 * 60
+    // BLE simulator detection
+    static let bleSimulatorCheckEnabled: Bool = true
 }

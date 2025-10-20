@@ -1,438 +1,381 @@
 import Foundation
 import CoreBluetooth
 
-/**
- * BluetoothEcashService
- *
- * Main service for handling Bluetooth ecash operations
- * iOS equivalent of Android's BluetoothEcashService.kt
- * Enhanced with complete mesh networking stack
- */
-class BluetoothEcashService: NSObject, BLEServiceDelegate, MessageHandlerDelegate, PacketProcessorDelegate, PacketRelayManagerDelegate {
-
-    weak var delegate: EcashDelegate?
-
-    private var isServiceActive = false
-    private var activePeers: [String: PeerInfo] = [:]
-    private var unclaimedTokens: [EcashMessage] = []
-    private var nickname: String = "Bitpoints User"
-
-    // Core services
-    private let bleService: BLEService
-    private let noiseService: NoiseEncryptionService
-    private let keychain: KeychainManagerProtocol
+/// Bluetooth service for ecash token transfers
+/// Full mesh networking implementation adapted from bitchat
+class BluetoothEcashService: NSObject {
     
-    // Mesh networking services
-    private let connectionManager: ConnectionManager
-    private let messageHandler: MessageHandler
-    private let fragmentManager: FragmentManager
-    private let packetProcessor: PacketProcessor
-    private let packetRelayManager: PacketRelayManager
-    private let securityManager: SecurityManager
-    private let powerManager: PowerManager
-    private let noiseSessionManager: NoiseSessionManager
+    // MARK: - Properties
+    
+    private let bleService: BLEService
+    weak var delegate: BluetoothEcashServiceDelegate?
+    
+    // State tracking
+    private var nickname: String = "Bitpoints User"
+    private var unclaimedTokens: [[String: Any]] = []
+    private var activePeers: [[String: Any]] = []
+    private var availablePeers: [[String: Any]] = []
+    
+    // Message tracking
+    private var pendingMessages: [String: [String: Any]] = [:]
+    private var messageCounter: Int = 0
+    
+    // MARK: - Initialization
 
     override init() {
-        print("BluetoothEcashService initialized")
-
-        // Initialize keychain
-        self.keychain = KeychainManager()
-
-        // Initialize noise service
-        self.noiseService = NoiseEncryptionService(keychain: keychain)
-        
-        // Initialize mesh networking services
-        self.connectionManager = ConnectionManager()
-        self.fragmentManager = FragmentManager()
-        self.messageHandler = MessageHandler(connectionManager: connectionManager, fragmentManager: fragmentManager)
-        self.packetProcessor = PacketProcessor(connectionManager: connectionManager, messageHandler: messageHandler)
-        self.packetRelayManager = PacketRelayManager(connectionManager: connectionManager, packetProcessor: packetProcessor)
-        self.securityManager = SecurityManager()
-        self.powerManager = PowerManager(connectionManager: connectionManager)
-        self.noiseSessionManager = NoiseSessionManager(keychain: keychain)
-
-        // Initialize BLE service
-        self.bleService = BLEService(noiseService: noiseService, keychain: keychain)
-        
+        self.bleService = BLEService()
         super.init()
         
-        // Set up delegates
-        self.bleService.delegate = self
-        self.connectionManager.delegate = self
-        self.messageHandler.delegate = self
-        self.packetProcessor.delegate = self
-        self.packetRelayManager.delegate = self
-        self.securityManager.delegate = self
-        self.powerManager.delegate = self
-
-        // Set up noise service callbacks
-        noiseService.onHandshakeRequired = { [weak self] peerID in
-            self?.initiateHandshake(with: peerID)
+        // Set up delegate
+        bleService.delegate = self
+        
+        print("🔵 BluetoothEcashService: Initialized")
+    }
+    
+    // MARK: - Public Interface
+    
+    func requestPermissions(completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Requesting permissions")
+        
+        // Proactively initialize BLE managers to trigger permission prompts
+        let _ = CBCentralManager(delegate: nil, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
+        let _ = CBPeripheralManager(delegate: nil, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
+        
+        // Check authorization status
+        let authStatus = CBCentralManager.authorization
+        if authStatus == .allowedAlways || authStatus == .allowedWhenInUse {
+            print("🔵 BluetoothEcashService: Permissions granted")
+            completion(.success(()))
+        } else {
+            print("🔵 BluetoothEcashService: Permissions denied")
+            completion(.failure(BluetoothEcashServiceError.permissionDenied))
         }
     }
 
-    // MARK: - Service Control
-
     func startService(completion: @escaping (Result<Void, Error>) -> Void) {
-        print("🚀 Starting Bluetooth ecash service")
-
+        print("🔵 BluetoothEcashService: Starting service")
         bleService.startService()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.isServiceActive = true
             completion(.success(()))
-        }
     }
 
     func stopService(completion: @escaping (Result<Void, Error>) -> Void) {
-        print("🛑 Stopping Bluetooth ecash service")
-
+        print("🔵 BluetoothEcashService: Stopping service")
         bleService.stopService()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.isServiceActive = false
             completion(.success(()))
-        }
-    }
-
-    // MARK: - Token Operations
-
-    func sendToken(token: String,
-                  toPeer: String,
-                  amount: Int,
-                  unit: String,
-                  memo: String?,
-                  completion: @escaping (Result<String, Error>) -> Void) {
-        print("🚀 sendToken called from frontend")
-        print("📦 Token received: \(token.prefix(20))...")
-        print("Sending ecash token to peer \(toPeer)")
-
-        let messageId = UUID().uuidString
-
-        // Create ecash message
-        let ecashMessage = EcashMessage(
-            id: messageId,
-            senderId: getMyPeerID(),
-            recipientId: PeerID(str: toPeer),
-            amount: amount,
-            unit: unit,
-            cashuToken: token,
-            mint: "", // TODO: Extract mint from token
-            memo: memo
-        )
-
-        do {
-            // Create packet for sending
-            let packetData = try messageHandler.createEcashMessage(ecashMessage, ttl: 7)
-            
-            // Send via BLE service
-            bleService.sendData(packetData, to: PeerID(str: toPeer)) { [weak self] result in
-                switch result {
-                case .success:
-                    print("✅ Token sent successfully to \(toPeer)")
-                    completion(.success(messageId))
-                    
-                    // Notify frontend
-                    DispatchQueue.main.async {
-                        self?.delegate?.ecashService(self!, didSendToken: ecashMessage)
-                    }
-                    
-                case .failure(let error):
-                    print("❌ Failed to send token: \(error)")
-                    completion(.failure(error))
-                }
-            }
-            
-        } catch {
-            print("❌ Failed to create ecash packet: \(error)")
-            completion(.failure(error))
-        }
     }
     
-    // MARK: - Token Receive Handling
+    func isBluetoothEnabled() -> Bool {
+        let isPoweredOn = bleService.getCurrentBluetoothState() == .poweredOn
+        let isAuthorized = CBCentralManager.authorization == .allowed
+        print("🔵 BluetoothEcashService: isBluetoothEnabled - PoweredOn: \(isPoweredOn), Authorized: \(isAuthorized)")
+        return isPoweredOn && isAuthorized
+    }
     
-    private func handleReceivedToken(_ ecashMessage: EcashMessage, from sender: PeerID) {
-        print("📨 Received ecash token from \(sender)")
+    func sendToken(_ options: [String: Any], completion: @escaping (Result<String, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Sending token with options: \(options)")
         
-        // Add to unclaimed tokens
-        unclaimedTokens.append(ecashMessage)
+        guard let token = options["token"] as? String,
+              let amount = options["amount"] as? Int,
+              let unit = options["unit"] as? String,
+              let senderNpub = options["senderNpub"] as? String else {
+            completion(.failure(BluetoothEcashServiceError.invalidParameters))
+            return
+        }
         
-        // Auto-redeem token
-        autoRedeemToken(ecashMessage) { [weak self] result in
-            switch result {
-            case .success:
-                print("✅ Token auto-redeemed successfully")
-                
-                // Remove from unclaimed tokens
-                self?.unclaimedTokens.removeAll { $0.id == ecashMessage.id }
-                
-                // Notify frontend
-                DispatchQueue.main.async {
-                    self?.delegate?.ecashService(self!, didReceiveToken: ecashMessage)
-                }
-                
-            case .failure(let error):
-                print("❌ Failed to auto-redeem token: \(error)")
-                
-                // Still notify frontend about received token
-                DispatchQueue.main.async {
-                    self?.delegate?.ecashService(self!, didReceiveToken: ecashMessage)
-                }
-            }
+        let peerID = options["peerID"] as? String
+        let memo = options["memo"] as? String
+        let mint = options["mint"] as? String ?? ""
+        
+        // Create message
+        let messageId = "msg_\(UUID().uuidString)"
+        let message: [String: Any] = [
+            "id": messageId,
+            "type": "ecash",
+            "token": token,
+            "amount": amount,
+            "unit": unit,
+            "senderNpub": senderNpub,
+            "memo": memo ?? "",
+            "mint": mint,
+            "timestamp": Date().timeIntervalSince1970 * 1000,
+            "targetPeerID": peerID ?? "broadcast"
+        ]
+        
+        // Convert to data and send via BLE
+        guard let data = try? JSONSerialization.data(withJSONObject: message) else {
+            completion(.failure(BluetoothEcashServiceError.invalidData))
+            return
         }
+        
+        bleService.sendData(data)
+        
+        // Track pending message
+        pendingMessages[messageId] = message
+        
+        print("🔵 BluetoothEcashService: Token sent with messageId: \(messageId)")
+        completion(.success(messageId))
     }
     
-    private func autoRedeemToken(_ ecashMessage: EcashMessage, completion: @escaping (Result<Void, Error>) -> Void) {
-        // TODO: Implement actual token redemption via Cashu mint
-        // For now, simulate successful redemption
-        DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
-            completion(.success(()))
-        }
+    func getActivePeers() -> [[String: Any]] {
+        print("🔵 BluetoothEcashService: Getting active peers")
+        return activePeers
     }
     
-    // MARK: - Peer Management
-    
-    func getActivePeers() -> [PeerInfo] {
-        return Array(activePeers.values)
+    func getAvailablePeers() -> [[String: Any]] {
+        print("🔵 BluetoothEcashService: Getting available peers")
+        return availablePeers
     }
     
-    func getUnclaimedTokens() -> [EcashMessage] {
+    func getUnclaimedTokens() -> [[String: Any]] {
+        print("🔵 BluetoothEcashService: Getting unclaimed tokens")
         return unclaimedTokens
     }
     
-    // MARK: - Helper Methods
-    
-    private func getMyPeerID() -> PeerID {
-        // Get peer ID from noise service
-        let publicKeyData = noiseService.getStaticPublicKeyData()
-        return PeerID(publicKey: publicKeyData)
-    }
-    
-    // MARK: - Delegate Methods
-    
-    // MARK: - BLEServiceDelegate
-    
-    func bleService(_ service: BLEService, didReceiveData data: Data, from peerID: PeerID) {
-        // Process incoming data through packet processor
-        packetProcessor.processPacket(data, from: peerID, via: nil)
-    }
-    
-    func bleService(_ service: BLEService, didConnectTo peerID: PeerID) {
-        print("🔗 Connected to peer \(peerID)")
+    func markTokenClaimed(messageId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Marking token claimed: \(messageId)")
         
-        // Add to active peers
-        let peerInfo = PeerInfo(
-            peerID: peerID,
-            nickname: "Peer \(peerID.id.prefix(8))",
-            isConnected: true,
-            noisePublicKey: nil,
-            signingPublicKey: nil,
-            lastSeen: Date()
-        )
-        activePeers[peerID.id] = peerInfo
-        
-        // Notify frontend
-        DispatchQueue.main.async {
-            self.delegate?.ecashService(self, didConnectToPeer: peerInfo)
-        }
-    }
-    
-    func bleService(_ service: BLEService, didDisconnectFrom peerID: PeerID) {
-        print("🔌 Disconnected from peer \(peerID)")
-        
-        // Update peer status
-        if var peerInfo = activePeers[peerID.id] {
-            peerInfo.isConnected = false
-            activePeers[peerID.id] = peerInfo
+        // Remove from unclaimed tokens
+        unclaimedTokens.removeAll { token in
+            token["id"] as? String == messageId
         }
         
-        // Notify frontend
-        DispatchQueue.main.async {
-            self.delegate?.ecashService(self, didDisconnectFromPeer: peerID)
-        }
-    }
-    
-    // MARK: - MessageHandlerDelegate
-    
-    func messageHandler(_ handler: MessageHandler, didReceiveEcash message: EcashMessage, from sender: PeerID) {
-        handleReceivedToken(message, from: sender)
-    }
-    
-    func messageHandler(_ handler: MessageHandler, didReceiveAnnounce message: IdentityAnnouncement, from sender: PeerID) {
-        print("📢 Received announcement from \(sender)")
+        // Remove from pending messages
+        pendingMessages.removeValue(forKey: messageId)
         
-        // Update peer info
-        let peerInfo = PeerInfo(
-            peerID: sender,
-            nickname: message.nickname,
-            isConnected: false,
-            noisePublicKey: message.noisePublicKey,
-            signingPublicKey: message.signingPublicKey,
-            lastSeen: Date()
-        )
-        activePeers[sender.id] = peerInfo
-        
-        // Notify frontend
-        DispatchQueue.main.async {
-            self.delegate?.ecashService(self, didDiscoverPeer: peerInfo)
-        }
+        completion(.success(()))
     }
     
-    func messageHandler(_ handler: MessageHandler, didReceiveSync message: RequestSyncPacket, from sender: PeerID) {
-        print("🔄 Received sync request from \(sender)")
-        // TODO: Implement sync response
-    }
-    
-    func messageHandler(_ handler: MessageHandler, didReceiveAck message: DeliveryAck, from sender: PeerID) {
-        print("✅ Received delivery ack from \(sender)")
-        // TODO: Handle delivery acknowledgment
-    }
-    
-    func messageHandler(_ handler: MessageHandler, shouldRelayMessage data: Data, to peerID: PeerID) {
-        // Relay message via BLE service
-        bleService.sendData(data, to: peerID) { result in
-            switch result {
-            case .success:
-                print("📡 Relayed message to \(peerID)")
-            case .failure(let error):
-                print("❌ Failed to relay message: \(error)")
-            }
-        }
-    }
-    
-    // MARK: - PacketProcessorDelegate
-    
-    func packetProcessor(_ processor: PacketProcessor, shouldRelayPacket data: Data, to peerID: PeerID) {
-        // Relay packet via BLE service
-        bleService.sendData(data, to: peerID) { result in
-            switch result {
-            case .success:
-                print("📡 Relayed packet to \(peerID)")
-            case .failure(let error):
-                print("❌ Failed to relay packet: \(error)")
-            }
-        }
-    }
-    
-    // MARK: - PacketRelayManagerDelegate
-    
-    func packetRelayManager(_ manager: PacketRelayManager, shouldRelayPacket data: Data, to peerID: PeerID) {
-        // Relay packet via BLE service
-        bleService.sendData(data, to: peerID) { result in
-            switch result {
-            case .success:
-                print("📡 Relayed packet to \(peerID)")
-            case .failure(let error):
-                print("❌ Failed to relay packet: \(error)")
-            }
-        }
-    }
-    
-    // MARK: - SecurityManagerDelegate
-    
-    func securityManager(_ manager: SecurityManager, didDetectEvent event: SecurityManager.SecurityEvent) {
-        print("🚨 Security event: \(event.eventType) from \(event.peerID) - \(event.details)")
-        
-        // Notify frontend about security events
-        DispatchQueue.main.async {
-            self.delegate?.ecashService(self, didDetectSecurityEvent: event)
-        }
-    }
-    
-    // MARK: - PowerManagerDelegate
-    
-    func powerManager(_ manager: PowerManager, didUpdatePowerSettings settings: PowerSettings) {
-        print("🔋 Power settings updated: \(settings.powerMode), scan interval: \(settings.scanInterval)")
-        
-        // Update BLE service with new power settings
-        // TODO: Implement power-aware BLE operations
-    }
-    
-    // MARK: - ConnectionManagerDelegate
-    
-    func connectionManager(_ manager: ConnectionManager, didAddConnection peerID: PeerID) {
-        print("➕ Added connection to \(peerID)")
-    }
-    
-    func connectionManager(_ manager: ConnectionManager, didUpdateConnection peerID: PeerID, state: ConnectionManager.ConnectionState) {
-        print("🔄 Updated connection to \(peerID): \(state)")
-    }
-    
-    func connectionManager(_ manager: ConnectionManager, didRemoveConnection peerID: PeerID) {
-        print("➖ Removed connection to \(peerID)")
-    }
-    
-    func connectionManager(_ manager: ConnectionManager, didFailConnection peerID: PeerID, error: Error) {
-        print("❌ Connection failed to \(peerID): \(error)")
-    }
-    
-    func connectionManager(_ manager: ConnectionManager, shouldReconnect peerID: PeerID, peripheral: CBPeripheral) {
-        print("🔄 Attempting reconnection to \(peerID)")
-        // TODO: Implement reconnection logic
-    }
-}
-        }
-    }
-
-    func getActivePeers() -> [PeerInfo] {
-        let blePeers = bleService.getActivePeers()
-        return blePeers.map { blePeer in
-            PeerInfo(
-                id: blePeer.peerID.id,
-                nickname: blePeer.nickname,
-                lastSeen: blePeer.lastSeen,
-                isDirect: true, // BLE is always direct
-                nostrNpub: nil,
-                isConnected: blePeer.isConnected
-            )
-        }
-    }
-
-    func getUnclaimedTokens() -> [EcashMessage] {
-        return unclaimedTokens.filter { !$0.claimed }
-    }
-
-    func markTokenClaimed(_ messageId: String) {
-        if let index = unclaimedTokens.firstIndex(where: { $0.id == messageId }) {
-            unclaimedTokens[index].claimed = true
-        }
-    }
-
-    // MARK: - Identity Management
-
-    func setNickname(_ nickname: String) {
+    func setNickname(_ nickname: String, completion: @escaping (Result<String, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Setting nickname to: \(nickname)")
         self.nickname = nickname
+        completion(.success(nickname))
     }
-
+    
     func getNickname() -> String {
+        print("🔵 BluetoothEcashService: Getting nickname: \(nickname)")
         return nickname
     }
-
-    // MARK: - Bluetooth Status
-
-    func isBluetoothEnabled() -> Bool {
-        // TODO: Check actual Bluetooth state
-        return true
-    }
-
+    
     func requestBluetoothEnable(completion: @escaping (Result<Void, Error>) -> Void) {
-        // TODO: Request Bluetooth enable
+        print("🔵 BluetoothEcashService: Requesting Bluetooth enable")
+        requestPermissions(completion: completion)
+    }
+    
+    func sendTextMessage(message: String, toPeer peerID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Sending text message to \(peerID): \(message)")
+        
+        // Create text message
+        let messageId = "text_\(UUID().uuidString)"
+        let textMessage: [String: Any] = [
+            "id": messageId,
+            "type": "text",
+            "message": message,
+            "senderNickname": nickname,
+            "targetPeerID": peerID,
+            "timestamp": Date().timeIntervalSince1970 * 1000
+        ]
+        
+        // Convert to data and send via BLE
+        guard let data = try? JSONSerialization.data(withJSONObject: textMessage) else {
+            completion(.failure(BluetoothEcashServiceError.invalidData))
+            return
+        }
+        
+        bleService.sendData(data)
         completion(.success(()))
     }
-
-    func requestPermissions(completion: @escaping (Result<Void, Error>) -> Void) {
-        // TODO: Request Bluetooth permissions
+    
+    func openAppSettings(completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Opening app settings")
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                completion(.success(()))
+                return
+            }
+        }
+        completion(.failure(BluetoothEcashServiceError.failedToOpenSettings))
+    }
+    
+    func startAlwaysOnMode(completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Starting always-on mode (iOS not supported)")
         completion(.success(()))
     }
+    
+    func stopAlwaysOnMode(completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Stopping always-on mode (iOS not supported)")
+        completion(.success(()))
+    }
+    
+    func isAlwaysOnActive() -> Bool {
+        print("🔵 BluetoothEcashService: Checking always-on mode (iOS not supported)")
+        return false
+    }
+    
+    func requestBatteryOptimizationExemption(completion: @escaping (Result<Void, Error>) -> Void) {
+        print("🔵 BluetoothEcashService: Requesting battery optimization exemption (iOS not supported)")
+        completion(.success(()))
+    }
+    
+    // MARK: - Private Methods
+    
+    private func processReceivedMessage(_ data: Data) {
+        print("🔵 BluetoothEcashService: Processing received message: \(data.count) bytes")
+        
+        guard let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            print("🔵 BluetoothEcashService: Failed to parse received message")
+            return
+        }
+        
+        guard let messageType = message["type"] as? String else {
+            print("🔵 BluetoothEcashService: Message missing type field")
+            return
+        }
+        
+        switch messageType {
+        case "ecash":
+            handleEcashMessage(message)
+        case "text":
+            handleTextMessage(message)
+        case "peerInfo":
+            handlePeerInfoMessage(message)
+        default:
+            print("🔵 BluetoothEcashService: Unknown message type: \(messageType)")
+        }
+    }
+    
+    private func handleEcashMessage(_ message: [String: Any]) {
+        print("🔵 BluetoothEcashService: Handling ecash message")
+        
+        // Add to unclaimed tokens
+        unclaimedTokens.append(message)
+        
+        // Notify delegate
+        delegate?.bluetoothEcashService(self, didReceiveEcashMessage: message)
+    }
+    
+    private func handleTextMessage(_ message: [String: Any]) {
+        print("🔵 BluetoothEcashService: Handling text message")
+        
+        // Notify delegate
+        delegate?.bluetoothEcashService(self, didReceiveTextMessage: message)
+    }
+    
+    private func handlePeerInfoMessage(_ message: [String: Any]) {
+        print("🔵 BluetoothEcashService: Handling peer info message")
+        
+        guard let peerID = message["peerID"] as? String,
+              let nickname = message["nickname"] as? String else {
+            return
+        }
+        
+        let peerInfo: [String: Any] = [
+            "peerID": peerID,
+            "nickname": nickname,
+            "lastSeen": Date().timeIntervalSince1970 * 1000,
+            "isDirect": true,
+            "nostrNpub": message["nostrNpub"] as? String ?? "",
+            "isConnected": true
+        ]
+        
+        // Update peer lists
+        updatePeerInList(&activePeers, peerInfo)
+        updatePeerInList(&availablePeers, peerInfo)
+        
+        // Notify delegate
+        delegate?.bluetoothEcashService(self, didDiscoverPeer: peerInfo)
+    }
+    
+    private func updatePeerInList(_ peerList: inout [[String: Any]], _ peerInfo: [String: Any]) {
+        let peerID = peerInfo["peerID"] as! String
+        
+        if let index = peerList.firstIndex(where: { ($0["peerID"] as? String) == peerID }) {
+            peerList[index] = peerInfo
+        } else {
+            peerList.append(peerInfo)
+        }
+    }
+}
 
-    // MARK: - Handshake Management
+// MARK: - BLEServiceDelegate
+extension BluetoothEcashService: BLEServiceDelegate {
+    func bleServiceDidUpdateState(_ state: CBManagerState) {
+        print("🔵 BluetoothEcashService: BLE state updated: \(state.debugDescription)")
+        delegate?.bluetoothEcashService(self, didUpdateState: state)
+    }
+    
+    func bleServiceDidUpdatePeripheralState(_ state: CBManagerState) {
+        print("🔵 BluetoothEcashService: BLE peripheral state updated: \(state.debugDescription)")
+        delegate?.bluetoothEcashService(self, didUpdatePeripheralState: state)
+    }
+    
+    func bleServiceDidConnectPeripheral(_ peripheral: CBPeripheral) {
+        print("🔵 BluetoothEcashService: Connected to peripheral: \(peripheral.identifier)")
+        delegate?.bluetoothEcashService(self, didConnectPeripheral: peripheral)
+    }
+    
+    func bleServiceDidFailToConnectPeripheral(_ peripheral: CBPeripheral, error: Error?) {
+        print("🔵 BluetoothEcashService: Failed to connect to peripheral: \(peripheral.identifier), error: \(error?.localizedDescription ?? "unknown")")
+        delegate?.bluetoothEcashService(self, didFailToConnectPeripheral: peripheral, error: error)
+    }
+    
+    func bleServiceDidDisconnectPeripheral(_ peripheral: CBPeripheral, error: Error?) {
+        print("🔵 BluetoothEcashService: Disconnected from peripheral: \(peripheral.identifier)")
+        delegate?.bluetoothEcashService(self, didDisconnectPeripheral: peripheral, error: error)
+    }
+    
+    func bleServiceDidSubscribeToCharacteristic(_ characteristic: CBCharacteristic, central: CBCentral) {
+        print("🔵 BluetoothEcashService: Central subscribed to characteristic: \(characteristic.uuid)")
+        delegate?.bluetoothEcashService(self, didSubscribeToCharacteristic: characteristic, central: central)
+    }
+    
+    func bleServiceDidUnsubscribeFromCharacteristic(_ characteristic: CBCharacteristic, central: CBCentral) {
+        print("🔵 BluetoothEcashService: Central unsubscribed from characteristic: \(characteristic.uuid)")
+        delegate?.bluetoothEcashService(self, didUnsubscribeFromCharacteristic: characteristic, central: central)
+    }
+    
+    func bleServiceDidReceiveData(_ data: Data, from source: Any) {
+        print("🔵 BluetoothEcashService: Received data from source")
+        processReceivedMessage(data)
+        delegate?.bluetoothEcashService(self, didReceiveData: data, from: source)
+    }
+}
 
-    private func initiateHandshake(with peerID: PeerID) {
-        do {
-            let handshakeData = try noiseService.initiateHandshake(with: peerID)
-            bleService.sendMessage(handshakeData, to: peerID)
-        } catch {
-            print("BluetoothEcashService: Failed to initiate handshake: \(error)")
+// MARK: - BluetoothEcashServiceDelegate Protocol
+protocol BluetoothEcashServiceDelegate: AnyObject {
+    func bluetoothEcashService(_ service: BluetoothEcashService, didUpdateState state: CBManagerState)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didUpdatePeripheralState state: CBManagerState)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didConnectPeripheral peripheral: CBPeripheral)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didFailToConnectPeripheral peripheral: CBPeripheral, error: Error?)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didSubscribeToCharacteristic characteristic: CBCharacteristic, central: CBCentral)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didUnsubscribeFromCharacteristic characteristic: CBCharacteristic, central: CBCentral)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didReceiveData data: Data, from source: Any)
+    func bluetoothEcashService(_ service: BluetoothEcashService, didReceiveEcashMessage message: [String: Any])
+    func bluetoothEcashService(_ service: BluetoothEcashService, didReceiveTextMessage message: [String: Any])
+    func bluetoothEcashService(_ service: BluetoothEcashService, didDiscoverPeer peerInfo: [String: Any])
+}
+
+// MARK: - BluetoothEcashServiceError
+enum BluetoothEcashServiceError: Error, LocalizedError {
+    case permissionDenied
+    case invalidParameters
+    case invalidData
+    case failedToOpenSettings
+    case unknown(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            return "Bluetooth permissions were denied"
+        case .invalidParameters:
+            return "Invalid parameters provided"
+        case .invalidData:
+            return "Invalid data format"
+        case .failedToOpenSettings:
+            return "Failed to open app settings"
+        case .unknown(let message):
+            return message
         }
     }
 }
