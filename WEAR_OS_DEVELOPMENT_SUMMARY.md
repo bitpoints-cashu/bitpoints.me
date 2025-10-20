@@ -26,7 +26,9 @@ This document provides a comprehensive overview of the Wear OS Cashu wallet impl
 ## Project Overview
 
 ### Objective
+
 Create a fully functional Cashu wallet for Wear OS that mirrors the main Bitpoints app functionality, including:
+
 - Lightning invoice creation and payment
 - Cashu token minting and management
 - QR code generation for payments
@@ -34,6 +36,7 @@ Create a fully functional Cashu wallet for Wear OS that mirrors the main Bitpoin
 - Shared backend logic with main app
 
 ### Success Criteria
+
 - ✅ Native Wear OS UI with scrollable interface
 - ✅ Lightning invoice creation working
 - ✅ Network connectivity to mint server
@@ -47,6 +50,7 @@ Create a fully functional Cashu wallet for Wear OS that mirrors the main Bitpoin
 ## Main App Architecture Analysis
 
 ### Core Architecture
+
 The main Bitpoints app uses a **hybrid architecture** with:
 
 **Frontend**: Quasar/Vue.js SPA with Capacitor for mobile deployment
@@ -57,6 +61,7 @@ The main Bitpoints app uses a **hybrid architecture** with:
 ### Key Components
 
 #### 1. Wallet Store (`src/stores/wallet.ts`)
+
 ```typescript
 // Core wallet operations
 - mint(): Mint tokens after Lightning payment
@@ -66,6 +71,7 @@ The main Bitpoints app uses a **hybrid architecture** with:
 ```
 
 #### 2. Mints Store (`src/stores/mints.ts`)
+
 ```typescript
 // Mint management
 - activateMint(): Connect to and activate a mint
@@ -74,6 +80,7 @@ The main Bitpoints app uses a **hybrid architecture** with:
 ```
 
 #### 3. Proofs Store (`src/stores/proofs.ts`)
+
 ```typescript
 // Proof management
 - addProofs(): Store new proofs after minting
@@ -84,18 +91,21 @@ The main Bitpoints app uses a **hybrid architecture** with:
 ### Cashu Protocol Flow
 
 #### Lightning Invoice Creation
+
 1. User requests Lightning invoice for amount X
 2. App calls `mintWallet.requestMint(amount)`
 3. Mint returns quote with Lightning invoice
 4. QR code generated with `lightning:BOLT11_INVOICE` format
 
 #### Lightning Payment Processing
+
 1. App polls mint server for payment status
 2. When `paid: true`, app calls `mintWallet.mintProofs()`
 3. Mint returns blinded proofs for the paid amount
 4. App stores proofs and updates balance
 
 #### Cashu Token Sending
+
 1. User enters amount and recipient
 2. App calls `wallet.send()` with proofs and amount
 3. App creates blinded outputs for recipient
@@ -111,11 +121,13 @@ The main Bitpoints app uses a **hybrid architecture** with:
 **Goal**: Use Capacitor WebView with shared JavaScript/TypeScript logic
 
 **Implementation**:
+
 - Created Wear OS Capacitor module
 - Shared Vue.js components and stores
 - Used same build system as main app
 
 **Challenges Encountered**:
+
 1. **WebView Limitations**: Wear OS has limited WebView support
 2. **Performance Issues**: JavaScript execution was slow on watch hardware
 3. **UI Responsiveness**: WebView UI wasn't optimized for small screens
@@ -128,12 +140,14 @@ The main Bitpoints app uses a **hybrid architecture** with:
 **Goal**: Create native Android app with Kotlin backend
 
 **Implementation**:
+
 - Native `WearMainActivity` with Android UI components
 - Kotlin backend service (`WearWalletService`)
 - Direct HTTP requests using OkHttp
 - QR code generation using ZXing
 
 **Challenges Encountered**:
+
 1. **Cashu Protocol Complexity**: Had to reimplement Cashu logic in Kotlin
 2. **Cryptographic Operations**: Blinded signatures and proof management
 3. **State Management**: No equivalent to Pinia stores
@@ -146,11 +160,13 @@ The main Bitpoints app uses a **hybrid architecture** with:
 **Goal**: Native UI with JavaScript bridge for shared logic
 
 **Implementation**:
+
 - Native Wear OS UI components
 - JavaScript engine bridge
 - Shared TypeScript stores and logic
 
 **Challenges Encountered**:
+
 1. **JavaScript Engine**: Limited JS runtime on Wear OS
 2. **Bridge Complexity**: Communication between native and JS
 3. **State Synchronization**: Keeping native and JS state in sync
@@ -162,6 +178,7 @@ The main Bitpoints app uses a **hybrid architecture** with:
 **Goal**: Native Android UI with Kotlin backend that mirrors main app logic
 
 **Implementation**:
+
 - Native `WearMainActivity` with ScrollView layouts
 - `WearWalletService` that mirrors main app's Cashu operations
 - Same network endpoints and request formats
@@ -201,6 +218,7 @@ The main Bitpoints app uses a **hybrid architecture** with:
 ### Key Components
 
 #### 1. WearMainActivity.kt
+
 ```kotlin
 class WearMainActivity : AppCompatActivity() {
     // UI Components
@@ -209,13 +227,13 @@ class WearMainActivity : AppCompatActivity() {
     private lateinit var balanceText: TextView
     private lateinit var sendButton: Button
     private lateinit var receiveButton: Button
-    
+
     // Navigation
     private fun showSendScreen()      // Send Cashu tokens
     private fun showReceiveScreen()   // Receive Lightning payment
     private fun showHistoryScreen()   // Transaction history
     private fun showSettingsScreen()  // Wallet settings
-    
+
     // QR Code Display
     private fun showLightningQRCode() // Display Lightning invoice QR
     private fun showCashuQRCode()     // Display Cashu token QR
@@ -223,6 +241,7 @@ class WearMainActivity : AppCompatActivity() {
 ```
 
 #### 2. WearWalletService.kt
+
 ```kotlin
 class WearWalletService(private val context: Context) {
     // Wallet State
@@ -230,13 +249,13 @@ class WearWalletService(private val context: Context) {
     private var mnemonic: String = ""
     private var mintUrl: String = "https://ecash.trailscoffee.com"
     private var activeKeysetId: String = ""
-    
+
     // Core Operations
     suspend fun requestMint(amount: Long): Result<MintQuote>
     suspend fun checkInvoice(quoteId: String): Result<MintQuote>
     suspend fun mintTokens(quoteId: String, amount: Long): Result<Unit>
     private suspend fun getActiveKeysetId(): String
-    
+
     // Persistence
     private fun loadWalletState()
     private fun saveWalletState()
@@ -244,6 +263,7 @@ class WearWalletService(private val context: Context) {
 ```
 
 #### 3. QRCodeGenerator.kt
+
 ```kotlin
 object QRCodeGenerator {
     fun generateLightningQRCode(data: String, width: Int, height: Int): Bitmap
@@ -254,6 +274,7 @@ object QRCodeGenerator {
 ### Network Configuration
 
 #### OkHttp Client Setup
+
 ```kotlin
 private val httpClient = OkHttpClient.Builder()
     .connectTimeout(10, TimeUnit.SECONDS)
@@ -265,6 +286,7 @@ private val httpClient = OkHttpClient.Builder()
 ```
 
 #### API Endpoints (Same as Main App)
+
 - **Mint Quote**: `POST /v1/mint/quote/bolt11`
 - **Check Invoice**: `GET /v1/mint/quote/bolt11/{quoteId}`
 - **Mint Tokens**: `POST /v1/mint/bolt11`
@@ -277,6 +299,7 @@ private val httpClient = OkHttpClient.Builder()
 ### 1. Build System Integration
 
 **Decision**: Add Wear OS as separate Gradle module
+
 ```gradle
 // settings.gradle
 include ':app'
@@ -294,13 +317,14 @@ include ':wear'  // Added Wear OS module
 ### 2. Capacitor Configuration
 
 **Decision**: Conditional configuration based on `CAPACITOR_TARGET`
+
 ```typescript
 // capacitor.config.ts
 const wearConfig: CapacitorConfig = {
   appId: "me.bitpoints.wear",
   appName: "Bitpoints Wear",
   webDir: "dist/wear/",
-  android: { path: "android/wear" }
+  android: { path: "android/wear" },
 };
 
 export default process.env.CAPACITOR_TARGET === "wear" ? wearConfig : config;
@@ -313,6 +337,7 @@ export default process.env.CAPACITOR_TARGET === "wear" ? wearConfig : config;
 **Challenge**: HTTPS connections failing with timeout errors
 **Root Cause**: Missing network permissions in Wear OS manifest
 **Solution**: Added required permissions
+
 ```xml
 <!-- android/wear/app/src/main/AndroidManifest.xml -->
 <uses-permission android:name="android.permission.INTERNET" />
@@ -325,6 +350,7 @@ export default process.env.CAPACITOR_TARGET === "wear" ? wearConfig : config;
 
 **Challenge**: Mint server requires valid keyset ID for token minting
 **Solution**: Dynamic keyset retrieval from mint info
+
 ```kotlin
 private suspend fun getActiveKeysetId(): String {
     // Fetch mint info from /v1/info
@@ -339,6 +365,7 @@ private suspend fun getActiveKeysetId(): String {
 ### 5. UI Layout Strategy
 
 **Decision**: ScrollView with LinearLayout for all screens
+
 ```kotlin
 private fun setupNativeUI() {
     mainLayout = ScrollView(this).apply {
@@ -369,7 +396,8 @@ private fun setupNativeUI() {
 
 ### 🔄 Partially Working
 
-1. **Token Minting**: 
+1. **Token Minting**:
+
    - ✅ Keyset ID logic implemented
    - ❌ Uses placeholder blinded messages
    - ❌ May fail during actual minting
@@ -381,15 +409,18 @@ private fun setupNativeUI() {
 ### ❌ Known Issues
 
 1. **Proof Management**:
+
    - ❌ No real proof storage/management
    - ❌ Uses placeholder proofs instead of real ones
    - ❌ Missing proof splitting logic
 
 2. **Transaction History**:
+
    - ❌ Not implemented
    - ❌ No pending/completed transaction tracking
 
 3. **Send Functionality**:
+
    - ❌ Not fully implemented
    - ❌ Missing Cashu token generation for sending
 
@@ -411,11 +442,13 @@ private fun setupNativeUI() {
 ### Immediate Priority (Next Session)
 
 1. **Test Complete Lightning Payment Flow**
+
    - Pay a real Lightning invoice
    - Verify minting works with real keyset ID
    - Debug any minting failures
 
 2. **Implement Proper Proof Blinding**
+
    - Replace placeholder blinded messages
    - Use real cryptographic operations
    - Mirror main app's blinding logic
@@ -428,11 +461,13 @@ private fun setupNativeUI() {
 ### Medium Priority
 
 1. **Complete Send Functionality**
+
    - Implement Cashu token generation
    - Add proof splitting logic
    - Generate send QR codes
 
 2. **Improve UI/UX**
+
    - Optimize QR code display for watch screen
    - Add better loading states
    - Improve error messages
@@ -445,6 +480,7 @@ private fun setupNativeUI() {
 ### Long-term Goals
 
 1. **Feature Parity**
+
    - Match all main app functionality
    - Add watch-specific features
    - Implement offline capabilities
@@ -459,6 +495,7 @@ private fun setupNativeUI() {
 ## Technical Reference
 
 ### File Structure
+
 ```
 android/wear/
 ├── src/main/java/me/bitpoints/wear/
@@ -476,6 +513,7 @@ src/
 ```
 
 ### Dependencies Added
+
 ```gradle
 // android/wear/build.gradle
 implementation 'com.squareup.okhttp3:okhttp:4.12.0'
@@ -488,6 +526,7 @@ implementation 'com.github.komputing:khex:1.1.0'
 ```
 
 ### Key Constants
+
 ```kotlin
 // WearWalletService.kt
 companion object {
@@ -502,6 +541,7 @@ companion object {
 ### API Request Examples
 
 #### Create Lightning Invoice
+
 ```kotlin
 val requestBody = JsonObject().apply {
     addProperty("amount", amount)
@@ -516,6 +556,7 @@ val request = Request.Builder()
 ```
 
 #### Mint Tokens After Payment
+
 ```kotlin
 val outputs = JsonArray()
 val output = JsonObject().apply {
@@ -570,6 +611,6 @@ The project demonstrates the feasibility of implementing complex cryptographic p
 
 ---
 
-*Last Updated: October 20, 2025*  
-*Version: v1.3.0-wear-os*  
-*Status: ✅ Lightning invoice creation working, 🔄 Minting needs testing*
+_Last Updated: October 20, 2025_
+_Version: v1.3.0-wear-os_
+_Status: ✅ Lightning invoice creation working, 🔄 Minting needs testing_
