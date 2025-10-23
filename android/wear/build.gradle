@@ -47,9 +47,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
     // Wear OS dependencies
-    implementation 'com.google.android.wearable:wearable:2.9.0'
-    implementation 'androidx.wear:wear:1.3.0'
     compileOnly 'com.google.android.wearable:wearable:2.9.0'
+    implementation 'androidx.wear:wear:1.3.0'
 
     // Capacitor
     implementation project(':capacitor-android')
