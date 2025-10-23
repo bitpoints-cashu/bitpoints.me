@@ -158,6 +158,13 @@
           "
           :loading="sending"
           @click="sendToPeers"
+          @click.stop="
+            console.log('🟢 [UI] Send button clicked!', {
+              selectedPeers: selectedPeers.size,
+              amount,
+              sending,
+            })
+          "
         >
           <q-icon name="send" class="q-mr-sm" />
           Send {{ amount || "" }} {{ unit }} to {{ selectedPeers.size }} peer{{
@@ -239,12 +246,23 @@ export default defineComponent({
     };
 
     const sendToPeers = async () => {
+      console.log("🟢 [UI] sendToPeers called!", {
+        amount: amount.value,
+        selectedPeers: selectedPeers.value.size,
+        sending: sending.value,
+      });
+
       if (!amount.value || amount.value <= 0) {
+        console.log("🟢 [UI] Validation failed: invalid amount", amount.value);
         notifyError("Please enter a valid amount");
         return;
       }
 
       if (selectedPeers.value.size === 0) {
+        console.log(
+          "🟢 [UI] Validation failed: no peers selected",
+          selectedPeers.value
+        );
         notifyError("Please select at least one peer");
         return;
       }

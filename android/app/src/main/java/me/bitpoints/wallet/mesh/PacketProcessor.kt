@@ -150,10 +150,17 @@ class PacketProcessor(private val myPeerID: String) {
             MessageType.REQUEST_SYNC -> handleRequestSync(routed)
             else -> {
                 // Handle private packet types (address check required)
-                if (packetRelayManager.isPacketAddressedToMe(packet)) {
+                val isForMe = packetRelayManager.isPacketAddressedToMe(packet)
+                val recipientIDHex = packet.recipientID?.let { it.joinToString("") { b -> "%02x".format(b) } } ?: "null"
+                Log.d(TAG, "🔍 Checking packet type ${messageType}: isForMe=$isForMe, recipientID=$recipientIDHex, myPeerID=${myPeerID}")
+
+                if (isForMe) {
                     when (messageType) {
                         MessageType.NOISE_HANDSHAKE -> handleNoiseHandshake(routed)
-                        MessageType.NOISE_ENCRYPTED -> handleNoiseEncrypted(routed)
+                        MessageType.NOISE_ENCRYPTED -> {
+                            Log.d(TAG, "✅ Routing NOISE_ENCRYPTED packet to handler")
+                            handleNoiseEncrypted(routed)
+                        }
                         MessageType.FILE_TRANSFER -> handleMessage(routed)
                         else -> {
                             // Handle custom packet types (like ecash 0xE1)
@@ -162,7 +169,7 @@ class PacketProcessor(private val myPeerID: String) {
                         }
                     }
                 } else {
-                    Log.d(TAG, "Private packet type ${messageType} not addressed to us (from: ${formatPeerForLog(peerID)} to ${packet.recipientID?.let { it.joinToString("") { b -> "%02x".format(b) } }}), skipping")
+                    Log.d(TAG, "❌ Private packet type ${messageType} not addressed to us (from: ${formatPeerForLog(peerID)} to $recipientIDHex), skipping")
                 }
             }
         }

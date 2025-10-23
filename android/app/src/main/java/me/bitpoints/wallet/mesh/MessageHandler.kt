@@ -65,54 +65,52 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
                 return
             }
 
-            // NEW: Use NoisePayload system exactly like iOS
+            // Try to parse as NoisePayload first (for TLV-encoded messages)
             val noisePayload = me.bitpoints.wallet.model.NoisePayload.decode(decryptedData)
-            if (noisePayload == null) {
-                Log.w(TAG, "Failed to parse NoisePayload from $peerID")
-                return
-            }
 
-            Log.d(TAG, "🔓 Decrypted NoisePayload type ${noisePayload.type} from $peerID")
+            if (noisePayload != null) {
+                // Successfully parsed as NoisePayload - handle typed messages
+                Log.d(TAG, "🔓 Decrypted NoisePayload type ${noisePayload.type} from $peerID")
 
-            when (noisePayload.type) {
-                me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE -> {
-                    // Decode TLV private message exactly like iOS
-                    val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket.decode(noisePayload.data)
-                    if (privateMessage != null) {
-                        Log.d(TAG, "🔓 Decrypted TLV PM from $peerID: ${privateMessage.content.take(30)}...")
+                when (noisePayload.type) {
+                    me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE -> {
+                        // Decode TLV private message exactly like iOS
+                        val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket.decode(noisePayload.data)
+                        if (privateMessage != null) {
+                            Log.d(TAG, "🔓 Decrypted TLV PM from $peerID: ${privateMessage.content.take(30)}...")
 
-                        // Handle favorite/unfavorite notifications embedded as PMs
-                        val pmContent = privateMessage.content
-                        if (pmContent.startsWith("[FAVORITED]") || pmContent.startsWith("[UNFAVORITED]")) {
-                            handleFavoriteNotificationFromMesh(pmContent, peerID)
-                            // Acknowledge delivery for UX parity
+                            // Handle favorite/unfavorite notifications embedded as PMs
+                            val pmContent = privateMessage.content
+                            if (pmContent.startsWith("[FAVORITED]") || pmContent.startsWith("[UNFAVORITED]")) {
+                                handleFavoriteNotificationFromMesh(pmContent, peerID)
+                                // Acknowledge delivery for UX parity
+                                sendDeliveryAck(privateMessage.messageID, peerID)
+                                return
+                            }
+
+                            // Create BitchatMessage - preserve source packet timestamp
+                            val message = BitchatMessage(
+                                id = privateMessage.messageID,
+                                sender = delegate?.getPeerNickname(peerID) ?: "Unknown",
+                                content = privateMessage.content,
+                                timestamp = java.util.Date(packet.timestamp.toLong()),
+                                isRelay = false,
+                                originalSender = null,
+                                isPrivate = true,
+                                recipientNickname = delegate?.getMyNickname(),
+                                senderPeerID = peerID,
+                                mentions = null // TODO: Parse mentions if needed
+                            )
+
+                            // Notify delegate
+                            delegate?.onMessageReceived(message)
+
+                            // Send delivery ACK exactly like iOS
                             sendDeliveryAck(privateMessage.messageID, peerID)
-                            return
                         }
-
-                        // Create BitchatMessage - preserve source packet timestamp
-                        val message = BitchatMessage(
-                            id = privateMessage.messageID,
-                            sender = delegate?.getPeerNickname(peerID) ?: "Unknown",
-                            content = privateMessage.content,
-                            timestamp = java.util.Date(packet.timestamp.toLong()),
-                            isRelay = false,
-                            originalSender = null,
-                            isPrivate = true,
-                            recipientNickname = delegate?.getMyNickname(),
-                            senderPeerID = peerID,
-                            mentions = null // TODO: Parse mentions if needed
-                        )
-
-                        // Notify delegate
-                        delegate?.onMessageReceived(message)
-
-                        // Send delivery ACK exactly like iOS
-                        sendDeliveryAck(privateMessage.messageID, peerID)
                     }
-                }
 
-                me.bitpoints.wallet.model.NoisePayloadType.FILE_TRANSFER -> {
+                    me.bitpoints.wallet.model.NoisePayloadType.FILE_TRANSFER -> {
                     // Handle encrypted file transfer; generate unique message ID
                     val file = me.bitpoints.wallet.model.BitchatFilePacket.decode(noisePayload.data)
                     if (file != null) {
@@ -141,23 +139,46 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
                     }
                 }
 
-                me.bitpoints.wallet.model.NoisePayloadType.DELIVERED -> {
-                    // Handle delivery ACK exactly like iOS
-                    val messageID = String(noisePayload.data, Charsets.UTF_8)
-                    Log.d(TAG, "📬 Delivery ACK received from $peerID for message $messageID")
+                    me.bitpoints.wallet.model.NoisePayloadType.DELIVERED -> {
+                        // Handle delivery ACK exactly like iOS
+                        val messageID = String(noisePayload.data, Charsets.UTF_8)
+                        Log.d(TAG, "📬 Delivery ACK received from $peerID for message $messageID")
 
-                    // Simplified: Call delegate with messageID and peerID directly
-                    delegate?.onDeliveryAckReceived(messageID, peerID)
+                        // Simplified: Call delegate with messageID and peerID directly
+                        delegate?.onDeliveryAckReceived(messageID, peerID)
+                    }
+
+                    me.bitpoints.wallet.model.NoisePayloadType.READ_RECEIPT -> {
+                        // Handle read receipt exactly like iOS
+                        val messageID = String(noisePayload.data, Charsets.UTF_8)
+                        Log.d(TAG, "👁️ Read receipt received from $peerID for message $messageID")
+
+                        // Simplified: Call delegate with messageID and peerID directly
+                        delegate?.onReadReceiptReceived(messageID, peerID)
+                    }
                 }
+            } else {
+                // Not a NoisePayload - treat as raw encrypted content (Cashu tokens, large messages)
+                val content = String(decryptedData, Charsets.UTF_8)
+                Log.d(TAG, "🔓 Decrypted raw content from $peerID: ${content.take(50)}...")
 
-                me.bitpoints.wallet.model.NoisePayloadType.READ_RECEIPT -> {
-                    // Handle read receipt exactly like iOS
-                    val messageID = String(noisePayload.data, Charsets.UTF_8)
-                    Log.d(TAG, "👁️ Read receipt received from $peerID for message $messageID")
+                // Create BitchatMessage for the raw content
+                val messageID = java.util.UUID.randomUUID().toString().uppercase()
+                val message = BitchatMessage(
+                    id = messageID,
+                    sender = delegate?.getPeerNickname(peerID) ?: "Unknown",
+                    content = content,
+                    timestamp = java.util.Date(packet.timestamp.toLong()),
+                    isRelay = false,
+                    originalSender = null,
+                    isPrivate = true,
+                    recipientNickname = delegate?.getMyNickname(),
+                    senderPeerID = peerID,
+                    mentions = null
+                )
 
-                    // Simplified: Call delegate with messageID and peerID directly
-                    delegate?.onReadReceiptReceived(messageID, peerID)
-                }
+                // Notify delegate
+                delegate?.onMessageReceived(message)
             }
 
         } catch (e: Exception) {

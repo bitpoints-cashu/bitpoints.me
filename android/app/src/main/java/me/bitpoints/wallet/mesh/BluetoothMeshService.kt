@@ -636,52 +636,36 @@ class BluetoothMeshService(private val context: Context) {
             val hasSession = encryptionService.hasEstablishedSession(peerID)
             Log.d(TAG, "🔐 Noise session exists for $peerID: $hasSession")
 
-            if (hasSession) {
-                try {
-                    val messageID = java.util.UUID.randomUUID().toString().uppercase()
+        if (hasSession) {
+            try {
+                // For Cashu tokens and large messages, encrypt the content directly
+                // without TLV encoding (TLV is limited to 255 bytes per field)
+                val contentBytes = content.toByteArray(Charsets.UTF_8)
 
-                    // Create private message packet with TLV encoding
-                    val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
-                        messageID = messageID,
-                        content = content
-                    )
+                // Encrypt the raw content
+                val encrypted = encryptionService.encrypt(contentBytes, peerID)
 
-                    val tlvData = privateMessage.encode()
-                    if (tlvData == null) {
-                        Log.e(TAG, "Failed to encode private message with TLV")
-                        return@launch
-                    }
+                // Create NOISE_ENCRYPTED packet
+                val packet = BitchatPacket(
+                    version = 1u,
+                    type = MessageType.NOISE_ENCRYPTED.value,
+                    senderID = hexStringToByteArray(myPeerID),
+                    recipientID = hexStringToByteArray(peerID),
+                    timestamp = System.currentTimeMillis().toULong(),
+                    payload = encrypted,
+                    signature = null,
+                    ttl = MAX_TTL
+                )
 
-                    // Wrap with NoisePayload type byte
-                    val messagePayload = me.bitpoints.wallet.model.NoisePayload(
-                        type = me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE,
-                        data = tlvData
-                    )
+                // Sign and broadcast
+                val signedPacket = signPacketBeforeBroadcast(packet)
+                connectionManager.broadcastPacket(RoutedPacket(signedPacket))
+                Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes, content: ${contentBytes.size} bytes)")
 
-                    // Encrypt the payload
-                    val encrypted = encryptionService.encrypt(messagePayload.encode(), peerID)
-
-                    // Create NOISE_ENCRYPTED packet
-                    val packet = BitchatPacket(
-                        version = 1u,
-                        type = MessageType.NOISE_ENCRYPTED.value,
-                        senderID = hexStringToByteArray(myPeerID),
-                        recipientID = hexStringToByteArray(peerID),
-                        timestamp = System.currentTimeMillis().toULong(),
-                        payload = encrypted,
-                        signature = null,
-                        ttl = MAX_TTL
-                    )
-
-                    // Sign and broadcast
-                    val signedPacket = signPacketBeforeBroadcast(packet)
-                    connectionManager.broadcastPacket(RoutedPacket(signedPacket))
-                    Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes)")
-
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to encrypt private message for $peerID: ${e.message}")
-                }
-            } else {
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to encrypt private message for $peerID: ${e.message}")
+            }
+        } else {
                 // No session yet - initiate handshake
                 Log.d(TAG, "🤝 No Noise session with $peerID, initiating handshake")
                 messageHandler.delegate?.initiateNoiseHandshake(peerID)
