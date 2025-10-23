@@ -95,7 +95,11 @@ data class NoisePayload(
 }
 
 /**
- * Private message packet with TLV encoding - matches iOS PrivateMessagePacket exactly
+ * Private message packet with TLV encoding - 2-byte length fields for large messages
+ *
+ * NOTE: This uses 2-byte length fields (up to 65KB) instead of 1-byte (255 bytes max).
+ * This breaks backward compatibility with BitChat's 1-byte TLV implementation.
+ * BitChat will need to upgrade to 2-byte TLV to exchange messages with BitPoints.
  */
 @Parcelize
 data class PrivateMessagePacket(
@@ -118,15 +122,16 @@ data class PrivateMessagePacket(
     }
 
     /**
-     * Encode to TLV binary data - exactly like iOS
-     * Format: [type][length][value] for each field
+     * Encode to TLV binary data with 2-byte length fields
+     * Format: [type][length_high][length_low][value] for each field
+     * Supports up to 65KB per field (2-byte length)
      */
     fun encode(): ByteArray? {
         val messageIDData = messageID.toByteArray(Charsets.UTF_8)
         val contentData = content.toByteArray(Charsets.UTF_8)
 
-        // Check size limits (TLV length field is 1 byte = max 255)
-        if (messageIDData.size > 255 || contentData.size > 255) {
+        // Check size limits (TLV length field is 2 bytes = max 65535)
+        if (messageIDData.size > 65535 || contentData.size > 65535) {
             return null
         }
 
@@ -134,12 +139,14 @@ data class PrivateMessagePacket(
 
         // TLV for messageID
         result.add(TLVType.MESSAGE_ID.value.toByte())
-        result.add(messageIDData.size.toByte())
+        result.add((messageIDData.size shr 8).toByte())  // high byte
+        result.add(messageIDData.size.toByte())           // low byte
         result.addAll(messageIDData.toList())
 
         // TLV for content
         result.add(TLVType.CONTENT.value.toByte())
-        result.add(contentData.size.toByte())
+        result.add((contentData.size shr 8).toByte())     // high byte
+        result.add(contentData.size.toByte())              // low byte
         result.addAll(contentData.toList())
 
         return result.toByteArray()
@@ -147,22 +154,26 @@ data class PrivateMessagePacket(
 
     companion object {
         /**
-         * Decode from TLV binary data - exactly like iOS
+         * Decode from TLV binary data with 2-byte length fields
+         * Format: [type][length_high][length_low][value] for each field
          */
         fun decode(data: ByteArray): PrivateMessagePacket? {
             var offset = 0
             var messageID: String? = null
             var content: String? = null
 
-            while (offset + 2 <= data.size) {
+            while (offset + 3 <= data.size) {
                 // Read TLV type
                 val typeValue = data[offset].toUByte()
                 val type = TLVType.fromValue(typeValue) ?: return null
                 offset += 1
 
-                // Read TLV length
-                val length = data[offset].toUByte().toInt()
-                offset += 1
+                // Read 2-byte length (big-endian)
+                if (offset + 2 > data.size) return null
+                val lengthHigh = data[offset].toUByte().toInt()
+                val lengthLow = data[offset + 1].toUByte().toInt()
+                val length = (lengthHigh shl 8) or lengthLow
+                offset += 2
 
                 // Check bounds
                 if (offset + length > data.size) return null

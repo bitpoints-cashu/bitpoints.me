@@ -670,23 +670,9 @@ class BluetoothMeshService(private val context: Context) {
                 Log.d(TAG, "🤝 No Noise session with $peerID, initiating handshake")
                 messageHandler.delegate?.initiateNoiseHandshake(peerID)
 
-                // For Cashu tokens, fall back to broadcast mode since they're bearer tokens
-                Log.d(TAG, "📡 Falling back to broadcast mode for Cashu token (bearer token)")
-                val packet = BitchatPacket(
-                    version = 1u,
-                    type = MessageType.MESSAGE.value,
-                    senderID = hexStringToByteArray(myPeerID),
-                    recipientID = hexStringToByteArray(peerID),  // Target specific peer
-                    timestamp = System.currentTimeMillis().toULong(),
-                    payload = content.toByteArray(Charsets.UTF_8),
-                    signature = null,
-                    ttl = MAX_TTL
-                )
-
-                // Sign the packet before broadcasting
-                val signedPacket = signPacketBeforeBroadcast(packet)
-                connectionManager.broadcastPacket(RoutedPacket(signedPacket))
-                Log.d(TAG, "📤 Sent fallback broadcast message to $peerID (${content.length} chars)")
+                // REMOVED: Fallback to broadcast mode - this was causing unwanted broadcast messages
+                // Instead, let the message router handle fallback to Nostr or queuing
+                Log.d(TAG, "📤 No Noise session available, message will be handled by message router")
             }
         }
     }

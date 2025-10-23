@@ -929,6 +929,9 @@ export const useBluetoothStore = defineStore("bluetooth", {
       const favoritesStore = useFavoritesStore();
       favoritesStore.updateNostrNpub(peerID, npub);
 
+      // NEW: Also update peerID index for fast lookup
+      favoritesStore.updateNostrPublicKeyForPeerID(peerID, npub);
+
       // If they favorited us, update the theyFavoritedUs flag
       if (isFavorite) {
         favoritesStore.updatePeerFavoritedUs(peerID, true);
@@ -1007,6 +1010,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
       } else {
         console.log(`✅ Updating existing favorite npub for ${peerID}`);
         favoritesStore.updateNostrNpub(peerID, npub);
+        // NEW: Also update peerID index for fast lookup
+        favoritesStore.updateNostrPublicKeyForPeerID(peerID, npub);
       }
 
       favoritesStore.updatePeerFavoritedUs(peerID, true);

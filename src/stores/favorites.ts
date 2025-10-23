@@ -34,6 +34,12 @@ export const useFavoritesStore = defineStore("favorites", {
       "bitpoints-pending-favorites",
       {}
     ),
+    // NEW: Index by current mesh peerID (16-hex) for direct lookup when sending Nostr DMs from mesh context
+    // Similar to BitChat's peerIdIndex: peerID (lowercase 16-hex) -> npub
+    peerIdIndex: useLocalStorage<Record<string, string>>(
+      "bitpoints-peerid-index",
+      {}
+    ),
   }),
 
   getters: {
@@ -120,6 +126,13 @@ export const useFavoritesStore = defineStore("favorites", {
       }
 
       this.favorites[peerNoisePublicKey] = relationship;
+
+      // NEW: Also update peerID index if we have an npub
+      if (relationship.peerNostrNpub) {
+        // Extract 16-hex peerID from the Noise key
+        const peerID = peerNoisePublicKey.substring(0, 16).toLowerCase();
+        this.updateNostrPublicKeyForPeerID(peerID, relationship.peerNostrNpub);
+      }
     },
 
     /**
@@ -222,7 +235,57 @@ export const useFavoritesStore = defineStore("favorites", {
           lastUpdated: new Date(),
         };
         console.log(`Updated Nostr npub for ${existing.peerNickname}`);
+
+        // NEW: Also update peerID index
+        const peerID = peerNoisePublicKey.substring(0, 16).toLowerCase();
+        this.updateNostrPublicKeyForPeerID(peerID, nostrNpub);
       }
+    },
+
+    /**
+     * NEW: Update Nostr pubkey for specific mesh peerID (16-hex)
+     */
+    updateNostrPublicKeyForPeerID(peerID: string, nostrPubkey: string) {
+      const pid = peerID.toLowerCase();
+      if (pid.length === 16 && /^[0-9a-f]+$/.test(pid)) {
+        this.peerIdIndex[pid] = nostrPubkey;
+        console.log(`Indexed npub for peerID ${pid.substring(0, 8)}…`);
+      } else {
+        console.warn(
+          `updateNostrPublicKeyForPeerID called with non-16hex peerID: ${peerID}`
+        );
+      }
+    },
+
+    /**
+     * NEW: Resolve Nostr pubkey via current peerID mapping (fast path)
+     */
+    findNostrPubkeyForPeerID(peerID: string): string | null {
+      return this.peerIdIndex[peerID.toLowerCase()] || null;
+    },
+
+    /**
+     * NEW: Resolve peerID (16-hex) for a given Nostr pubkey (npub or hex)
+     */
+    findPeerIDForNostrPubkey(nostrPubkey: string): string | null {
+      // First, try direct match in peerIdIndex (values are stored as npub strings)
+      const entry = Object.entries(this.peerIdIndex).find(
+        ([_, value]) => value.toLowerCase() === nostrPubkey.toLowerCase()
+      );
+      if (entry) return entry[0];
+
+      // Fallback: search through favorites for matching npub
+      const favorite = Object.values(this.favorites).find(
+        (f) => f.peerNostrNpub?.toLowerCase() === nostrPubkey.toLowerCase()
+      );
+      if (favorite) {
+        // Extract 16-hex peerID from the full Noise key if possible
+        const noiseKey = favorite.peerNoisePublicKey;
+        if (noiseKey.length >= 16) {
+          return noiseKey.substring(0, 16).toLowerCase();
+        }
+      }
+      return null;
     },
 
     /**
@@ -231,6 +294,7 @@ export const useFavoritesStore = defineStore("favorites", {
     clearAll() {
       console.log("🧹 Clearing all favorites");
       this.favorites = {};
+      this.peerIdIndex = {};
     },
 
     /**
