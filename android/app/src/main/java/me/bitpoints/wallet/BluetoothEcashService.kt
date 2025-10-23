@@ -56,7 +56,8 @@ class BluetoothEcashService(private val context: Context) {
             override fun didReceiveMessage(message: me.bitpoints.wallet.model.BitchatMessage) {
                 // Check if message content contains a Cashu token or favorite notification
                 val content = message.content.trim()
-                Log.d(TAG, "Received TEXT message: ${content.take(50)}...")
+                Log.d(TAG, "📨 Received TEXT message: ${content.take(50)}...")
+                Log.i(TAG, "📨 didReceiveMessage called - isPrivate: ${message.isPrivate}, sender: ${message.sender}")
 
                 // Handle favorite notifications (matches bitchat implementation)
                 if (content.startsWith("[FAVORITE_REQUEST]:") ||
@@ -70,10 +71,12 @@ class BluetoothEcashService(private val context: Context) {
                 // Detect Cashu token (starts with "cashuA" or "cashuB")
                 if (content.startsWith("cashuA") || content.startsWith("cashuB")) {
                     Log.i(TAG, "🎉 Detected Cashu token in TEXT message!")
+                    Log.d(TAG, "📥 Full message content: ${content.take(100)}...")
 
                     // Parse token and optional metadata
                     val lines = content.split("\n")
                     val tokenString = lines[0]  // First line is always the token
+                    Log.d(TAG, "🔑 Token string: ${tokenString.take(50)}...")
 
                     // Extract metadata if present (from memo format)
                     var amount = 0
@@ -86,9 +89,11 @@ class BluetoothEcashService(private val context: Context) {
                                 val parts = line.substringAfter("Amount: ").split(" ")
                                 amount = parts[0].toIntOrNull() ?: 0
                                 unit = parts.getOrNull(1) ?: "sat"
+                                Log.d(TAG, "💰 Parsed amount: $amount $unit")
                             }
                             line.startsWith("Memo: ") -> {
                                 parsedMemo = line.substringAfter("Memo: ")
+                                Log.d(TAG, "📝 Parsed memo: $parsedMemo")
                             }
                         }
                     }
@@ -115,6 +120,10 @@ class BluetoothEcashService(private val context: Context) {
                     delegate?.onEcashReceived(ecashMessage)
 
                     Log.i(TAG, "✅ Stored ecash token: ${amount} ${unit} from ${message.sender.take(16)}...")
+                    Log.d(TAG, "📦 Message ID: ${ecashMessage.id}")
+                    Log.d(TAG, "👤 Sender peer ID: ${message.senderPeerID}")
+                    Log.d(TAG, "🔑 Token length: ${tokenString.length}")
+                    Log.d(TAG, "📝 Memo: ${parsedMemo ?: "none"}")
                 }
             }
 
@@ -242,16 +251,19 @@ class BluetoothEcashService(private val context: Context) {
         }
 
         Log.d(TAG, "Sending ecash token as TEXT message: ${amount} ${unit}, token length: ${token.length}")
+        Log.d(TAG, "Token preview: ${token.take(50)}...")
+        Log.d(TAG, "Mint: $mint")
+        Log.d(TAG, "Memo: ${memo ?: "none"}")
 
         serviceScope.launch {
             try {
                 if (peerID != null) {
                     // Send to specific peer
-                    Log.d(TAG, "Sending TEXT to specific peer: $peerID")
+                    Log.d(TAG, "📤 Sending TEXT to specific peer: $peerID")
                     meshService.sendMessageToPeer(peerID, messageText)
                 } else {
                     // Broadcast to all nearby peers
-                    Log.d(TAG, "Broadcasting TEXT to all nearby peers")
+                    Log.d(TAG, "📡 Broadcasting TEXT to all nearby peers")
                     meshService.sendMessage(messageText)
                 }
 

@@ -96,6 +96,7 @@
         @openNearbyDialog="showNearbyDialog = true"
         @openContactsDialog="showContactsDialog = true"
         @openRequestsDialog="showRequestsDialog = true"
+        @openDebugPanel="showDebugPanel = true"
       />
     </div>
 
@@ -132,6 +133,22 @@
             <q-tooltip>Close</q-tooltip>
           </q-btn>
         </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Bluetooth Debug Panel Dialog -->
+    <q-dialog v-model="showDebugPanel" full-width>
+      <q-card style="width: 100%; max-width: 1200px; height: 80vh">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">🔵 Bluetooth Debug Panel</div>
+          <q-space />
+          <q-btn flat round icon="close" color="grey" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-card-section>
+        <q-card-section class="q-pt-none" style="height: calc(100% - 60px)">
+          <BluetoothDebugPanel />
+        </q-card-section>
       </q-card>
     </q-dialog>
 
@@ -1997,6 +2014,7 @@ import BluetoothSettings from "./BluetoothSettings.vue";
 import NearbyContactsDialog from "./NearbyContactsDialog.vue";
 import NostrContactsDialog from "./NostrContactsDialog.vue";
 import FavoriteRequestsDialog from "./FavoriteRequestsDialog.vue";
+import BluetoothDebugPanel from "./BluetoothDebugPanel.vue";
 import VueQrcode from "@chenfengyuan/vue-qrcode";
 
 import { getShortUrl } from "src/js/wallet-helpers";
@@ -2034,6 +2052,7 @@ export default defineComponent({
     NearbyContactsDialog,
     NostrContactsDialog,
     FavoriteRequestsDialog,
+    BluetoothDebugPanel,
     VueQrcode,
   },
   props: {},
@@ -2042,6 +2061,7 @@ export default defineComponent({
       showNearbyDialog: false,
       showContactsDialog: false,
       showRequestsDialog: false,
+      showDebugPanel: false,
       themes: [
         "monochrome",
         "classic",

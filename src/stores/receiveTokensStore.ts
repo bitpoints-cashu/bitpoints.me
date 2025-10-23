@@ -14,6 +14,7 @@ import {
 import { getDecodedTokenBinary, getEncodedToken, Token } from "@cashu/cashu-ts";
 import { useSwapStore } from "./swap";
 import { Clipboard } from "@capacitor/clipboard";
+import { btLog } from "src/utils/bluetoothLogger";
 
 export const useReceiveTokensStore = defineStore("receiveTokensStore", {
   state: () => ({
@@ -35,10 +36,18 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
     },
     knowThisMintOfTokenJson: function (tokenJson: Token) {
       const mintStore = useMintsStore();
+      const tokenMint = token.getMint(tokenJson);
       let uniqueIds = [...new Set(token.getProofs(tokenJson).map((p) => p.id))];
-      return mintStore.mints
-        .map((m) => m.url)
-        .includes(token.getMint(tokenJson));
+      const isKnown = mintStore.mints.map((m) => m.url).includes(tokenMint);
+
+      btLog.mint(`Checking mint: ${tokenMint}`, {
+        mintUrl: tokenMint,
+        isKnown,
+        totalMints: mintStore.mints.length,
+        uniqueKeysets: uniqueIds.length,
+      });
+
+      return isKnown;
     },
     receiveToken: async function (encodedToken: string) {
       const mintStore = useMintsStore();
@@ -48,6 +57,7 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
       console.log("### receive tokens", receiveStore.receiveData.tokensBase64);
 
       if (receiveStore.receiveData.tokensBase64.length == 0) {
+        btLog.error("No tokens provided for receive");
         throw new Error("no tokens provided.");
       }
 
@@ -59,26 +69,57 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
 
       const tokenJson = token.decode(receiveStore.receiveData.tokensBase64);
       if (tokenJson == undefined) {
+        btLog.error("Failed to decode token");
         throw new Error("no tokens provided.");
       }
+
+      const tokenMint = token.getMint(tokenJson);
+      btLog.mint(`Token mint: ${tokenMint}`, { mintUrl: tokenMint });
+
       // check if we have all mints
       if (!this.knowThisMintOfTokenJson(tokenJson)) {
-        // add the mint
-        await mintStore.addMint({ url: token.getMint(tokenJson) });
+        btLog.mint("Mint unknown, auto-adding", { mintUrl: tokenMint });
+        try {
+          await mintStore.addMint({ url: tokenMint });
+          btLog.mint("✅ Mint add success", { mintUrl: tokenMint });
+        } catch (error) {
+          btLog.error("❌ Mint add failed", {
+            mintUrl: tokenMint,
+            error: error?.message || error?.toString(),
+          });
+          throw error;
+        }
+      } else {
+        btLog.mint("Mint already known", { mintUrl: tokenMint });
       }
+
       // redeem the token
+      btLog.claim("Calling wallet.redeem()", { mintUrl: tokenMint });
       await walletStore.redeem();
       receiveStore.showReceiveTokens = false;
       uiStore.closeDialogs();
     },
     receiveIfDecodes: async function () {
       try {
+        btLog.claim("Attempting to decode token", {
+          tokenLength: this.receiveData.tokensBase64.length,
+        });
         const decodedToken = this.decodeToken(this.receiveData.tokensBase64);
         if (decodedToken) {
+          btLog.claim("Token decode successful", {
+            mint: token.getMint(decodedToken),
+            proofs: token.getProofs(decodedToken).length,
+          });
           await this.receiveToken(this.receiveData.tokensBase64);
           return true;
+        } else {
+          btLog.error("Token decode failed - invalid format");
+          return false;
         }
       } catch (error) {
+        btLog.error("receiveIfDecodes failed", {
+          error: error?.message || error?.toString(),
+        });
         console.error(error);
         return false;
       }

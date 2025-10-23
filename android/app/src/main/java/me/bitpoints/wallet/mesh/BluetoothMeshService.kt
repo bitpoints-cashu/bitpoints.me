@@ -630,21 +630,80 @@ class BluetoothMeshService(private val context: Context) {
         if (content.isEmpty()) return
 
         serviceScope.launch {
-            val packet = BitchatPacket(
-                version = 1u,
-                type = MessageType.MESSAGE.value,
-                senderID = hexStringToByteArray(myPeerID),
-                recipientID = hexStringToByteArray(peerID),  // Target specific peer
-                timestamp = System.currentTimeMillis().toULong(),
-                payload = content.toByteArray(Charsets.UTF_8),
-                signature = null,
-                ttl = MAX_TTL
-            )
+            Log.d(TAG, "🔐 sendMessageToPeer called for peer $peerID with content: ${content.take(30)}...")
 
-            // Sign the packet before sending
-            val signedPacket = signPacketBeforeBroadcast(packet)
-            connectionManager.sendPacketToPeer(peerID, signedPacket)
-            Log.d(TAG, "Sent text message to $peerID (${content.length} chars)")
+            // Check if we have a Noise session for encryption
+            val hasSession = encryptionService.hasEstablishedSession(peerID)
+            Log.d(TAG, "🔐 Noise session exists for $peerID: $hasSession")
+
+            if (hasSession) {
+                try {
+                    val messageID = java.util.UUID.randomUUID().toString().uppercase()
+
+                    // Create private message packet with TLV encoding
+                    val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
+                        messageID = messageID,
+                        content = content
+                    )
+
+                    val tlvData = privateMessage.encode()
+                    if (tlvData == null) {
+                        Log.e(TAG, "Failed to encode private message with TLV")
+                        return@launch
+                    }
+
+                    // Wrap with NoisePayload type byte
+                    val messagePayload = me.bitpoints.wallet.model.NoisePayload(
+                        type = me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE,
+                        data = tlvData
+                    )
+
+                    // Encrypt the payload
+                    val encrypted = encryptionService.encrypt(messagePayload.encode(), peerID)
+
+                    // Create NOISE_ENCRYPTED packet
+                    val packet = BitchatPacket(
+                        version = 1u,
+                        type = MessageType.NOISE_ENCRYPTED.value,
+                        senderID = hexStringToByteArray(myPeerID),
+                        recipientID = hexStringToByteArray(peerID),
+                        timestamp = System.currentTimeMillis().toULong(),
+                        payload = encrypted,
+                        signature = null,
+                        ttl = MAX_TTL
+                    )
+
+                    // Sign and broadcast
+                    val signedPacket = signPacketBeforeBroadcast(packet)
+                    connectionManager.broadcastPacket(RoutedPacket(signedPacket))
+                    Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes)")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to encrypt private message for $peerID: ${e.message}")
+                }
+            } else {
+                // No session yet - initiate handshake
+                Log.d(TAG, "🤝 No Noise session with $peerID, initiating handshake")
+                messageHandler.delegate?.initiateNoiseHandshake(peerID)
+
+                // For Cashu tokens, fall back to broadcast mode since they're bearer tokens
+                Log.d(TAG, "📡 Falling back to broadcast mode for Cashu token (bearer token)")
+                val packet = BitchatPacket(
+                    version = 1u,
+                    type = MessageType.MESSAGE.value,
+                    senderID = hexStringToByteArray(myPeerID),
+                    recipientID = hexStringToByteArray(peerID),  // Target specific peer
+                    timestamp = System.currentTimeMillis().toULong(),
+                    payload = content.toByteArray(Charsets.UTF_8),
+                    signature = null,
+                    ttl = MAX_TTL
+                )
+
+                // Sign the packet before broadcasting
+                val signedPacket = signPacketBeforeBroadcast(packet)
+                connectionManager.broadcastPacket(RoutedPacket(signedPacket))
+                Log.d(TAG, "📤 Sent fallback broadcast message to $peerID (${content.length} chars)")
+            }
         }
     }
 

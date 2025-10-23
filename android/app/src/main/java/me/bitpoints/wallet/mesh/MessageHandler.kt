@@ -39,7 +39,8 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
         val packet = routed.packet
         val peerID = routed.peerID ?: "unknown"
 
-        Log.d(TAG, "Processing Noise encrypted message from $peerID (${packet.payload.size} bytes)")
+        Log.d(TAG, "🔐 Processing Noise encrypted message from $peerID (${packet.payload.size} bytes)")
+        Log.i(TAG, "🔐 NOISE_ENCRYPTED packet received from $peerID")
 
         // Skip our own messages
         if (peerID == myPeerID) return
