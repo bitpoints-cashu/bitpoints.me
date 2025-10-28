@@ -108,7 +108,7 @@ export const useMintsStore = defineStore("mints", {
     const activeUnit = useLocalStorage<string>("cashu.activeUnit", "sat");
     const activeMintUrl = useLocalStorage<string>(
       "cashu.activeMintUrl",
-      "https://mint.bitpoints.me"
+      "https://ecash.trailscoffee.com"
     );
     const addMintData = ref({
       url: "",

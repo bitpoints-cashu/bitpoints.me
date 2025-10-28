@@ -927,74 +927,66 @@ export default {
       this.showAddMintDialog = true;
       this.addMintData = { url: addMintUrl };
     }
-      // Auto-activate Bitpoints mint on first load
-      try {
-        if (
-          !localStorage.getItem("cashu.activeMintUrl") ||
-          localStorage.getItem("cashu.activeMintUrl") === ""
-        ) {
-          await this.activateMintUrl(
-            "https://mint.bitpoints.me",
-            false,
-            true
+    // Auto-activate Trails Coffee mint on first load
+    try {
+      if (
+        !localStorage.getItem("cashu.activeMintUrl") ||
+        localStorage.getItem("cashu.activeMintUrl") === ""
+      ) {
+        await this.activateMintUrl("https://ecash.trailscoffee.com", false, true);
+      } else {
+        // Ensure Trails Coffee mint is available even if another mint is active
+        const mintsStore = useMintsStore();
+        const trailsMint = mintsStore.mints.find(
+          (m) => m.url === "https://ecash.trailscoffee.com"
+        );
+        if (!trailsMint) {
+          console.log("Adding Trails Coffee mint...");
+          const addedMint = await mintsStore.addMint(
+            {
+              url: "https://ecash.trailscoffee.com",
+              nickname: "Trails Coffee",
+            },
+            false
           );
+          console.log("Added mint:", addedMint);
+          // The addMint function already activates the mint, but let's ensure it's active
+          if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
+            console.log("Activating Trails Coffee mint...");
+            await this.activateMintUrl(
+              "https://ecash.trailscoffee.com",
+              false,
+              true
+            );
+          }
         } else {
-          // Ensure Bitpoints mint is available even if another mint is active
-          const mintsStore = useMintsStore();
-          const bitpointsMint = mintsStore.mints.find(
-            (m) => m.url === "https://mint.bitpoints.me"
-          );
-          if (!bitpointsMint) {
-            console.log("Adding Bitpoints mint...");
-            const addedMint = await mintsStore.addMint(
-              {
-                url: "https://mint.bitpoints.me",
-                nickname: "Bitpoints Mint",
-              },
-              false
-            );
-            console.log("Added mint:", addedMint);
-            // The addMint function already activates the mint, but let's ensure it's active
-            if (mintsStore.activeMintUrl !== "https://mint.bitpoints.me") {
-              console.log("Activating Bitpoints mint...");
-              await this.activateMintUrl(
-                "https://mint.bitpoints.me",
-                false,
-                true
-              );
-            }
-          } else {
+          console.log("Trails Coffee mint already exists, ensuring it's active...");
+          // Check if mint has keys, if not, force re-initialization
+          if (
+            !trailsMint.keys ||
+            trailsMint.keys.length === 0 ||
+            !trailsMint.keysets ||
+            trailsMint.keysets.length === 0
+          ) {
             console.log(
-              "Bitpoints mint already exists, ensuring it's active..."
+              "Mint has no keys/keysets, forcing re-initialization..."
             );
-            // Check if mint has keys, if not, force re-initialization
-            if (
-              !bitpointsMint.keys ||
-              bitpointsMint.keys.length === 0 ||
-              !bitpointsMint.keysets ||
-              bitpointsMint.keysets.length === 0
-            ) {
-              console.log(
-                "Mint has no keys/keysets, forcing re-initialization..."
-              );
-              await this.activateMintUrl(
-                "https://mint.bitpoints.me",
-                false,
-                true
-              );
-            } else if (
-              mintsStore.activeMintUrl !== "https://mint.bitpoints.me"
-            ) {
-              await this.activateMintUrl(
-                "https://mint.bitpoints.me",
-                false,
-                true
-              );
-            }
+            await this.activateMintUrl(
+              "https://ecash.trailscoffee.com",
+              false,
+              true
+            );
+          } else if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
+            await this.activateMintUrl(
+              "https://ecash.trailscoffee.com",
+              false,
+              true
+            );
           }
         }
-      } catch (error) {
-        console.error("Error initializing Bitpoints mint:", error);
+      }
+    } catch (error) {
+      console.error("Error initializing Trails Coffee mint:", error);
       console.error("Error details:", error.message);
       console.error("Error stack:", error.stack);
       // Continue with app initialization even if mint setup fails
