@@ -967,7 +967,24 @@ export default {
           console.log(
             "Trails Coffee mint already exists, ensuring it's active..."
           );
-          if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
+          // Check if mint has keys, if not, force re-initialization
+          if (
+            !trailsMint.keys ||
+            trailsMint.keys.length === 0 ||
+            !trailsMint.keysets ||
+            trailsMint.keysets.length === 0
+          ) {
+            console.log(
+              "Mint has no keys/keysets, forcing re-initialization..."
+            );
+            await this.activateMintUrl(
+              "https://ecash.trailscoffee.com",
+              false,
+              true
+            );
+          } else if (
+            mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com"
+          ) {
             await this.activateMintUrl(
               "https://ecash.trailscoffee.com",
               false,
@@ -978,6 +995,8 @@ export default {
       }
     } catch (error) {
       console.error("Error initializing Trails Coffee mint:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
       // Continue with app initialization even if mint setup fails
     }
 
