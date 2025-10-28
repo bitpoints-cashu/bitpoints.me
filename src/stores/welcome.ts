@@ -17,11 +17,11 @@ export const useWelcomeStore = defineStore("welcome", {
     currentSlide: useLocalStorage<number>("cashu.welcome.currentSlide", 0),
     seedPhraseValidated: useLocalStorage<boolean>(
       "cashu.welcome.seedPhraseValidated",
-      true // Skip seed phrase validation on startup
+      false
     ),
     termsAccepted: useLocalStorage<boolean>(
       "cashu.welcome.termsAccepted",
-      true // Skip terms acceptance on startup
+      false
     ),
   }),
   getters: {
@@ -32,9 +32,11 @@ export const useWelcomeStore = defineStore("welcome", {
     canProceed: (state) => {
       switch (state.currentSlide) {
         case 0:
-          return true; // Welcome slide
+          // First slide: require terms acceptance
+          return state.termsAccepted;
         case 1:
-          return true; // PWA install slide
+          // Second slide: require seed phrase validation
+          return state.seedPhraseValidated;
         default:
           return false;
       }

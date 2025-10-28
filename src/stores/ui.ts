@@ -32,7 +32,7 @@ export const useUiStore = defineStore("ui", {
     showNumericKeyboard: false,
     activityOrb: false,
     tab: useLocalStorage("cashu.ui.tab", "history" as string),
-    expandHistory: useLocalStorage("cashu.ui.expandHistory", false as boolean),
+    expandHistory: useLocalStorage("cashu.ui.expandHistory", true as boolean),
     globalMutexLock: false,
     showDebugConsole: useLocalStorage("cashu.ui.showDebugConsole", false),
     lastBalanceCached: useLocalStorage("cashu.ui.lastBalanceCached", 0),
