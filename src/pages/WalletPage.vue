@@ -927,58 +927,58 @@ export default {
       this.showAddMintDialog = true;
       this.addMintData = { url: addMintUrl };
     }
-    // Auto-activate Trails Coffee mint on first load
+    // Auto-activate MiniBits mint on first load
     try {
       if (
         !localStorage.getItem("cashu.activeMintUrl") ||
         localStorage.getItem("cashu.activeMintUrl") === ""
       ) {
-        await this.activateMintUrl("https://ecash.trailscoffee.com", false, true);
+        await this.activateMintUrl("https://mint.minibits.cash/Bitcoin", false, true);
       } else {
-        // Ensure Trails Coffee mint is available even if another mint is active
+        // Ensure MiniBits mint is available even if another mint is active
         const mintsStore = useMintsStore();
-        const trailsMint = mintsStore.mints.find(
-          (m) => m.url === "https://ecash.trailscoffee.com"
+        const minibitsMint = mintsStore.mints.find(
+          (m) => m.url === "https://mint.minibits.cash/Bitcoin"
         );
-        if (!trailsMint) {
-          console.log("Adding Trails Coffee mint...");
+        if (!minibitsMint) {
+          console.log("Adding MiniBits mint...");
           const addedMint = await mintsStore.addMint(
             {
-              url: "https://ecash.trailscoffee.com",
-              nickname: "Trails Coffee",
+              url: "https://mint.minibits.cash/Bitcoin",
+              nickname: "MiniBits",
             },
             false
           );
           console.log("Added mint:", addedMint);
           // The addMint function already activates the mint, but let's ensure it's active
-          if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
-            console.log("Activating Trails Coffee mint...");
+          if (mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin") {
+            console.log("Activating MiniBits mint...");
             await this.activateMintUrl(
-              "https://ecash.trailscoffee.com",
+              "https://mint.minibits.cash/Bitcoin",
               false,
               true
             );
           }
         } else {
-          console.log("Trails Coffee mint already exists, ensuring it's active...");
+          console.log("MiniBits mint already exists, ensuring it's active...");
           // Check if mint has keys, if not, force re-initialization
           if (
-            !trailsMint.keys ||
-            trailsMint.keys.length === 0 ||
-            !trailsMint.keysets ||
-            trailsMint.keysets.length === 0
+            !minibitsMint.keys ||
+            minibitsMint.keys.length === 0 ||
+            !minibitsMint.keysets ||
+            minibitsMint.keysets.length === 0
           ) {
             console.log(
               "Mint has no keys/keysets, forcing re-initialization..."
             );
             await this.activateMintUrl(
-              "https://ecash.trailscoffee.com",
+              "https://mint.minibits.cash/Bitcoin",
               false,
               true
             );
-          } else if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
+          } else if (mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin") {
             await this.activateMintUrl(
-              "https://ecash.trailscoffee.com",
+              "https://mint.minibits.cash/Bitcoin",
               false,
               true
             );
@@ -986,7 +986,7 @@ export default {
         }
       }
     } catch (error) {
-      console.error("Error initializing Trails Coffee mint:", error);
+      console.error("Error initializing MiniBits mint:", error);
       console.error("Error details:", error.message);
       console.error("Error stack:", error.stack);
       // Continue with app initialization even if mint setup fails
