@@ -241,8 +241,8 @@ class BluetoothMeshService(private val context: Context) {
                 return peerManager.getPeerInfo(peerID)
             }
 
-            override fun updatePeerInfo(peerID: String, nickname: String, noisePublicKey: ByteArray, signingPublicKey: ByteArray, isVerified: Boolean): Boolean {
-                return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified)
+            override fun updatePeerInfo(peerID: String, nickname: String, noisePublicKey: ByteArray, signingPublicKey: ByteArray, isVerified: Boolean, features: Int): Boolean {
+                return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified, features)
             }
 
             // Packet operations
@@ -638,12 +638,33 @@ class BluetoothMeshService(private val context: Context) {
 
         if (hasSession) {
             try {
-                // For Cashu tokens and large messages, encrypt the content directly
-                // without TLV encoding (TLV is limited to 255 bytes per field)
-                val contentBytes = content.toByteArray(Charsets.UTF_8)
+                // Create TLV-encoded private message exactly like sendPrivateMessage
+                val messageID = java.util.UUID.randomUUID().toString()
+                val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
+                    messageID = messageID,
+                    content = content
+                )
 
-                // Encrypt the raw content
-                val encrypted = encryptionService.encrypt(contentBytes, peerID)
+                val use2Byte = peerManager.peerHasFeature(peerID, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
+                var tlvData = if (use2Byte) privateMessage.encode2B() else privateMessage.encode1B()
+                if (tlvData == null && !use2Byte) {
+                    // Fallback: if legacy 1-byte TLV cannot encode (likely content >255), try 2-byte TLV
+                    Log.w(TAG, "Legacy TLV encode failed (likely >255 bytes). Falling back to 2-byte TLV for $peerID")
+                    tlvData = privateMessage.encode2B()
+                }
+                if (tlvData == null) {
+                    Log.e(TAG, "Failed to encode private message with TLV")
+                    return@launch
+                }
+
+                // Create message payload with NoisePayloadType prefix: [type byte] + [TLV data]
+                val messagePayload = me.bitpoints.wallet.model.NoisePayload(
+                    type = me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE,
+                    data = tlvData
+                )
+
+                // Encrypt the payload
+                val encrypted = encryptionService.encrypt(messagePayload.encode(), peerID)
 
                 // Create NOISE_ENCRYPTED packet
                 val packet = BitchatPacket(
@@ -660,7 +681,7 @@ class BluetoothMeshService(private val context: Context) {
                 // Sign and broadcast
                 val signedPacket = signPacketBeforeBroadcast(packet)
                 connectionManager.broadcastPacket(RoutedPacket(signedPacket))
-                Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes, content: ${contentBytes.size} bytes)")
+                Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes)")
 
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to encrypt private message for $peerID: ${e.message}")
@@ -812,7 +833,14 @@ class BluetoothMeshService(private val context: Context) {
                         content = content
                     )
 
-                    val tlvData = privateMessage.encode()
+                    val use2Byte = peerManager.peerHasFeature(recipientPeerID, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
+                    var tlvData = if (use2Byte) privateMessage.encode2B() else privateMessage.encode1B()
+                    if (tlvData == null && !use2Byte) {
+                        // Fallback: if legacy 1-byte TLV cannot encode (likely content >255), try 2-byte TLV
+                        // Older peers may not decode this, but it enables Cashu-sized messages to updated peers.
+                        Log.w(TAG, "Legacy TLV encode failed (likely >255 bytes). Falling back to 2-byte TLV for $recipientPeerID")
+                        tlvData = privateMessage.encode2B()
+                    }
                     if (tlvData == null) {
                         Log.e(TAG, "Failed to encode private message with TLV")
                         return@launch
@@ -929,7 +957,7 @@ class BluetoothMeshService(private val context: Context) {
             }
 
             // Create iOS-compatible IdentityAnnouncement with TLV encoding
-            val announcement = IdentityAnnouncement(nickname, staticKey, signingKey)
+            val announcement = IdentityAnnouncement(nickname, staticKey, signingKey, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
             val tlvPayload = announcement.encode()
             if (tlvPayload == null) {
                 Log.e(TAG, "Failed to encode announcement as TLV")
@@ -978,7 +1006,7 @@ class BluetoothMeshService(private val context: Context) {
         }
 
         // Create iOS-compatible IdentityAnnouncement with TLV encoding
-        val announcement = IdentityAnnouncement(nickname, staticKey, signingKey)
+        val announcement = IdentityAnnouncement(nickname, staticKey, signingKey, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
         val tlvPayload = announcement.encode()
         if (tlvPayload == null) {
             Log.e(TAG, "Failed to encode peer announcement as TLV")
@@ -1097,9 +1125,10 @@ class BluetoothMeshService(private val context: Context) {
         nickname: String,
         noisePublicKey: ByteArray,
         signingPublicKey: ByteArray,
-        isVerified: Boolean
+        isVerified: Boolean,
+        features: Int = 0
     ): Boolean {
-        return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified)
+        return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified, features)
     }
 
     /**

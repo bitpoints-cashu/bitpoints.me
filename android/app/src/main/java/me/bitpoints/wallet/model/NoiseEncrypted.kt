@@ -122,81 +122,140 @@ data class PrivateMessagePacket(
     }
 
     /**
-     * Encode to TLV binary data with 2-byte length fields
-     * Format: [type][length_high][length_low][value] for each field
+     * Encode to TLV binary data with 2-byte length fields (default for large content)
+     * Format: [type:u8][length:u16][value] for each field
      * Supports up to 65KB per field (2-byte length)
      */
     fun encode(): ByteArray? {
+        return encode2B()
+    }
+
+    /**
+     * Encode to TLV binary data with 2-byte fields
+     * Format: [type:u16][length:u16][value] - matches Bitchat exactly
+     */
+    fun encode2B(): ByteArray? {
         val messageIDData = messageID.toByteArray(Charsets.UTF_8)
         val contentData = content.toByteArray(Charsets.UTF_8)
 
-        // Check size limits (TLV length field is 2 bytes = max 65535)
-        if (messageIDData.size > 65535 || contentData.size > 65535) {
-            return null
+        // 2-byte length supports up to 65535
+        if (messageIDData.size > 0xFFFF || contentData.size > 0xFFFF) return null
+
+        val out = mutableListOf<Byte>()
+
+        fun put(type: UShort, value: ByteArray) {
+            // type u16
+            out.add(((type.toInt() ushr 8) and 0xFF).toByte())
+            out.add((type.toInt() and 0xFF).toByte())
+            // length u16
+            out.add(((value.size ushr 8) and 0xFF).toByte())
+            out.add((value.size and 0xFF).toByte())
+            out.addAll(value.toList())
         }
 
-        val result = mutableListOf<Byte>()
+        put(0u, messageIDData)
+        put(1u, contentData)
 
+        return out.toByteArray()
+    }
+
+    /**
+     * Encode to TLV binary data with 1-byte length fields (legacy format)
+     * Format: [type:u8][length:u8][value] for each field
+     * Supports up to 255 bytes per field
+     */
+    fun encode1B(): ByteArray? {
+        val messageIDData = messageID.toByteArray(Charsets.UTF_8)
+        val contentData = content.toByteArray(Charsets.UTF_8)
+        
+        // Check size limits (TLV length field is 1 byte = max 255)
+        if (messageIDData.size > 255 || contentData.size > 255) {
+            return null
+        }
+        
+        val result = mutableListOf<Byte>()
+        
         // TLV for messageID
         result.add(TLVType.MESSAGE_ID.value.toByte())
-        result.add((messageIDData.size shr 8).toByte())  // high byte
-        result.add(messageIDData.size.toByte())           // low byte
+        result.add(messageIDData.size.toByte())
         result.addAll(messageIDData.toList())
-
+        
         // TLV for content
         result.add(TLVType.CONTENT.value.toByte())
-        result.add((contentData.size shr 8).toByte())     // high byte
-        result.add(contentData.size.toByte())              // low byte
+        result.add(contentData.size.toByte())
         result.addAll(contentData.toList())
-
+        
         return result.toByteArray()
     }
 
     companion object {
         /**
-         * Decode from TLV binary data with 2-byte length fields
-         * Format: [type][length_high][length_low][value] for each field
+         * Decode from TLV binary data. Tries 2-byte TLV first, then legacy 1-byte TLV.
          */
         fun decode(data: ByteArray): PrivateMessagePacket? {
+            decode2B(data)?.let { return it }
+            return decode1B(data)
+        }
+
+        private fun decode2B(data: ByteArray): PrivateMessagePacket? {
             var offset = 0
             var messageID: String? = null
             var content: String? = null
 
-            while (offset + 3 <= data.size) {
-                // Read TLV type
-                val typeValue = data[offset].toUByte()
-                val type = TLVType.fromValue(typeValue) ?: return null
-                offset += 1
-
-                // Read 2-byte length (big-endian)
-                if (offset + 2 > data.size) return null
-                val lengthHigh = data[offset].toUByte().toInt()
-                val lengthLow = data[offset + 1].toUByte().toInt()
-                val length = (lengthHigh shl 8) or lengthLow
+            while (offset + 4 <= data.size) {
+                // Read type u16
+                val tHigh = data[offset].toInt() and 0xFF
+                val tLow = data[offset + 1].toInt() and 0xFF
+                val type = (tHigh shl 8) or tLow
                 offset += 2
 
-                // Check bounds
-                if (offset + length > data.size) return null
+                // Read length u16
+                if (offset + 2 > data.size) return null
+                val lHigh = data[offset].toInt() and 0xFF
+                val lLow = data[offset + 1].toInt() and 0xFF
+                val length = (lHigh shl 8) or lLow
+                offset += 2
 
-                // Read TLV value
+                if (length < 0 || offset + length > data.size) return null
                 val value = data.copyOfRange(offset, offset + length)
                 offset += length
 
                 when (type) {
-                    TLVType.MESSAGE_ID -> {
-                        messageID = String(value, Charsets.UTF_8)
-                    }
-                    TLVType.CONTENT -> {
-                        content = String(value, Charsets.UTF_8)
+                    0 -> messageID = String(value, Charsets.UTF_8)
+                    1 -> content = String(value, Charsets.UTF_8)
+                    else -> {
+                        // Unknown type, ignore for forward compatibility
                     }
                 }
             }
 
-            return if (messageID != null && content != null) {
-                PrivateMessagePacket(messageID, content)
-            } else {
-                null
+            return if (messageID != null && content != null) PrivateMessagePacket(messageID, content) else null
+        }
+
+        private fun decode1B(data: ByteArray): PrivateMessagePacket? {
+            var offset = 0
+            var messageID: String? = null
+            var content: String? = null
+
+            while (offset + 2 <= data.size) {
+                val typeValue = data[offset].toUByte()
+                val type = TLVType.fromValue(typeValue) ?: return null
+                offset += 1
+
+                val length = data[offset].toUByte().toInt()
+                offset += 1
+
+                if (length < 0 || offset + length > data.size) return null
+                val value = data.copyOfRange(offset, offset + length)
+                offset += length
+
+                when (type) {
+                    TLVType.MESSAGE_ID -> messageID = String(value, Charsets.UTF_8)
+                    TLVType.CONTENT -> content = String(value, Charsets.UTF_8)
+                }
             }
+
+            return if (messageID != null && content != null) PrivateMessagePacket(messageID, content) else null
         }
     }
 
