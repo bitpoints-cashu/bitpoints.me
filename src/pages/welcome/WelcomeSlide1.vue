@@ -30,14 +30,27 @@
           <i18n-t keypath="WelcomeSlide1.p3.text" tag="p" class="q-mt-md" />
           <i18n-t keypath="WelcomeSlide1.p4.text" tag="p" class="q-mt-md" />
         </q-expansion-item>
+        <q-checkbox
+          v-model="welcomeStore.termsAccepted"
+          :label="$t('WelcomeSlide1.inputs.checkbox.label', 'I have read and agree to the terms')"
+          class="q-mt-lg"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
+import { useWelcomeStore } from "src/stores/welcome";
+
 export default {
   name: "WelcomeSlide1",
+  setup() {
+    const welcomeStore = useWelcomeStore();
+    return {
+      welcomeStore,
+    };
+  },
 };
 </script>
 

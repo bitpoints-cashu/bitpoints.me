@@ -53,7 +53,7 @@
 
         <!-- Bluetooth Nearby Sending (Android only) -->
         <div
-          v-if="isNativeApp"
+          v-if="isNativeApp || (webBluetoothSupported && isContextSecure)"
           class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
         >
           <q-btn
@@ -528,6 +528,26 @@ export default {
       }
       return false;
     },
+        webBluetoothSupported: function () {
+          try {
+            // Web Bluetooth API only available on secure contexts and supported browsers
+            return (
+              typeof navigator !== "undefined" &&
+              // @ts-ignore
+              !!navigator.bluetooth &&
+              (window.isSecureContext === true)
+            );
+          } catch (_e) {
+            return false;
+          }
+        },
+        isContextSecure: function () {
+          try {
+            return window.isSecureContext === true;
+          } catch (_e) {
+            return false;
+          }
+        },
     ...mapWritableState(useUiStore, [
       "showInvoiceDetails",
       "tab",
