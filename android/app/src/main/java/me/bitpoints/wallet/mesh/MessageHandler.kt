@@ -345,6 +345,10 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
             val hasSession = delegate?.hasNoiseSession(peerID) ?: false
             if (hasSession) {
                 Log.d(TAG, "✅ Noise session established with $peerID")
+                // Notify MessageRouter so it can flush outbox
+                try {
+                    me.bitpoints.wallet.services.MessageRouter.tryGetInstance()?.onSessionEstablished(peerID)
+                } catch (_: Exception) {}
             }
 
         } catch (e: Exception) {
@@ -572,8 +576,32 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
                     me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.updateNostrPublicKeyForPeerID(fromPeerID, npub)
                 }
 
-                // Determine iOS-style guidance text
+                // Check if we have this peer favorited - if so, automatically send back [FAVORITED] to establish mutual favorite
+                // Get relationship AFTER updating theyFavoritedUs to get current state
                 val rel = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(noiseKey)
+                if (isFavorite && rel?.isFavorite == true) {
+                    // They favorited us AND we favorited them = mutual favorite
+                    // Send back [FAVORITED] to acknowledge mutual favorite
+                    handlerScope.launch {
+                        try {
+                            // Use MessageRouter to send the response
+                            val messageRouter = try {
+                                me.bitpoints.wallet.services.MessageRouter.tryGetInstance()
+                            } catch (_: Exception) { null }
+                            
+                            if (messageRouter != null) {
+                                messageRouter.sendFavoriteNotification(fromPeerID, true)
+                                Log.d(TAG, "✅ Auto-sent [FAVORITED] response to establish mutual favorite with ${peerInfo.nickname}")
+                            } else {
+                                Log.w(TAG, "⚠️ MessageRouter not available, cannot auto-send [FAVORITED] response")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to auto-send [FAVORITED] response: ${e.message}")
+                        }
+                    }
+                }
+
+                // Determine iOS-style guidance text
                 val guidance = if (isFavorite) {
                     if (rel?.isFavorite == true) {
                         " — mutual! You can continue DMs via Nostr when out of mesh."
@@ -594,8 +622,8 @@ class MessageHandler(private val myPeerID: String, private val appContext: andro
                 )
                 delegate?.onMessageReceived(sys)
             }
-        } catch (_: Exception) {
-            // Best-effort; ignore errors
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to handle favorite notification: ${e.message}")
         }
     }
 }

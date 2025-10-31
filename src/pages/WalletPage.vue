@@ -51,22 +51,11 @@
           <SendDialog v-model="showSendDialog" />
         </div>
 
-        <!-- Bluetooth Nearby Sending (Android only) -->
+        <!-- Bluetooth Contacts (Android only) -->
         <div
           v-if="isNativeApp || (webBluetoothSupported && isContextSecure)"
           class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
         >
-          <q-btn
-            rounded
-            outline
-            color="secondary"
-            class="q-px-lg"
-            @click="showNearbyDialog = true"
-          >
-            <q-icon name="bluetooth" size="1.2rem" class="q-mr-sm" />
-            <span>Send to Nearby</span>
-          </q-btn>
-
           <q-btn
             rounded
             outline
@@ -101,22 +90,10 @@
           </q-btn>
         </div>
 
-        <!-- Nearby Contacts Dialog -->
-        <q-dialog v-model="showNearbyDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px">
-            <NearbyContactsDialog @close="showNearbyDialog = false" />
-            <q-card-actions align="right">
-              <q-btn flat round icon="close" color="grey" v-close-popup>
-                <q-tooltip>Close</q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
-
-        <!-- Nostr Contacts Dialog -->
+        <!-- Unified Contacts Dialog -->
         <q-dialog v-model="showContactsDialog" position="bottom">
           <q-card style="width: 100%; max-width: 600px">
-            <NostrContactsDialog />
+            <ContactsDialog @close="showContactsDialog = false" />
             <q-card-actions align="right">
               <q-btn flat round icon="close" color="grey" v-close-popup>
                 <q-tooltip>Close</q-tooltip>
@@ -403,8 +380,7 @@ import SendDialog from "components/SendDialog.vue";
 import ReceiveDialog from "components/ReceiveDialog.vue";
 import QrcodeReader from "components/QrcodeReader.vue";
 import EcashClaimNotification from "components/EcashClaimNotification.vue";
-import NearbyContactsDialog from "components/NearbyContactsDialog.vue";
-import NostrContactsDialog from "components/NostrContactsDialog.vue";
+import ContactsDialog from "components/ContactsDialog.vue";
 import FavoriteRequestsDialog from "components/FavoriteRequestsDialog.vue";
 import iOSPWAPrompt from "components/iOSPWAPrompt.vue";
 import AndroidPWAPrompt from "components/AndroidPWAPrompt.vue";
@@ -468,8 +444,7 @@ export default {
     ZapIcon,
     ActivityOrb,
     EcashClaimNotification,
-    NearbyContactsDialog,
-    NostrContactsDialog,
+    ContactsDialog,
     FavoriteRequestsDialog,
   },
   data: function () {
@@ -478,7 +453,6 @@ export default {
       mintId: "",
       mintName: "",
       deferredPWAInstallPrompt: null,
-      showNearbyDialog: false,
       showContactsDialog: false,
       showRequestsDialog: false,
       action: "main",

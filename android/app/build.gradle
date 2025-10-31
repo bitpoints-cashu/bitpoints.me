@@ -84,6 +84,12 @@ dependencies {
 
     // AndroidX Security for encrypted storage
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
+    
+    // OkHttp for WebSocket connections (Nostr relays)
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    
+    // Tink for XChaCha20Poly1305 encryption (NIP-44)
+    implementation "com.google.crypto.tink:tink-android:1.12.0"
 }
 
 apply from: 'capacitor.build.gradle'

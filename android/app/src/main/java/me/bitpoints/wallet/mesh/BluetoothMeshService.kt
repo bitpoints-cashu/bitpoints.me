@@ -59,12 +59,23 @@ class BluetoothMeshService(private val context: Context) {
     // Delegate for message callbacks (maintains same interface)
     var delegate: BluetoothMeshDelegate? = null
 
+    // MessageRouter for mesh/Nostr routing
+    private var messageRouter: me.bitpoints.wallet.services.MessageRouter? = null
+
     // Coroutines
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
         setupDelegates()
         messageHandler.packetProcessor = packetProcessor
+        
+        // Initialize MessageRouter for mesh/Nostr routing
+        try {
+            messageRouter = me.bitpoints.wallet.services.MessageRouter.getInstance(context, this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to initialize MessageRouter: ${e.message}")
+        }
+        
         //startPeriodicDebugLogging()
 
         // Initialize sync manager (needs serviceScope)
@@ -147,6 +158,10 @@ class BluetoothMeshService(private val context: Context) {
         peerManager.delegate = object : PeerManagerDelegate {
             override fun onPeerListUpdated(peerIDs: List<String>) {
                 delegate?.didUpdatePeerList(peerIDs)
+                // Notify MessageRouter so it can flush outbox
+                try {
+                    messageRouter?.onPeersUpdated(peerIDs)
+                } catch (_: Exception) {}
             }
             override fun onPeerRemoved(peerID: String) {
                 try { gossipSyncManager.removeAnnouncementForPeer(peerID) } catch (_: Exception) { }
@@ -812,24 +827,38 @@ class BluetoothMeshService(private val context: Context) {
     } catch (_: Exception) { bytes.size.toString(16) }
 
     /**
-     * Send private message - SIMPLIFIED iOS-compatible version
+     * Send private message - Routes via MessageRouter (mesh first, then Nostr if mutual favorites)
      * Uses NoisePayloadType system exactly like iOS SimplifiedBluetoothService
      */
     fun sendPrivateMessage(content: String, recipientPeerID: String, recipientNickname: String, messageID: String? = null) {
         if (content.isEmpty() || recipientPeerID.isEmpty()) return
         if (recipientNickname.isEmpty()) return
 
+        val finalMessageID = messageID ?: java.util.UUID.randomUUID().toString()
+        
+        // Use MessageRouter if available (for mesh/Nostr routing)
+        messageRouter?.let { router ->
+            router.sendPrivate(content, recipientPeerID, recipientNickname, finalMessageID)
+            return
+        }
+        
+        // Fallback to direct mesh send if MessageRouter not available
+        sendPrivateMessageViaMesh(content, recipientPeerID, recipientNickname, finalMessageID)
+    }
+    
+    /**
+     * Send private message directly via mesh (used by MessageRouter - bypasses routing)
+     */
+    fun sendPrivateMessageViaMesh(content: String, recipientPeerID: String, recipientNickname: String, messageID: String) {
         serviceScope.launch {
-            val finalMessageID = messageID ?: java.util.UUID.randomUUID().toString()
-
-            Log.d(TAG, "📨 Sending PM to $recipientPeerID: ${content.take(30)}...")
+            Log.d(TAG, "📨 Sending PM via mesh to $recipientPeerID: ${content.take(30)}...")
 
             // Check if we have an established Noise session
             if (encryptionService.hasEstablishedSession(recipientPeerID)) {
                 try {
                     // Create TLV-encoded private message exactly like iOS
                     val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
-                        messageID = finalMessageID,
+                        messageID = messageID,
                         content = content
                     )
 
@@ -888,6 +917,28 @@ class BluetoothMeshService(private val context: Context) {
                 // The UI will handle showing the message in the chat interface
             }
         }
+    }
+    
+    /**
+     * Send favorite notification - automatically sent when favoriting a peer
+     * Routes via mesh if connected, else via Nostr if mutual favorite
+     */
+    fun sendFavoriteNotification(toPeerID: String, isFavorite: Boolean) {
+        messageRouter?.sendFavoriteNotification(toPeerID, isFavorite)
+    }
+    
+    /**
+     * Update favorite status and automatically send notification (matches Bitchat behavior)
+     * This should be called when favoriting/unfavoriting a peer in the UI
+     */
+    fun updateFavoriteAndNotify(peerID: String, noisePublicKey: ByteArray, nickname: String, isFavorite: Boolean) {
+        // Update favorite status in persistence
+        me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.updateFavoriteStatus(
+            noisePublicKey, nickname, isFavorite
+        )
+        
+        // Automatically send notification (matches Bitchat's automatic exchange pattern)
+        sendFavoriteNotification(peerID, isFavorite)
     }
 
     /**
