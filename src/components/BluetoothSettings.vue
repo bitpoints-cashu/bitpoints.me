@@ -264,13 +264,6 @@
             {{ favoritesStore.pendingCount }}
           </q-badge>
         </q-btn>
-        <q-btn
-          outline
-          color="purple"
-          icon="bug_report"
-          label="Debug Logs"
-          @click="showDebugPanel"
-        />
       </div>
     </q-card-section>
 
@@ -304,7 +297,6 @@ const emit = defineEmits<{
   (e: "openNearbyDialog"): void;
   (e: "openContactsDialog"): void;
   (e: "openRequestsDialog"): void;
-  (e: "openDebugPanel"): void;
 }>();
 
 const bluetoothStore = useBluetoothStore();
@@ -373,9 +365,6 @@ function showRequests() {
   emit("openRequestsDialog");
 }
 
-function showDebugPanel() {
-  emit("openDebugPanel");
-}
 
 async function toggleAlwaysOnMode(enabled: boolean) {
   try {

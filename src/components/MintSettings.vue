@@ -240,11 +240,10 @@ export default defineComponent({
     
     activateMintUrlInternal: async function (mintUrl) {
       this.activatingMintUrl = mintUrl;
-      console.log(`Activating mint ${this.activatingMintUrl}`);
       try {
         await this.activateMintUrl(mintUrl, false, true);
       } catch (e) {
-        console.log("#### Error activating mint:", e);
+        console.error("Error activating mint:", e);
       } finally {
         this.activatingMintUrl = "";
       }
@@ -260,7 +259,7 @@ export default defineComponent({
         this.triggerMintInfoMotdChanged(newMintInfo, mint);
         this.mints.filter((m) => m.url === mint.url)[0].info = newMintInfo;
       } catch (error) {
-        console.log("Failed to fetch mint info:", error);
+        console.error("Failed to fetch mint info:", error);
       } finally {
         this.activatingMintUrl = "";
       }

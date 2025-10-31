@@ -1,6 +1,6 @@
 {
   "name": "bitpoints",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Bitcoin-backed rewards wallet merging Cashu ecash, Nostr identity, and Bluetooth mesh protocols for maximum interoperability and privacy",
   "productName": "Bitpoints",
   "author": "Bitpoints.me",

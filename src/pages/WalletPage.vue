@@ -635,15 +635,11 @@ export default {
       return token.getMint(decoded_token);
     },
     autoClaimPendingNostrTokens: async function () {
-      console.log("🔍 Checking for pending Nostr tokens to auto-claim...");
       const tokensStore = useTokensStore();
       const receiveStore = useReceiveTokensStore();
 
       // Check if history is initialized
       if (!tokensStore.history || !Array.isArray(tokensStore.history)) {
-        console.log(
-          "ℹ️ Tokens history not yet initialized, skipping auto-claim"
-        );
         return;
       }
 
@@ -652,19 +648,11 @@ export default {
         (t) => t.amount > 0 && t.token && t.token.length > 0
       );
 
-      console.log(`Found ${pendingTokens.length} pending token(s) in history`);
-
       for (const pendingToken of pendingTokens) {
         try {
-          console.log(
-            `💎 Auto-claiming pending token: ${pendingToken.amount} ${pendingToken.unit}`
-          );
           receiveStore.receiveData.tokensBase64 = pendingToken.token;
           const success = await receiveStore.receiveIfDecodes();
           if (success) {
-            console.log(
-              `✅ Auto-claimed ${pendingToken.amount} ${pendingToken.unit}`
-            );
             notifySuccess(
               `💰 Auto-claimed ${pendingToken.amount} ${pendingToken.unit} from Nostr!`
             );
@@ -672,10 +660,6 @@ export default {
         } catch (error) {
           console.warn(`⚠️ Failed to auto-claim token:`, error);
         }
-      }
-
-      if (pendingTokens.length > 0) {
-        console.log("✅ Finished auto-claiming pending tokens");
       }
     },
     //
@@ -740,7 +724,6 @@ export default {
     },
     /////////////////////////////////// WALLET ///////////////////////////////////
     showInvoiceCreateDialog: async function () {
-      console.log("##### showInvoiceCreateDialog");
       this.invoiceData.amount = "";
       this.invoiceData.bolt11 = "";
       this.invoiceData.hash = "";
@@ -749,7 +732,6 @@ export default {
       this.camera.show = false; // Close camera when switching to lightning
     },
     showSendTokensDialog: function () {
-      console.log("##### showSendTokensDialog");
       this.sendData.tokens = "";
       this.sendData.tokensBase64 = "";
       this.sendData.amount = null;
@@ -802,10 +784,7 @@ export default {
       // Wait for the user to respond to the prompt
       this.deferredPWAInstallPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
-          console.log("User accepted the install prompt");
           this.setWelcomeDialogSeen();
-        } else {
-          console.log("User dismissed the install prompt");
         }
       });
     },
@@ -844,11 +823,6 @@ export default {
         if (this.isNativeApp) {
           // Only auto-start for native mobile apps
           await bluetoothStore.startService();
-          console.log("Bluetooth mesh service auto-started (native app)");
-        } else {
-          console.log(
-            '💡 Bluetooth ready. Go to Settings → Bluetooth Mesh and click "Connect Device" to enable.'
-          );
         }
       } catch (e) {
         console.error("Failed to initialize Bluetooth:", e);
@@ -901,8 +875,6 @@ export default {
   },
 
   created: async function () {
-    console.log(`Git commit: ${GIT_COMMIT}`);
-
     // Initialize and run migrations
     const migrationsStore = useMigrationsStore();
     migrationsStore.initMigrations();
@@ -935,7 +907,6 @@ export default {
           (m) => m.url === "https://mint.minibits.cash/Bitcoin"
         );
         if (!minibitsMint) {
-          console.log("Adding MiniBits mint...");
           const addedMint = await mintsStore.addMint(
             {
               url: "https://mint.minibits.cash/Bitcoin",
@@ -943,10 +914,8 @@ export default {
             },
             false
           );
-          console.log("Added mint:", addedMint);
           // The addMint function already activates the mint, but let's ensure it's active
           if (mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin") {
-            console.log("Activating MiniBits mint...");
             await this.activateMintUrl(
               "https://mint.minibits.cash/Bitcoin",
               false,
@@ -954,7 +923,6 @@ export default {
             );
           }
         } else {
-          console.log("MiniBits mint already exists, ensuring it's active...");
           // Check if mint has keys, if not, force re-initialization
           if (
             !minibitsMint.keys ||
@@ -962,9 +930,6 @@ export default {
             !minibitsMint.keysets ||
             minibitsMint.keysets.length === 0
           ) {
-            console.log(
-              "Mint has no keys/keysets, forcing re-initialization..."
-            );
             await this.activateMintUrl(
               "https://mint.minibits.cash/Bitcoin",
               false,
@@ -986,35 +951,6 @@ export default {
       // Continue with app initialization even if mint setup fails
     }
 
-    console.log("Mint URL " + this.activeMintUrl);
-    console.log("Wallet URL " + this.baseURL);
-
-    // Debug: Check if mint has keysets
-    try {
-      const mintsStore = useMintsStore();
-      const activeMint = mintsStore.mints.find(
-        (m) => m.url === this.activeMintUrl
-      );
-      if (activeMint) {
-        console.log("Active mint keysets:", activeMint.keysets);
-        console.log("Active mint keys:", activeMint.keys);
-
-        // If no keysets, try to fetch them again
-        if (!activeMint.keysets || activeMint.keysets.length === 0) {
-          console.log("No keysets found, attempting to fetch...");
-          try {
-            await mintsStore.fetchMintKeys(activeMint);
-            console.log("Keysets fetched successfully:", activeMint.keysets);
-          } catch (error) {
-            console.error("Failed to fetch keysets:", error);
-          }
-        }
-      } else {
-        console.log("No active mint found");
-      }
-    } catch (error) {
-      console.error("Error in debug section:", error);
-    }
 
     // get token to receive tokens from a link
     if (params.get("token") || hash.includes("token")) {
@@ -1048,7 +984,6 @@ export default {
       window.location.href.split("?")[0].split("#")[0]
     );
     */
-    console.log(`location.hash: ${window.location.hash}`);
 
     // startup tasks
 
@@ -1082,7 +1017,6 @@ export default {
     }
 
     // Subscribe to NIP-04 DMs for Nostr contacts feature
-    console.log("🔔 Subscribing to NIP-04 DMs for contacts...");
     this.subscribeToNip04DirectMessages();
 
     // Auto-claim any pending Nostr tokens from history

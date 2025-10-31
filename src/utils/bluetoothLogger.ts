@@ -51,20 +51,6 @@ class BluetoothLogger {
 
     // Notify listeners
     this.listeners.forEach((listener) => listener(event));
-
-    // Also log to console for development
-    const timeStr = new Date(event.timestamp).toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      fractionalSecondDigits: 3,
-    });
-
-    const emoji = this.getEmoji(type);
-    const prefix = `[${timeStr}] ${emoji} [${type.toUpperCase()}]`;
-
-    console.log(prefix, message, data || "");
   }
 
   /**
@@ -171,7 +157,6 @@ class BluetoothLogger {
    */
   clear() {
     this.events = [];
-    console.log("🔵 [SYSTEM] Bluetooth debug logs cleared");
   }
 
   /**
