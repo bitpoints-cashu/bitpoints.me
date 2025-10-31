@@ -81,7 +81,12 @@
       <div class="q-mt-lg text-left">
         <q-checkbox
           v-model="welcomeStore.seedPhraseValidated"
-          :label="$t('WelcomeSlide2.inputs.checkbox.label', 'I understand how to backup my wallet')"
+          :label="
+            $t(
+              'WelcomeSlide2.inputs.checkbox.label',
+              'I understand how to backup my wallet'
+            )
+          "
         />
       </div>
     </div>

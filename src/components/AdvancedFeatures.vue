@@ -7,13 +7,21 @@
         <!-- Discover Mints over Nostr -->
         <q-item clickable v-ripple @click="openDiscoverMints">
           <q-item-section>
-            <q-item-label class="text-weight-medium">Discover Mints</q-item-label>
+            <q-item-label class="text-weight-medium"
+              >Discover Mints</q-item-label
+            >
             <q-item-label caption>
               Find recommended mints via Nostr relays
             </q-item-label>
           </q-item-section>
           <q-item-section side>
-            <q-btn dense flat color="primary" icon="search" :loading="discoveringMints" />
+            <q-btn
+              dense
+              flat
+              color="primary"
+              icon="search"
+              :loading="discoveringMints"
+            />
           </q-item-section>
         </q-item>
 
@@ -29,9 +37,16 @@
           </q-item-section>
         </q-item>
 
-        <q-item clickable v-ripple :disable="!activeMintUrl" @click="openActiveMintDetails">
+        <q-item
+          clickable
+          v-ripple
+          :disable="!activeMintUrl"
+          @click="openActiveMintDetails"
+        >
           <q-item-section>
-            <q-item-label class="text-weight-medium">Active Mint Details</q-item-label>
+            <q-item-label class="text-weight-medium"
+              >Active Mint Details</q-item-label
+            >
             <q-item-label caption>
               View information and manage the active mint
             </q-item-label>
@@ -43,7 +58,9 @@
 
         <q-item>
           <q-item-section>
-            <q-item-label class="text-weight-medium">Enable Receive Swaps</q-item-label>
+            <q-item-label class="text-weight-medium"
+              >Enable Receive Swaps</q-item-label
+            >
             <q-item-label caption>
               Automatically offer to swap incoming tokens to a trusted mint
             </q-item-label>
@@ -79,14 +96,27 @@
             <q-list v-else bordered separator>
               <q-item v-for="rec in mintRecommendations" :key="rec.url">
                 <q-item-section>
-                  <q-item-label class="text-weight-medium">{{ rec.url }}</q-item-label>
-                  <q-item-label caption>Recommended by {{ rec.count }}</q-item-label>
+                  <q-item-label class="text-weight-medium">{{
+                    rec.url
+                  }}</q-item-label>
+                  <q-item-label caption
+                    >Recommended by {{ rec.count }}</q-item-label
+                  >
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn dense flat color="primary" icon="add" @click="addDiscoveredMint(rec.url)" />
+                  <q-btn
+                    dense
+                    flat
+                    color="primary"
+                    icon="add"
+                    @click="addDiscoveredMint(rec.url)"
+                  />
                 </q-item-section>
               </q-item>
-              <div v-if="mintRecommendations.length === 0" class="q-pa-md text-center text-grey">
+              <div
+                v-if="mintRecommendations.length === 0"
+                class="q-pa-md text-center text-grey"
+              >
                 No recommendations found
               </div>
             </q-list>
@@ -98,7 +128,6 @@
       </q-dialog>
     </div>
   </div>
-  
 </template>
 
 <script lang="ts">
@@ -163,5 +192,4 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

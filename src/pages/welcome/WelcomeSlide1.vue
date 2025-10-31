@@ -32,7 +32,12 @@
         </q-expansion-item>
         <q-checkbox
           v-model="welcomeStore.termsAccepted"
-          :label="$t('WelcomeSlide1.inputs.checkbox.label', 'I have read and agree to the terms')"
+          :label="
+            $t(
+              'WelcomeSlide1.inputs.checkbox.label',
+              'I have read and agree to the terms'
+            )
+          "
           class="q-mt-lg"
         />
       </div>

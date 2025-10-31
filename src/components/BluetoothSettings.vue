@@ -365,7 +365,6 @@ function showRequests() {
   emit("openRequestsDialog");
 }
 
-
 async function toggleAlwaysOnMode(enabled: boolean) {
   try {
     await bluetoothStore.toggleAlwaysOnMode(enabled);

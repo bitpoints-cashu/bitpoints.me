@@ -120,7 +120,9 @@
                   dense
                   round
                   size="sm"
-                  :icon="isFavorite(peer.peerID) ? 'favorite' : 'favorite_border'"
+                  :icon="
+                    isFavorite(peer.peerID) ? 'favorite' : 'favorite_border'
+                  "
                   :color="isFavorite(peer.peerID) ? 'pink' : 'grey'"
                   @click.stop="toggleFavorite(peer)"
                 >
@@ -136,7 +138,9 @@
                   round
                   icon="send"
                   :color="
-                    peer.canSendViaNostr || peer.isConnected ? 'primary' : 'grey'
+                    peer.canSendViaNostr || peer.isConnected
+                      ? 'primary'
+                      : 'grey'
                   "
                   :disable="!peer.canSendViaNostr && !peer.isConnected"
                   @click.stop="openSendDialog(peer)"
@@ -379,9 +383,7 @@ export default defineComponent({
     const sendMemo = ref<string>("");
     const sending = ref(false);
 
-    const connectedPeers = ref<Array<Peer & { canSendViaNostr?: boolean }>>(
-      []
-    );
+    const connectedPeers = ref<Array<Peer & { canSendViaNostr?: boolean }>>([]);
     const offlineFavorites = ref<OfflineFavorite[]>([]);
     const pollInterval = ref<number | null>(null);
 
@@ -475,8 +477,7 @@ export default defineComponent({
             await nostrStore.walletSeedGenerateKeyPair();
           }
 
-          const hexPubkey =
-            nostrStore.seedSignerPublicKey || nostrStore.pubkey;
+          const hexPubkey = nostrStore.seedSignerPublicKey || nostrStore.pubkey;
           if (hexPubkey) {
             const npub = hexPubkey.startsWith("npub")
               ? hexPubkey
@@ -486,7 +487,9 @@ export default defineComponent({
               `[UNFAVORITED]:${npub}`
             );
             console.log(
-              `📤 Sent unfavorite notification to ${peer.nickname} with npub: ${npub.substring(0, 16)}...`
+              `📤 Sent unfavorite notification to ${
+                peer.nickname
+              } with npub: ${npub.substring(0, 16)}...`
             );
           }
         } catch (error) {
@@ -508,8 +511,7 @@ export default defineComponent({
             await nostrStore.walletSeedGenerateKeyPair();
           }
 
-          const hexPubkey =
-            nostrStore.seedSignerPublicKey || nostrStore.pubkey;
+          const hexPubkey = nostrStore.seedSignerPublicKey || nostrStore.pubkey;
           if (hexPubkey) {
             const npub = hexPubkey.startsWith("npub")
               ? hexPubkey
@@ -519,7 +521,9 @@ export default defineComponent({
               `[FAVORITE_REQUEST]:${npub}`
             );
             console.log(
-              `📤 Sent favorite request to ${peer.nickname} with npub: ${npub.substring(0, 16)}...`
+              `📤 Sent favorite request to ${
+                peer.nickname
+              } with npub: ${npub.substring(0, 16)}...`
             );
           }
         } catch (error) {
@@ -687,7 +691,10 @@ export default defineComponent({
           console.log(
             `📤 Sending to npub: ${recipientNpub.substring(0, 20)}...`
           );
-          await nostrStore.sendNip04DirectMessage(recipientNpub, messageContent);
+          await nostrStore.sendNip04DirectMessage(
+            recipientNpub,
+            messageContent
+          );
 
           notifySuccess(
             `Sent ${sendAmount.value} ${unit.value} to ${sendTarget.value.nickname} via Nostr!`

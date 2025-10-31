@@ -502,26 +502,26 @@ export default {
       }
       return false;
     },
-        webBluetoothSupported: function () {
-          try {
-            // Web Bluetooth API only available on secure contexts and supported browsers
-            return (
-              typeof navigator !== "undefined" &&
-              // @ts-ignore
-              !!navigator.bluetooth &&
-              (window.isSecureContext === true)
-            );
-          } catch (_e) {
-            return false;
-          }
-        },
-        isContextSecure: function () {
-          try {
-            return window.isSecureContext === true;
-          } catch (_e) {
-            return false;
-          }
-        },
+    webBluetoothSupported: function () {
+      try {
+        // Web Bluetooth API only available on secure contexts and supported browsers
+        return (
+          typeof navigator !== "undefined" &&
+          // @ts-ignore
+          !!navigator.bluetooth &&
+          window.isSecureContext === true
+        );
+      } catch (_e) {
+        return false;
+      }
+    },
+    isContextSecure: function () {
+      try {
+        return window.isSecureContext === true;
+      } catch (_e) {
+        return false;
+      }
+    },
     ...mapWritableState(useUiStore, [
       "showInvoiceDetails",
       "tab",
@@ -899,7 +899,11 @@ export default {
         !localStorage.getItem("cashu.activeMintUrl") ||
         localStorage.getItem("cashu.activeMintUrl") === ""
       ) {
-        await this.activateMintUrl("https://mint.minibits.cash/Bitcoin", false, true);
+        await this.activateMintUrl(
+          "https://mint.minibits.cash/Bitcoin",
+          false,
+          true
+        );
       } else {
         // Ensure MiniBits mint is available even if another mint is active
         const mintsStore = useMintsStore();
@@ -915,7 +919,9 @@ export default {
             false
           );
           // The addMint function already activates the mint, but let's ensure it's active
-          if (mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin") {
+          if (
+            mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin"
+          ) {
             await this.activateMintUrl(
               "https://mint.minibits.cash/Bitcoin",
               false,
@@ -935,7 +941,9 @@ export default {
               false,
               true
             );
-          } else if (mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin") {
+          } else if (
+            mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin"
+          ) {
             await this.activateMintUrl(
               "https://mint.minibits.cash/Bitcoin",
               false,
@@ -950,7 +958,6 @@ export default {
       console.error("Error stack:", error.stack);
       // Continue with app initialization even if mint setup fails
     }
-
 
     // get token to receive tokens from a link
     if (params.get("token") || hash.includes("token")) {

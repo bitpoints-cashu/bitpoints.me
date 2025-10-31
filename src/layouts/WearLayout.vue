@@ -6,7 +6,7 @@
   </q-layout>
 </template>
 
-<script setup>
+<script setup lang="js">
 import { onMounted, onUnmounted } from "vue";
 
 // Wear OS specific setup
@@ -172,4 +172,3 @@ const setupTouchGestures = () => {
   }
 }
 </style>
-

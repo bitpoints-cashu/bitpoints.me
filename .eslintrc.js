@@ -82,5 +82,12 @@ module.exports = {
         "vue/block-lang": ["error", { script: { lang: "ts" } }],
       },
     },
+    {
+      files: ["src/layouts/WearLayout.vue", "src/pages/wear/**/*.vue"],
+      rules: {
+        // Allow JavaScript in Wear OS components
+        "vue/block-lang": "off",
+      },
+    },
   ],
 };

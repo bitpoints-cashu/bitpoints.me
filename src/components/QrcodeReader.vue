@@ -66,10 +66,10 @@ export default {
     }
   },
   setup() {
-    const watchIntegration = useWatchIntegration()
+    const watchIntegration = useWatchIntegration();
     return {
-      watchIntegration
-    }
+      watchIntegration,
+    };
   },
   computed: {
     ...mapState(useCameraStore, ["camera", "hasCamera"]),
@@ -142,17 +142,17 @@ export default {
       }
     },
     handleResult(result: QrScanner.ScanResult) {
-      const qrData = result.data
-      
+      const qrData = result.data;
+
       // Check if this is a watch pairing QR code
-      const watchConnection = this.watchIntegration.parseWatchQR(qrData)
+      const watchConnection = this.watchIntegration.parseWatchQR(qrData);
       if (watchConnection) {
-        this.watchIntegration.addWatch(watchConnection)
-        notifySuccess(`Watch "${watchConnection.name}" paired successfully!`)
-        this.qrScanner?.stop()
-        return
+        this.watchIntegration.addWatch(watchConnection);
+        notifySuccess(`Watch "${watchConnection.name}" paired successfully!`);
+        this.qrScanner?.stop();
+        return;
       }
-      
+
       // if this is a multipart-qr code, do not yet emit
       if (qrData.toLowerCase().startsWith("ur:")) {
         this.urDecoder?.receivePart(qrData);

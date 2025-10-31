@@ -135,7 +135,6 @@
       </q-card>
     </q-dialog>
 
-
     <!-- TERMS & LEGAL SECTION -->
     <div class="section-divider q-my-md">
       <div class="divider-line"></div>

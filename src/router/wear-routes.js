@@ -25,4 +25,3 @@ const wearRoutes = [
 ];
 
 export default wearRoutes;
-

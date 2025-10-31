@@ -10,8 +10,6 @@
   <div style="max-width: 800px; margin: 0 auto">
     <!-- ////////////////////// SETTINGS ////////////////// -->
     <div class="q-py-md q-px-xs text-left" on-left>
-      
-
       <q-list padding>
         <!-- <q-item-label header>Your mints</q-item-label> -->
         <div v-for="mint in mints" :key="mint.url" class="q-px-md">
@@ -223,7 +221,6 @@ export default defineComponent({
       "mints",
       "activeProofs",
     ]),
-    
   },
   methods: {
     ...mapActions(useP2PKStore, ["generateKeypair", "showKeyDetails"]),
@@ -237,7 +234,7 @@ export default defineComponent({
     ...mapActions(useWalletStore, ["decodeRequest", "mintOnPaid"]),
     ...mapActions(useWorkersStore, ["clearAllWorkers"]),
     ...mapActions(useCameraStore, ["closeCamera", "showCamera"]),
-    
+
     activateMintUrlInternal: async function (mintUrl) {
       this.activatingMintUrl = mintUrl;
       try {

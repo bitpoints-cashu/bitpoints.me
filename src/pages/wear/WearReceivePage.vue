@@ -96,7 +96,7 @@
   </q-page>
 </template>
 
-<script setup>
+<script setup lang="js">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useWalletStore } from "src/stores/wallet";
@@ -421,4 +421,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
