@@ -135,16 +135,14 @@ export default {
 }
 h2 {
   font-weight: bold;
-  color: #ff6b35; /* Bitpoints orange */
 }
 h3 {
-  color: #ff6b35; /* Bitpoints orange */
+  font-weight: bold;
 }
 h6 {
   font-weight: bold;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  color: #ff6b35; /* Bitpoints orange */
 }
 p {
   font-size: large;

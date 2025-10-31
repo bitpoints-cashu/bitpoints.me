@@ -22,7 +22,7 @@
               IMPORTANT NOTICE: THESE TERMS OF SERVICE INCLUDE A MEDIATION-FIRST
               CLAUSE REQUIRING MEDIATION BEFORE ARBITRATION OR LITIGATION.
               PLEASE READ THESE TERMS CAREFULLY. IF YOU DO NOT AGREE, DO NOT USE
-              BITPOINTS.
+              {{ brandShortName.toUpperCase() }}.
             </strong>
           </p>
           <p>
@@ -35,7 +35,7 @@
           </p>
           <p>
             <strong
-              >BITPOINTS DOES NOT HOLD ECASH, DOES NOT EXECUTE AND CANNOT
+              >{{ brandName.toUpperCase() }} DOES NOT HOLD ECASH, DOES NOT EXECUTE AND CANNOT
               MONITOR TRANSACTIONS, AND DOES NOT OPERATE OR VERIFY ANY
               MINTS.</strong
             >
@@ -43,8 +43,8 @@
           <p>
             These Terms of Service (these "Terms") constitute the entire
             agreement and understanding between you ("you" or "your") and
-            Bitpoints ("Bitpoints," "we," "us," or "our") regarding your use of
-            the Bitpoints app and any related applications, software, code, or
+            {{ brandName }} ("{{ brandShortName }}," "we," "us," or "our") regarding your use of
+            the {{ brandShortName }} app and any related applications, software, code, or
             services (collectively, the "App" or "Services"). By accessing or
             using the App or Services, you acknowledge that you have read,
             understand, and agree to be bound by these Terms. If you do not
@@ -52,7 +52,7 @@
           </p>
           <p><strong>1. Nature of the Services</strong></p>
           <p>
-            1.1 <strong>Non-Custodial Web Application:</strong> Bitpoints
+            1.1 <strong>Non-Custodial Web Application:</strong> {{ brandName }}
             provides a non-custodial web application ("rewards app") that is
             executed entirely on your device. Our App merely makes available
             client-side code implementing the open-source ecash protocol. We do
@@ -60,30 +60,30 @@
             your behalf.
           </p>
           <p>
-            1.2 <strong>No Control Over Mints:</strong> Bitpoints does not issue
+            1.2 <strong>No Control Over Mints:</strong> {{ brandName }} does not issue
             ecash and does not operate or control any Mint. The choice of any
             Mint and any transaction or relationship you establish with that
-            Mint is solely between you and that Mint. Bitpoints has no
+            Mint is solely between you and that Mint. {{ brandName }} has no
             involvement, responsibility, or liability in any such interaction.
           </p>
           <p>
-            1.3 <strong>No Funds Access:</strong> At no time does Bitpoints have
+            1.3 <strong>No Funds Access:</strong> At no time does {{ brandName }} have
             custody, possession, or control of your rewards. Transactions occur
             solely by your actions and through your chosen Mint. We do not
             monitor, verify, or facilitate transfers between you and any Mint or
             other parties.
           </p>
           <p>
-            1.4 <strong>Web Server Only:</strong> Bitpoints does not operate any
+            1.4 <strong>Web Server Only:</strong> {{ brandName }} does not operate any
             backend services for the ecash protocol. We only provide the
             client-side application code.
           </p>
           <p>
             1.5 <strong>Open Source Code:</strong> The application code is based
             on open source software, meaning it can be self-hosted and run by
-            third parties using different domains. Bitpoints has no control
+            third parties using different domains. {{ brandName }} has no control
             over, and does not endorse or assume responsibility for, any
-            instances of the code running outside of the Bitpoints service. Your
+            instances of the code running outside of the {{ brandShortName }} service. Your
             use of any such third-party instances is at your own risk.
           </p>
           <p>
@@ -98,17 +98,17 @@
             agree that you use the App and Services at your own risk and for
             your own account. You alone are fully responsible for selecting
             Mints, conducting transactions, and safeguarding your rewards and
-            secret values. Bitpoints is not a party to and disclaims any
+            secret values. {{ brandName }} is not a party to and disclaims any
             responsibility for any agreements, terms, or disputes between you
             and any Mint.
           </p>
           <p>
-            2.2 <strong>No Partnership with Mints:</strong> Bitpoints is not
+            2.2 <strong>No Partnership with Mints:</strong> {{ brandName }} is not
             affiliated with, endorsed by, or responsible for any Mint. We make
             no representations, warranties, or guarantees about any Mint's
             integrity, legality, liquidity, or functionality. Your relationship
             with any Mint, including the issuance, redemption, or valuation of
-            ecash, is solely a matter between you and that Mint. Bitpoints is
+            ecash, is solely a matter between you and that Mint. {{ brandName }} is
             not a party to any transaction between you and any Mint or third
             party. No agency, partnership, or joint venture relationship is
             formed by your use of the App.
@@ -154,7 +154,7 @@
           <p><strong>6. Risks and Limitation of Liability</strong></p>
           <p>
             6.1 <strong>No Liability for Interactions with Mints:</strong>
-            Bitpoints is not liable for any transactions, disputes, or issues
+            {{ brandName }} is not liable for any transactions, disputes, or issues
             arising from your dealings with Mints.
           </p>
           <p>
@@ -164,7 +164,7 @@
           </p>
           <p>
             6.3 <strong>Waiver of Accountability:</strong> By using the App, you
-            waive any right to hold Bitpoints accountable for any damages,
+            waive any right to hold {{ brandName }} accountable for any damages,
             losses, or disputes arising from your use of the App or Services.
           </p>
           <p>
@@ -174,7 +174,7 @@
           </p>
           <p>
             6.5 <strong>Limitation of Liability:</strong> TO THE FULLEST EXTENT
-            PERMITTED BY LAW, BITPOINTS IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
+            PERMITTED BY LAW, {{ brandName.toUpperCase() }} IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
             SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR
             RELATED TO THESE TERMS, THE APP, OR THE SERVICES.
           </p>
@@ -187,10 +187,10 @@
           </p>
           <p><strong>7. Indemnification and Release</strong></p>
           <p>
-            You agree to indemnify and hold harmless Bitpoints and its
+            You agree to indemnify and hold harmless {{ brandName }} and its
             affiliates from claims arising out of your use of the App or
             Services. If you have a dispute with any Mint or third party, you
-            release Bitpoints from all related claims.
+            release {{ brandName }} from all related claims.
           </p>
           <p><strong>8. Mediation and Dispute Resolution</strong></p>
           <p>
@@ -331,14 +331,19 @@
 </template>
 
 <script lang="ts">
+import { computed } from "vue";
 import { useWelcomeStore } from "src/stores/welcome";
 import { useQuasar } from "quasar";
+import { getBrand, getBrandName, getBrandShortName } from "src/utils/branding";
 
 export default {
   name: "WelcomeSlide4",
   setup() {
     const welcomeStore = useWelcomeStore();
     const $q = useQuasar();
+    const brand = computed(() => getBrand());
+    const brandName = computed(() => getBrandName());
+    const brandShortName = computed(() => getBrandShortName());
 
     const acceptTerms = () => {
       welcomeStore.acceptTerms();
@@ -348,6 +353,9 @@ export default {
     return {
       welcomeStore,
       acceptTerms,
+      brand,
+      brandName,
+      brandShortName,
     };
   },
 };

@@ -4,15 +4,15 @@
     <div class="text-center">
       <transition appear enter-active-class="animated bounce">
         <img
-          src="~assets/bitpoints-logo.png"
-          alt="Bitpoints"
+          :src="brandLogo"
+          :alt="brandName"
           class="q-my-lg"
           style="max-width: 250px; height: auto"
         />
       </transition>
-      <h2 class="q-mt-md">{{ $t("WelcomeSlide1.title") }}</h2>
+      <h2 class="q-mt-md">{{ welcomeTitle }}</h2>
       <div class="text-left">
-        <p class="q-mt-sm">{{ $t("WelcomeSlide1.text") }}</p>
+        <p class="q-mt-sm">{{ welcomeText }}</p>
         <q-expansion-item
           dense
           dense-toggle
@@ -46,14 +46,46 @@
 </template>
 
 <script lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useWelcomeStore } from "src/stores/welcome";
+import { getBrand, getBrandName, getActiveBrandId } from "src/utils/branding";
+
+// Import brand logos statically so Vite can bundle them
+import bitpointsLogo from "../../assets/brands/bitpoints/bitpoints-logo.png";
+import trailsLogo from "../../assets/brands/trails/trails-logo.png";
 
 export default {
   name: "WelcomeSlide1",
   setup() {
     const welcomeStore = useWelcomeStore();
+    const { t } = useI18n();
+    const brand = computed(() => getBrand());
+    
+    // Get brand logo and name - use static imports for proper Vite bundling
+    const brandLogo = computed(() => {
+      const brandId = getActiveBrandId();
+      return brandId === "trails" ? trailsLogo : bitpointsLogo;
+    });
+    const brandName = computed(() => getBrandName());
+    
+    // Dynamic welcome text based on brand
+    const welcomeTitle = computed(() => {
+      return `Welcome to ${brand.value.shortName}`;
+    });
+    const welcomeText = computed(() => {
+      if (getActiveBrandId() === "trails") {
+        return "Your personal Bitcoin-backed rewards points. Receive and manage your points securely.";
+      }
+      return t("WelcomeSlide1.text");
+    });
+    
     return {
       welcomeStore,
+      brandLogo,
+      brandName,
+      welcomeTitle,
+      welcomeText,
     };
   },
 };

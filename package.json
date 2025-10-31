@@ -7,8 +7,12 @@
   "private": true,
   "scripts": {
     "dev": "quasar dev",
+    "dev:bitpoints": "BRAND=bitpoints quasar dev",
+    "dev:trails": "BRAND=trails quasar dev",
     "build": "quasar build",
     "build:pwa": "quasar build -m pwa",
+    "build:pwa:all": "node scripts/build-all-brands.js",
+    "package:all": "node scripts/package-deployments.js",
     "build:electron": "quasar build -m electron",
     "build:wear": "CAPACITOR_TARGET=wear quasar build -m capacitor -T android",
     "sync:wear": "CAPACITOR_TARGET=wear npx cap sync android",

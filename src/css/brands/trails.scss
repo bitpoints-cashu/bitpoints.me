@@ -1,0 +1,187 @@
+/* Trails Coffee Branding - Custom Styles */
+
+/* Import Trails Coffee fonts - using warm, inviting fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap");
+
+/* Trails Coffee CSS Variables */
+:root {
+  --brand-primary: #8B4513; /* Saddle brown - coffee color */
+  --brand-secondary: #D2691E; /* Chocolate */
+  --brand-accent: #CD853F; /* Peru - warm accent */
+  --brand-warm: #A0522D; /* Sienna */
+  --brand-cream: #FFF8E7; /* Light cream */
+  --brand-warm-white: #FFF8DC; /* Cornsilk */
+  --brand-off-white: #FAF8F3;
+  --brand-charcoal: #2F1B14; /* Dark coffee */
+  --brand-soft-gray: #F5F3EE;
+  --brand-text-dark: #3E2723; /* Dark brown */
+  --brand-text-medium: #5D4037;
+  --brand-text-light: #8D6E63;
+  --brand-shadow-soft: rgba(139, 69, 19, 0.1);
+  --brand-shadow-medium: rgba(139, 69, 19, 0.15);
+  --brand-gradient-warm: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+  --brand-gradient-subtle: linear-gradient(
+    135deg,
+    #FFF8DC 0%,
+    #FAF8F3 100%
+  );
+  --brand-gradient-primary: linear-gradient(
+    135deg,
+    #8B4513 0%,
+    #D2691E 100%
+  );
+  --brand-gradient-secondary: linear-gradient(
+    135deg,
+    #D2691E 0%,
+    #CD853F 100%
+  );
+}
+
+/* Typography - Trails Coffee Style (same as Bitpoints for consistency) */
+.bitpoints-heading {
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+}
+
+.bitpoints-body {
+  font-family: "Inter", sans-serif;
+}
+
+.bitpoints-brand {
+  font-family: "Quicksand", sans-serif;
+}
+
+/* Trails gradients */
+.bitpoints-gradient-warm {
+  background: var(--brand-gradient-warm);
+}
+
+.bitpoints-gradient-text {
+  background: var(--brand-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Modern card styling */
+.bitpoints-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px var(--brand-shadow-soft);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.bitpoints-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px var(--brand-shadow-medium);
+}
+
+/* Trails button styles */
+.bitpoints-button {
+  background: var(--brand-gradient-warm);
+  color: white;
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
+  transition: all 0.3s ease;
+}
+
+.bitpoints-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(139, 69, 19, 0.4);
+}
+
+/* Background pattern (subtle coffee-themed) */
+.bitpoints-background {
+  background-color: var(--brand-warm-white);
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="coffee" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%238B4513" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23coffee)"/></svg>');
+}
+
+/* Warm white background for dark mode */
+.body--dark .bitpoints-background {
+  background-color: #1a1a1a;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="coffee-dark" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%23A0522D" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23coffee-dark)"/></svg>');
+}
+
+/* Override Quasar default colors with Trails Coffee branding */
+.text-primary {
+  color: var(--brand-primary) !important;
+}
+
+.bg-primary {
+  background: var(--brand-primary) !important;
+}
+
+.text-secondary {
+  color: var(--brand-secondary) !important;
+}
+
+.bg-secondary {
+  background: var(--brand-secondary) !important;
+}
+
+/* Trails specific elements */
+.bitpoints-logo {
+  max-height: 60px;
+  transition: transform 0.3s ease;
+}
+
+.bitpoints-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Custom balance display with gradient */
+.bitpoints-balance {
+  background: var(--brand-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-family: "Playfair Display", serif;
+}
+
+/* Watermark effect (subtle logo in background) */
+.bitpoints-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.03;
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth animations */
+@keyframes bitpointsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bitpoints-fade-in {
+  animation: bitpointsFadeIn 0.6s ease-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .bitpoints-card {
+    padding: 1.5rem;
+  }
+
+  .bitpoints-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
