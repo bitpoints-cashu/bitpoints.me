@@ -8,447 +8,457 @@
     transition-hide="slide-down"
     backdrop-filter="blur(2px) brightness(60%)"
   >
-    <q-card class="bg-grey-10 text-white full-width-card q-pb-lg" style="max-height: 80vh; display: flex; flex-direction: column;">
-      <q-card-section class="row items-center q-pb-sm" style="flex-shrink: 0;">
+    <q-card
+      class="bg-grey-10 text-white full-width-card q-pb-lg"
+      style="max-height: 80vh; display: flex; flex-direction: column"
+    >
+      <q-card-section class="row items-center q-pb-sm" style="flex-shrink: 0">
         <q-btn flat round dense v-close-popup class="q-ml-sm" color="primary">
           <XIcon />
         </q-btn>
         <div class="col text-center">
           <span class="text-h6">Contacts</span>
         </div>
-        <div class="q-mr-sm" style="width: 40px;"></div>
+        <div class="q-mr-sm" style="width: 40px"></div>
       </q-card-section>
-      
-      <q-card-section style="flex: 1; overflow-y: auto; min-height: 0;" class="q-pa-md">
+
+      <q-card-section
+        style="flex: 1; overflow-y: auto; min-height: 0"
+        class="q-pa-md"
+      >
         <div class="contacts-dialog">
           <!-- Bluetooth status (only show if Bluetooth is available) -->
-      <q-banner
-        v-if="isBluetoothEcashAvailable && !bluetoothStore.isActive"
-        class="bg-warning text-dark q-mb-md"
-        rounded
-      >
-        <template v-slot:avatar>
-          <q-icon name="bluetooth_disabled" />
-        </template>
-        Bluetooth is off. Turn it on to discover nearby contacts.
-        <template v-slot:action>
-          <q-btn flat label="Enable" @click="enableBluetooth" />
-        </template>
-      </q-banner>
-
-      <!-- PWA info banner (when Bluetooth not available but QR code works) -->
-      <q-banner
-        v-if="!isBluetoothEcashAvailable"
-        class="bg-info text-white q-mb-md"
-        rounded
-      >
-        <template v-slot:avatar>
-          <q-icon name="qr_code" />
-        </template>
-        Use QR codes to add contacts without Bluetooth.
-      </q-banner>
-
-      <!-- Mint Selection -->
-      <div class="q-mb-md">
-        <ChooseMint />
-      </div>
-
-      <!-- Balance Display -->
-      <div class="q-mb-md">
-        <q-badge color="primary" class="text-weight-bold q-pa-sm">
-          Available:
-          {{ formatCurrency(mintsStore.activeBalance, mintsStore.activeUnit) }}
-        </q-badge>
-      </div>
-
-      <!-- Empty state (only show if Bluetooth is active and available) -->
-      <div
-        v-if="
-          isBluetoothEcashAvailable &&
-          bluetoothStore.isActive &&
-          connectedPeers.length === 0 &&
-          offlineFavorites.length === 0
-        "
-        class="text-center q-py-xl"
-      >
-        <q-spinner-dots size="3em" color="primary" />
-        <div class="q-mt-md text-grey-7">Scanning for contacts...</div>
-      </div>
-
-      <!-- Empty state for PWA (no Bluetooth, no contacts) -->
-      <div
-        v-if="
-          !isBluetoothEcashAvailable &&
-          offlineFavorites.length === 0
-        "
-        class="text-center q-py-xl"
-      >
-        <q-icon name="qr_code" size="3em" color="primary" />
-        <div class="q-mt-md text-grey-7">Use QR codes to add contacts</div>
-      </div>
-
-      <!-- Unified contacts list -->
-      <q-list
-        v-if="
-          offlineFavorites.length > 0 ||
-          (isBluetoothEcashAvailable && bluetoothStore.isActive && connectedPeers.length > 0)
-        "
-        bordered
-        separator
-        class="rounded-borders"
-      >
-        <!-- Connected peers section -->
-        <template v-if="connectedPeers.length > 0">
-          <q-item-label
-            header
-            class="text-grey-6 q-pa-sm text-uppercase text-caption"
+          <q-banner
+            v-if="isBluetoothEcashAvailable && !bluetoothStore.isActive"
+            class="bg-warning text-dark q-mb-md"
+            rounded
           >
-            Nearby ({{ connectedPeers.length }})
-          </q-item-label>
-          <q-item
-            v-for="peer in connectedPeers"
-            :key="peer.peerID"
-            clickable
-            v-ripple
-            @click="handlePeerClick(peer)"
-            :class="{ 'bg-blue-1': selectedPeerID === peer.peerID }"
+            <template v-slot:avatar>
+              <q-icon name="bluetooth_disabled" />
+            </template>
+            Bluetooth is off. Turn it on to discover nearby contacts.
+            <template v-slot:action>
+              <q-btn flat label="Enable" @click="enableBluetooth" />
+            </template>
+          </q-banner>
+
+          <!-- PWA info banner (when Bluetooth not available but QR code works) -->
+          <q-banner
+            v-if="!isBluetoothEcashAvailable"
+            class="bg-info text-white q-mb-md"
+            rounded
           >
-            <q-item-section avatar>
-              <q-avatar
-                :color="peer.isDirect ? 'green' : 'orange'"
-                text-color="white"
-              >
-                <q-icon
-                  :name="peer.isDirect ? 'bluetooth_connected' : 'device_hub'"
-                />
-              </q-avatar>
-            </q-item-section>
+            <template v-slot:avatar>
+              <q-icon name="qr_code" />
+            </template>
+            Use QR codes to add contacts without Bluetooth.
+          </q-banner>
 
-            <q-item-section>
-              <q-item-label>
-                {{
-                  peer.nickname ||
-                  peer.nostrNpub?.substring(0, 16) ||
-                  peer.peerID.substring(0, 8)
-                }}...
-                <q-icon
-                  v-if="isMutualFavorite(peer.peerID)"
-                  name="favorite"
-                  color="pink"
-                  size="xs"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Mutual favorite</q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="peer.canSendViaNostr"
-                  name="public"
-                  color="primary"
-                  size="xs"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Send via Nostr available</q-tooltip>
-                </q-icon>
-              </q-item-label>
-              <q-item-label caption>
-                {{ peer.isDirect ? "Direct" : "Via mesh" }} •
-                {{ formatLastSeen(peer.lastSeen) }}
-              </q-item-label>
-            </q-item-section>
+          <!-- Mint Selection -->
+          <div class="q-mb-md">
+            <ChooseMint />
+          </div>
 
-            <q-item-section side>
-              <div class="row items-center q-gutter-xs">
-                <q-btn
-                  flat
-                  dense
-                  round
-                  size="sm"
-                  :icon="
-                    isFavorite(peer.peerID) ? 'favorite' : 'favorite_border'
-                  "
-                  :color="isFavorite(peer.peerID) ? 'pink' : 'grey'"
-                  @click.stop="toggleFavorite(peer)"
-                >
-                  <q-tooltip>{{
-                    isFavorite(peer.peerID)
-                      ? "Remove from favorites"
-                      : "Add to favorites"
-                  }}</q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="send"
-                  :color="
-                    peer.canSendViaNostr || peer.isConnected
-                      ? 'primary'
-                      : 'grey'
-                  "
-                  :disable="!peer.canSendViaNostr && !peer.isConnected"
-                  @click.stop="openSendDialog(peer)"
-                >
-                  <q-tooltip>
-                    {{
-                      peer.canSendViaNostr
-                        ? "Send via Nostr"
-                        : peer.isConnected
-                        ? "Send via Bluetooth"
-                        : "Not available"
-                    }}
-                  </q-tooltip>
-                </q-btn>
-              </div>
-            </q-item-section>
-          </q-item>
-        </template>
-
-        <!-- Offline favorites section -->
-        <template v-if="offlineFavorites.length > 0">
-          <q-item-label
-            v-if="connectedPeers.length > 0"
-            header
-            class="text-grey-6 q-pa-sm text-uppercase text-caption q-mt-md"
-          >
-            Offline Favorites ({{ offlineFavorites.length }})
-          </q-item-label>
-          <q-item
-            v-for="fav in offlineFavorites"
-            :key="fav.peerID"
-            clickable
-            v-ripple
-            @click="handleOfflineFavoriteClick(fav)"
-            :class="{ 'bg-blue-1': selectedPeerID === fav.peerID }"
-          >
-            <q-item-section avatar>
-              <q-avatar color="primary" text-color="white">
-                <q-icon :name="fav.isMutual ? 'favorite' : 'person'" />
-              </q-avatar>
-            </q-item-section>
-
-            <q-item-section>
-              <q-item-label>
-                {{ fav.nickname }}
-                <q-icon
-                  v-if="fav.isMutual"
-                  name="favorite"
-                  color="pink"
-                  size="xs"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Mutual favorite</q-tooltip>
-                </q-icon>
-                <q-icon
-                  v-if="fav.hasNostr && fav.isMutual"
-                  name="public"
-                  color="primary"
-                  size="xs"
-                  class="q-ml-xs"
-                >
-                  <q-tooltip>Send via Nostr available</q-tooltip>
-                </q-icon>
-              </q-item-label>
-              <q-item-label caption>
-                <span v-if="fav.npub" class="text-positive">
-                  <q-icon name="check_circle" size="xs" /> Nostr messaging available
-                </span>
-                <span v-else class="text-grey-6">
-                  <q-icon name="info" size="xs" /> Bluetooth only
-                </span>
-              </q-item-label>
-            </q-item-section>
-
-            <q-item-section side>
-              <div class="row items-center q-gutter-xs">
-                <q-btn
-                  flat
-                  dense
-                  round
-                  size="sm"
-                  icon="delete"
-                  color="grey"
-                  @click.stop="removeFavorite(fav.peerID)"
-                >
-                  <q-tooltip>Remove from favorites</q-tooltip>
-                </q-btn>
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="send"
-                  :color="fav.hasNostr && fav.isMutual ? 'primary' : 'grey'"
-                  :disable="!(fav.hasNostr && fav.isMutual)"
-                  @click.stop="openSendDialogForOffline(fav)"
-                >
-                  <q-tooltip>
-                    {{
-                      fav.hasNostr && fav.isMutual
-                        ? "Send via Nostr"
-                        : "Nostr key required"
-                    }}
-                  </q-tooltip>
-                </q-btn>
-              </div>
-            </q-item-section>
-          </q-item>
-        </template>
-      </q-list>
-
-      <!-- QR Code Exchange Buttons -->
-      <div class="row q-gutter-sm q-mt-md q-mb-md">
-        <q-btn
-          outline
-          color="primary"
-          icon="qr_code"
-          label="My QR Code"
-          class="col"
-          @click="showQRCodeDialogHandler"
-        />
-        <q-btn
-          outline
-          color="secondary"
-          icon="camera_alt"
-          label="Scan QR Code"
-          class="col"
-          @click="showScanDialog = true"
-        />
-      </div>
-
-      <!-- QR Code Display Dialog -->
-      <q-dialog v-model="showQRCodeDialog">
-        <q-card style="min-width: 350px">
-          <q-card-section class="text-center">
-            <div class="text-h6 q-mb-md">My Contact QR Code</div>
-            <div v-if="qrCodeData" class="q-mb-md">
-              <vue-qrcode
-                :value="qrCodeData"
-                :options="{ width: 300 }"
-                class="rounded-borders"
-              />
-              <div class="q-mt-md text-body2">
-                <strong>{{ bluetoothStore.nickname }}</strong>
-              </div>
-              <div class="q-mt-xs text-caption text-grey-6">
-                Share this QR code to add each other as contacts
-              </div>
-            </div>
-            <div v-else class="q-pa-lg">
-              <q-spinner-dots size="3em" color="primary" />
-              <div class="q-mt-md">Generating QR code...</div>
-            </div>
-          </q-card-section>
-          <q-card-actions align="right">
-            <q-btn
-              flat
-              round
-              icon="close"
-              color="grey"
-              @click="showQRCodeDialog = false"
-            >
-              <q-tooltip>Close</q-tooltip>
-            </q-btn>
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-
-      <!-- QR Code Scan Dialog -->
-      <q-dialog v-model="showScanDialog" persistent>
-        <q-card style="width: 100%; max-width: 600px">
-          <q-card-section class="text-center">
-            <div class="text-h6 q-mb-md">Scan Contact QR Code</div>
-            <QrcodeReader @decode="handleQRCodeScanned" />
-          </q-card-section>
-          <q-card-actions align="right">
-            <q-btn
-              flat
-              round
-              icon="close"
-              color="grey"
-              @click="showScanDialog = false"
-            >
-              <q-tooltip>Close</q-tooltip>
-            </q-btn>
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
-
-      <!-- Send dialog -->
-      <q-dialog v-model="showSendDialog" persistent>
-        <q-card style="min-width: 400px">
-          <q-card-section class="row items-center">
-            <q-icon name="send" color="primary" size="md" class="q-mr-sm" />
-            <span class="text-h6">Send to {{ sendTarget?.nickname }}</span>
-          </q-card-section>
-
-          <q-card-section>
-            <!-- Amount input -->
-            <q-input
-              v-model.number="sendAmount"
-              type="number"
-              label="Amount"
-              outlined
-              dense
-              :suffix="unit"
-              class="q-mb-md"
-              autofocus
-              placeholder="Enter amount"
-            >
-              <template v-slot:prepend>
-                <q-icon name="payments" />
-              </template>
-            </q-input>
-
-            <!-- Memo input -->
-            <q-input
-              v-model="sendMemo"
-              label="Memo (optional)"
-              outlined
-              dense
-              class="q-mb-md"
-              placeholder="What's this for?"
-            >
-              <template v-slot:prepend>
-                <q-icon name="note" />
-              </template>
-            </q-input>
-
-            <q-banner
-              dense
-              class="q-mb-md"
-              rounded
-              :class="sendViaNostr ? 'bg-info text-white' : 'bg-blue-1'"
-            >
-              <template v-slot:avatar>
-                <q-icon :name="sendViaNostr ? 'public' : 'bluetooth'" />
-              </template>
+          <!-- Balance Display -->
+          <div class="q-mb-md">
+            <q-badge color="primary" class="text-weight-bold q-pa-sm">
+              Available:
               {{
-                sendViaNostr
-                  ? "Sending via Nostr - no Bluetooth connection needed"
-                  : "Sending via Bluetooth mesh"
+                formatCurrency(mintsStore.activeBalance, mintsStore.activeUnit)
               }}
-            </q-banner>
-          </q-card-section>
+            </q-badge>
+          </div>
 
-          <q-card-actions align="right" class="q-pa-md">
+          <!-- Empty state (only show if Bluetooth is active and available) -->
+          <div
+            v-if="
+              isBluetoothEcashAvailable &&
+              bluetoothStore.isActive &&
+              connectedPeers.length === 0 &&
+              offlineFavorites.length === 0
+            "
+            class="text-center q-py-xl"
+          >
+            <q-spinner-dots size="3em" color="primary" />
+            <div class="q-mt-md text-grey-7">Scanning for contacts...</div>
+          </div>
+
+          <!-- Empty state for PWA (no Bluetooth, no contacts) -->
+          <div
+            v-if="!isBluetoothEcashAvailable && offlineFavorites.length === 0"
+            class="text-center q-py-xl"
+          >
+            <q-icon name="qr_code" size="3em" color="primary" />
+            <div class="q-mt-md text-grey-7">Use QR codes to add contacts</div>
+          </div>
+
+          <!-- Unified contacts list -->
+          <q-list
+            v-if="
+              offlineFavorites.length > 0 ||
+              (isBluetoothEcashAvailable &&
+                bluetoothStore.isActive &&
+                connectedPeers.length > 0)
+            "
+            bordered
+            separator
+            class="rounded-borders"
+          >
+            <!-- Connected peers section -->
+            <template v-if="connectedPeers.length > 0">
+              <q-item-label
+                header
+                class="text-grey-6 q-pa-sm text-uppercase text-caption"
+              >
+                Nearby ({{ connectedPeers.length }})
+              </q-item-label>
+              <q-item
+                v-for="peer in connectedPeers"
+                :key="peer.peerID"
+                clickable
+                v-ripple
+                @click="handlePeerClick(peer)"
+                :class="{ 'bg-blue-1': selectedPeerID === peer.peerID }"
+              >
+                <q-item-section avatar>
+                  <q-avatar
+                    :color="peer.isDirect ? 'green' : 'orange'"
+                    text-color="white"
+                  >
+                    <q-icon
+                      :name="
+                        peer.isDirect ? 'bluetooth_connected' : 'device_hub'
+                      "
+                    />
+                  </q-avatar>
+                </q-item-section>
+
+                <q-item-section>
+                  <q-item-label>
+                    {{
+                      peer.nickname ||
+                      peer.nostrNpub?.substring(0, 16) ||
+                      peer.peerID.substring(0, 8)
+                    }}...
+                    <q-icon
+                      v-if="isMutualFavorite(peer.peerID)"
+                      name="favorite"
+                      color="pink"
+                      size="xs"
+                      class="q-ml-xs"
+                    >
+                      <q-tooltip>Mutual favorite</q-tooltip>
+                    </q-icon>
+                    <q-icon
+                      v-if="peer.canSendViaNostr"
+                      name="public"
+                      color="primary"
+                      size="xs"
+                      class="q-ml-xs"
+                    >
+                      <q-tooltip>Send via Nostr available</q-tooltip>
+                    </q-icon>
+                  </q-item-label>
+                  <q-item-label caption>
+                    {{ peer.isDirect ? "Direct" : "Via mesh" }} •
+                    {{ formatLastSeen(peer.lastSeen) }}
+                  </q-item-label>
+                </q-item-section>
+
+                <q-item-section side>
+                  <div class="row items-center q-gutter-xs">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      :icon="
+                        isFavorite(peer.peerID) ? 'favorite' : 'favorite_border'
+                      "
+                      :color="isFavorite(peer.peerID) ? 'pink' : 'grey'"
+                      @click.stop="toggleFavorite(peer)"
+                    >
+                      <q-tooltip>{{
+                        isFavorite(peer.peerID)
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }}</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      icon="send"
+                      :color="
+                        peer.canSendViaNostr || peer.isConnected
+                          ? 'primary'
+                          : 'grey'
+                      "
+                      :disable="!peer.canSendViaNostr && !peer.isConnected"
+                      @click.stop="openSendDialog(peer)"
+                    >
+                      <q-tooltip>
+                        {{
+                          peer.canSendViaNostr
+                            ? "Send via Nostr"
+                            : peer.isConnected
+                            ? "Send via Bluetooth"
+                            : "Not available"
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+
+            <!-- Offline favorites section -->
+            <template v-if="offlineFavorites.length > 0">
+              <q-item-label
+                v-if="connectedPeers.length > 0"
+                header
+                class="text-grey-6 q-pa-sm text-uppercase text-caption q-mt-md"
+              >
+                Offline Favorites ({{ offlineFavorites.length }})
+              </q-item-label>
+              <q-item
+                v-for="fav in offlineFavorites"
+                :key="fav.peerID"
+                clickable
+                v-ripple
+                @click="handleOfflineFavoriteClick(fav)"
+                :class="{ 'bg-blue-1': selectedPeerID === fav.peerID }"
+              >
+                <q-item-section avatar>
+                  <q-avatar color="primary" text-color="white">
+                    <q-icon :name="fav.isMutual ? 'favorite' : 'person'" />
+                  </q-avatar>
+                </q-item-section>
+
+                <q-item-section>
+                  <q-item-label>
+                    {{ fav.nickname }}
+                    <q-icon
+                      v-if="fav.isMutual"
+                      name="favorite"
+                      color="pink"
+                      size="xs"
+                      class="q-ml-xs"
+                    >
+                      <q-tooltip>Mutual favorite</q-tooltip>
+                    </q-icon>
+                    <q-icon
+                      v-if="fav.hasNostr && fav.isMutual"
+                      name="public"
+                      color="primary"
+                      size="xs"
+                      class="q-ml-xs"
+                    >
+                      <q-tooltip>Send via Nostr available</q-tooltip>
+                    </q-icon>
+                  </q-item-label>
+                  <q-item-label caption>
+                    <span v-if="fav.npub" class="text-positive">
+                      <q-icon name="check_circle" size="xs" /> Nostr messaging
+                      available
+                    </span>
+                    <span v-else class="text-grey-6">
+                      <q-icon name="info" size="xs" /> Bluetooth only
+                    </span>
+                  </q-item-label>
+                </q-item-section>
+
+                <q-item-section side>
+                  <div class="row items-center q-gutter-xs">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="delete"
+                      color="grey"
+                      @click.stop="removeFavorite(fav.peerID)"
+                    >
+                      <q-tooltip>Remove from favorites</q-tooltip>
+                    </q-btn>
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      icon="send"
+                      :color="fav.hasNostr && fav.isMutual ? 'primary' : 'grey'"
+                      :disable="!(fav.hasNostr && fav.isMutual)"
+                      @click.stop="openSendDialogForOffline(fav)"
+                    >
+                      <q-tooltip>
+                        {{
+                          fav.hasNostr && fav.isMutual
+                            ? "Send via Nostr"
+                            : "Nostr key required"
+                        }}
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-list>
+
+          <!-- QR Code Exchange Buttons -->
+          <div class="row q-gutter-sm q-mt-md q-mb-md">
             <q-btn
-              flat
-              round
-              icon="close"
-              color="grey"
-              @click="closeSendDialog"
-            >
-              <q-tooltip>Close</q-tooltip>
-            </q-btn>
-            <q-btn
+              outline
               color="primary"
-              label="Send"
-              @click="sendToken"
-              :loading="sending"
-              :disable="!sendAmount || sendAmount <= 0"
+              icon="qr_code"
+              label="My QR Code"
+              class="col"
+              @click="showQRCodeDialogHandler"
             />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+            <q-btn
+              outline
+              color="secondary"
+              icon="camera_alt"
+              label="Scan QR Code"
+              class="col"
+              @click="showScanDialog = true"
+            />
+          </div>
+
+          <!-- QR Code Display Dialog -->
+          <q-dialog v-model="showQRCodeDialog">
+            <q-card style="min-width: 350px">
+              <q-card-section class="text-center">
+                <div class="text-h6 q-mb-md">My Contact QR Code</div>
+                <div v-if="qrCodeData" class="q-mb-md">
+                  <vue-qrcode
+                    :value="qrCodeData"
+                    :options="{ width: 300 }"
+                    class="rounded-borders"
+                  />
+                  <div class="q-mt-md text-body2">
+                    <strong>{{ bluetoothStore.nickname }}</strong>
+                  </div>
+                  <div class="q-mt-xs text-caption text-grey-6">
+                    Share this QR code to add each other as contacts
+                  </div>
+                </div>
+                <div v-else class="q-pa-lg">
+                  <q-spinner-dots size="3em" color="primary" />
+                  <div class="q-mt-md">Generating QR code...</div>
+                </div>
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn
+                  flat
+                  round
+                  icon="close"
+                  color="grey"
+                  @click="showQRCodeDialog = false"
+                >
+                  <q-tooltip>Close</q-tooltip>
+                </q-btn>
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+
+          <!-- QR Code Scan Dialog -->
+          <q-dialog v-model="showScanDialog" persistent>
+            <q-card style="width: 100%; max-width: 600px">
+              <q-card-section class="text-center">
+                <div class="text-h6 q-mb-md">Scan Contact QR Code</div>
+                <QrcodeReader @decode="handleQRCodeScanned" />
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn
+                  flat
+                  round
+                  icon="close"
+                  color="grey"
+                  @click="showScanDialog = false"
+                >
+                  <q-tooltip>Close</q-tooltip>
+                </q-btn>
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+
+          <!-- Send dialog -->
+          <q-dialog v-model="showSendDialog" persistent>
+            <q-card style="min-width: 400px">
+              <q-card-section class="row items-center">
+                <q-icon name="send" color="primary" size="md" class="q-mr-sm" />
+                <span class="text-h6">Send to {{ sendTarget?.nickname }}</span>
+              </q-card-section>
+
+              <q-card-section>
+                <!-- Amount input -->
+                <q-input
+                  v-model.number="sendAmount"
+                  type="number"
+                  label="Amount"
+                  outlined
+                  dense
+                  :suffix="unit"
+                  class="q-mb-md"
+                  autofocus
+                  placeholder="Enter amount"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="payments" />
+                  </template>
+                </q-input>
+
+                <!-- Memo input -->
+                <q-input
+                  v-model="sendMemo"
+                  label="Memo (optional)"
+                  outlined
+                  dense
+                  class="q-mb-md"
+                  placeholder="What's this for?"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="note" />
+                  </template>
+                </q-input>
+
+                <q-banner
+                  dense
+                  class="q-mb-md"
+                  rounded
+                  :class="sendViaNostr ? 'bg-info text-white' : 'bg-blue-1'"
+                >
+                  <template v-slot:avatar>
+                    <q-icon :name="sendViaNostr ? 'public' : 'bluetooth'" />
+                  </template>
+                  {{
+                    sendViaNostr
+                      ? "Sending via Nostr - no Bluetooth connection needed"
+                      : "Sending via Bluetooth mesh"
+                  }}
+                </q-banner>
+              </q-card-section>
+
+              <q-card-actions align="right" class="q-pa-md">
+                <q-btn
+                  flat
+                  round
+                  icon="close"
+                  color="grey"
+                  @click="closeSendDialog"
+                >
+                  <q-tooltip>Close</q-tooltip>
+                </q-btn>
+                <q-btn
+                  color="primary"
+                  label="Send"
+                  @click="sendToken"
+                  :loading="sending"
+                  :disable="!sendAmount || sendAmount <= 0"
+                />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
         </div>
       </q-card-section>
     </q-card>
@@ -456,7 +466,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import {
+  defineComponent,
+  ref,
+  computed,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
 import { useBluetoothStore } from "src/stores/bluetooth";
 import { useFavoritesStore } from "src/stores/favorites";
 import { useWalletStore } from "src/stores/wallet";
@@ -557,13 +574,15 @@ export default defineComponent({
           const result = await BluetoothEcash.getOfflineFavorites();
           bluetoothFavorites = result.favorites || [];
         } catch (error) {
-          console.error("Failed to fetch offline favorites from Bluetooth:", error);
+          console.error(
+            "Failed to fetch offline favorites from Bluetooth:",
+            error
+          );
           // Continue with QR code contacts only
         }
       }
-      
+
       try {
-        
         // Also get QR code contacts from favoritesStore (mutual favorites with npub)
         const qrCodeFavorites = favoritesStore.mutualFavorites
           .filter((fav) => fav.peerNostrNpub !== null)
@@ -575,7 +594,7 @@ export default defineComponent({
             if (existsInBluetooth) {
               return null; // Skip, already in Bluetooth favorites
             }
-            
+
             return {
               peerID: fav.peerNoisePublicKey,
               nickname: fav.peerNickname,
@@ -585,7 +604,7 @@ export default defineComponent({
             };
           })
           .filter((fav): fav is OfflineFavorite => fav !== null);
-        
+
         // Combine and deduplicate
         const combined = [...bluetoothFavorites, ...qrCodeFavorites];
         // Remove duplicates by peerID
@@ -595,7 +614,7 @@ export default defineComponent({
             uniqueMap.set(fav.peerID, fav);
           }
         });
-        
+
         offlineFavorites.value = Array.from(uniqueMap.values());
       } catch (error) {
         console.error("Failed to fetch offline favorites:", error);
@@ -636,7 +655,7 @@ export default defineComponent({
       // Use nextTick to ensure dialog is fully rendered before fetching
       // This prevents UI freezing
       await nextTick();
-      
+
       // Always fetch offline favorites (includes QR code contacts)
       // Use try-catch to prevent errors from freezing the UI
       try {
@@ -646,7 +665,7 @@ export default defineComponent({
         // Set empty array on error to prevent UI freeze
         offlineFavorites.value = [];
       }
-      
+
       // Only fetch connected peers if Bluetooth is available
       if (isBluetoothEcashAvailable.value) {
         try {
@@ -1100,7 +1119,9 @@ export default defineComponent({
     // Helper function for formatting currency
     const formatCurrency = (amount: number, unit: string): string => {
       if (!amount) return `0 ${unit}`;
-      const formatted = (amount / mintsStore.activeUnitCurrencyMultiplyer).toFixed(2);
+      const formatted = (
+        amount / mintsStore.activeUnitCurrencyMultiplyer
+      ).toFixed(2);
       return `${formatted} ${unit}`;
     };
 

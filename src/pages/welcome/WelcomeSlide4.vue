@@ -35,20 +35,21 @@
           </p>
           <p>
             <strong
-              >{{ brandName.toUpperCase() }} DOES NOT HOLD ECASH, DOES NOT EXECUTE AND CANNOT
-              MONITOR TRANSACTIONS, AND DOES NOT OPERATE OR VERIFY ANY
-              MINTS.</strong
+              >{{ brandName.toUpperCase() }} DOES NOT HOLD ECASH, DOES NOT
+              EXECUTE AND CANNOT MONITOR TRANSACTIONS, AND DOES NOT OPERATE OR
+              VERIFY ANY MINTS.</strong
             >
           </p>
           <p>
             These Terms of Service (these "Terms") constitute the entire
             agreement and understanding between you ("you" or "your") and
-            {{ brandName }} ("{{ brandShortName }}," "we," "us," or "our") regarding your use of
-            the {{ brandShortName }} app and any related applications, software, code, or
-            services (collectively, the "App" or "Services"). By accessing or
-            using the App or Services, you acknowledge that you have read,
-            understand, and agree to be bound by these Terms. If you do not
-            agree, do not access or use the App or Services.
+            {{ brandName }} ("{{ brandShortName }}," "we," "us," or "our")
+            regarding your use of the {{ brandShortName }} app and any related
+            applications, software, code, or services (collectively, the "App"
+            or "Services"). By accessing or using the App or Services, you
+            acknowledge that you have read, understand, and agree to be bound by
+            these Terms. If you do not agree, do not access or use the App or
+            Services.
           </p>
           <p><strong>1. Nature of the Services</strong></p>
           <p>
@@ -60,31 +61,32 @@
             your behalf.
           </p>
           <p>
-            1.2 <strong>No Control Over Mints:</strong> {{ brandName }} does not issue
-            ecash and does not operate or control any Mint. The choice of any
-            Mint and any transaction or relationship you establish with that
+            1.2 <strong>No Control Over Mints:</strong> {{ brandName }} does not
+            issue ecash and does not operate or control any Mint. The choice of
+            any Mint and any transaction or relationship you establish with that
             Mint is solely between you and that Mint. {{ brandName }} has no
             involvement, responsibility, or liability in any such interaction.
           </p>
           <p>
-            1.3 <strong>No Funds Access:</strong> At no time does {{ brandName }} have
-            custody, possession, or control of your rewards. Transactions occur
-            solely by your actions and through your chosen Mint. We do not
-            monitor, verify, or facilitate transfers between you and any Mint or
-            other parties.
+            1.3 <strong>No Funds Access:</strong> At no time does
+            {{ brandName }} have custody, possession, or control of your
+            rewards. Transactions occur solely by your actions and through your
+            chosen Mint. We do not monitor, verify, or facilitate transfers
+            between you and any Mint or other parties.
           </p>
           <p>
-            1.4 <strong>Web Server Only:</strong> {{ brandName }} does not operate any
-            backend services for the ecash protocol. We only provide the
-            client-side application code.
+            1.4 <strong>Web Server Only:</strong> {{ brandName }} does not
+            operate any backend services for the ecash protocol. We only provide
+            the client-side application code.
           </p>
           <p>
             1.5 <strong>Open Source Code:</strong> The application code is based
             on open source software, meaning it can be self-hosted and run by
-            third parties using different domains. {{ brandName }} has no control
-            over, and does not endorse or assume responsibility for, any
-            instances of the code running outside of the {{ brandShortName }} service. Your
-            use of any such third-party instances is at your own risk.
+            third parties using different domains. {{ brandName }} has no
+            control over, and does not endorse or assume responsibility for, any
+            instances of the code running outside of the
+            {{ brandShortName }} service. Your use of any such third-party
+            instances is at your own risk.
           </p>
           <p>
             1.6 <strong>Code Disclaimer:</strong> The open-source code is
@@ -103,15 +105,15 @@
             and any Mint.
           </p>
           <p>
-            2.2 <strong>No Partnership with Mints:</strong> {{ brandName }} is not
-            affiliated with, endorsed by, or responsible for any Mint. We make
-            no representations, warranties, or guarantees about any Mint's
+            2.2 <strong>No Partnership with Mints:</strong> {{ brandName }} is
+            not affiliated with, endorsed by, or responsible for any Mint. We
+            make no representations, warranties, or guarantees about any Mint's
             integrity, legality, liquidity, or functionality. Your relationship
             with any Mint, including the issuance, redemption, or valuation of
-            ecash, is solely a matter between you and that Mint. {{ brandName }} is
-            not a party to any transaction between you and any Mint or third
-            party. No agency, partnership, or joint venture relationship is
-            formed by your use of the App.
+            ecash, is solely a matter between you and that Mint.
+            {{ brandName }} is not a party to any transaction between you and
+            any Mint or third party. No agency, partnership, or joint venture
+            relationship is formed by your use of the App.
           </p>
           <p>
             2.3 <strong>Risk of Ecash:</strong> Ecash is an experimental,
@@ -154,8 +156,8 @@
           <p><strong>6. Risks and Limitation of Liability</strong></p>
           <p>
             6.1 <strong>No Liability for Interactions with Mints:</strong>
-            {{ brandName }} is not liable for any transactions, disputes, or issues
-            arising from your dealings with Mints.
+            {{ brandName }} is not liable for any transactions, disputes, or
+            issues arising from your dealings with Mints.
           </p>
           <p>
             6.2 <strong>Assumption of Risk:</strong> You acknowledge
@@ -174,9 +176,9 @@
           </p>
           <p>
             6.5 <strong>Limitation of Liability:</strong> TO THE FULLEST EXTENT
-            PERMITTED BY LAW, {{ brandName.toUpperCase() }} IS NOT LIABLE FOR INDIRECT, INCIDENTAL,
-            SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR
-            RELATED TO THESE TERMS, THE APP, OR THE SERVICES.
+            PERMITTED BY LAW, {{ brandName.toUpperCase() }} IS NOT LIABLE FOR
+            INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES
+            ARISING OUT OF OR RELATED TO THESE TERMS, THE APP, OR THE SERVICES.
           </p>
           <p>
             6.6 <strong>Maximum Liability:</strong> To the maximum extent

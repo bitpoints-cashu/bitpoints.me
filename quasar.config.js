@@ -53,7 +53,8 @@ function getBrandConfig(brandId) {
           text: "#1a1a1a",
           theme: "#6B4FBB",
         },
-        description: "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
+        description:
+          "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
         themeColor: "#6B4FBB",
       },
       trails: {
@@ -71,11 +72,12 @@ function getBrandConfig(brandId) {
           text: "#3E2723",
           theme: "#6F4E37",
         },
-        description: "Rewards points powered by Bitcoin. Earn, send, and receive points with Trails Coffee.",
+        description:
+          "Rewards points powered by Bitcoin. Earn, send, and receive points with Trails Coffee.",
         themeColor: "#6F4E37",
       },
     };
-    
+
     return brands[brandId] || brands.bitpoints;
   } catch (err) {
     console.warn(`Failed to load brand config for ${brandId}, using bitpoints`);
@@ -87,18 +89,18 @@ module.exports = configure(function (ctx) {
   // Get active brand for this build
   const activeBrandId = getActiveBrandId();
   const brandConfig = getBrandConfig(activeBrandId);
-  
+
   console.log(`🏷️  Building for brand: ${brandConfig.name} (${activeBrandId})`);
-  
+
   // Determine brand-specific CSS file
   const brandCssFile = `brands/${activeBrandId}.scss`;
-  
+
   // For PWA builds, set brand-specific output directory
   let distDir = undefined;
   if (ctx.mode.pwa) {
     distDir = path.resolve(__dirname, `dist/pwa/${activeBrandId}`);
   }
-  
+
   return {
     eslint: {
       // fix: true,
@@ -161,39 +163,59 @@ module.exports = configure(function (ctx) {
       extendViteConf(viteConf) {
         viteConf.define = viteConf.define || {};
         viteConf.define.GIT_COMMIT = JSON.stringify(resolveGitCommit());
-        
+
         // Inject brand configuration into build as global constants
         // Vite define replaces these at build time, so they'll be literal strings
         viteConf.define.__BRAND_ID__ = JSON.stringify(activeBrandId);
         viteConf.define.__BRAND_CONFIG__ = JSON.stringify(brandConfig);
-        
+
         // Add custom plugin to transform index.html with brand values
         // This runs after Quasar's template processing
         if (!viteConf.plugins) {
           viteConf.plugins = [];
         }
-        
+
         viteConf.plugins.push({
-          name: 'brand-html-transform',
+          name: "brand-html-transform",
           transformIndexHtml: {
-            enforce: 'post',
+            enforce: "post",
             transform(html) {
               // Replace productName and productDescription from package.json with brand values
               // This happens after Quasar processes the template
-              const packageJson = require('./package.json');
+              const packageJson = require("./package.json");
               const defaultProductName = packageJson.productName;
               const defaultDescription = packageJson.description;
-              
-              return html
-                // Replace title (uses productName from package.json)
-                .replace(new RegExp(defaultProductName, 'g'), brandConfig.name)
-                // Replace description (uses productDescription from package.json)  
-                .replace(new RegExp(defaultDescription.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), brandConfig.description)
-                // Replace OpenGraph and meta tags
-                .replace(/Bitpoints\.me/g, brandConfig.name)
-                .replace(/Bitpoints\.me - Bitcoin-backed Rewards/g, `${brandConfig.name} - ${brandConfig.shortName}`)
-                .replace(/Rewards that appreciate over time\. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh\./g, brandConfig.description)
-                .replace(/https:\/\/bitpoints\.me/g, `https://${brandConfig.domain}`);
+
+              return (
+                html
+                  // Replace title (uses productName from package.json)
+                  .replace(
+                    new RegExp(defaultProductName, "g"),
+                    brandConfig.name
+                  )
+                  // Replace description (uses productDescription from package.json)
+                  .replace(
+                    new RegExp(
+                      defaultDescription.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                      "g"
+                    ),
+                    brandConfig.description
+                  )
+                  // Replace OpenGraph and meta tags
+                  .replace(/Bitpoints\.me/g, brandConfig.name)
+                  .replace(
+                    /Bitpoints\.me - Bitcoin-backed Rewards/g,
+                    `${brandConfig.name} - ${brandConfig.shortName}`
+                  )
+                  .replace(
+                    /Rewards that appreciate over time\. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh\./g,
+                    brandConfig.description
+                  )
+                  .replace(
+                    /https:\/\/bitpoints\.me/g,
+                    `https://${brandConfig.domain}`
+                  )
+              );
             },
           },
         });

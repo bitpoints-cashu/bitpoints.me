@@ -529,7 +529,8 @@ export const useWalletStore = defineStore("wallet", {
             console.log("ℹ️ Token already spent, marking as claimed");
             const existingToken = tokenStore.historyTokens.find(
               (t) =>
-                t.token === receiveStore.receiveData.tokensBase64 && t.amount > 0
+                t.token === receiveStore.receiveData.tokensBase64 &&
+                t.amount > 0
             );
             if (existingToken) {
               tokenStore.setTokenPaid(receiveStore.receiveData.tokensBase64);
@@ -537,7 +538,7 @@ export const useWalletStore = defineStore("wallet", {
             // Return early - token is already claimed, nothing more to do
             return;
           }
-          
+
           // Handle other errors normally
           console.error(error);
           this.handleOutputsHaveAlreadyBeenSignedError(keysetId, error);

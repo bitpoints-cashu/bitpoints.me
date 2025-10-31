@@ -21,22 +21,10 @@
   --brand-shadow-soft: rgba(255, 107, 53, 0.1);
   --brand-shadow-medium: rgba(255, 107, 53, 0.15);
   --brand-gradient-warm: linear-gradient(135deg, #ff6b35 0%, #ffb366 100%);
-  --brand-gradient-subtle: linear-gradient(
-    135deg,
-    #fffef7 0%,
-    #faf9f7 100%
-  );
-  --brand-gradient-primary: linear-gradient(
-    135deg,
-    #ff6b35 0%,
-    #ff8c42 100%
-  );
-  --brand-gradient-secondary: linear-gradient(
-    135deg,
-    #6b4fbb 0%,
-    #8b5cf6 100%
-  );
-  
+  --brand-gradient-subtle: linear-gradient(135deg, #fffef7 0%, #faf9f7 100%);
+  --brand-gradient-primary: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  --brand-gradient-secondary: linear-gradient(135deg, #6b4fbb 0%, #8b5cf6 100%);
+
   /* Legacy variable names for backward compatibility */
   --bitpoints-primary-orange: var(--brand-primary);
   --bitpoints-secondary-purple: var(--brand-secondary);

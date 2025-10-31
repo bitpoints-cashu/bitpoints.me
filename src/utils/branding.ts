@@ -1,11 +1,15 @@
 /**
  * Branding Utility Functions
- * 
+ *
  * Provides runtime access to branding configuration and asset resolution.
  * Works in both dev and production builds.
  */
 
-import { getBrandConfig, getActiveBrandId, type BrandConfig } from "../config/brands";
+import {
+  getBrandConfig,
+  getActiveBrandId,
+  type BrandConfig,
+} from "../config/brands";
 
 /**
  * Get the active brand configuration
@@ -18,11 +22,11 @@ export function getBrand(brandId?: string): BrandConfig {
 /**
  * Get brand-specific asset path
  * Resolves relative paths to the correct brand asset directory
- * 
+ *
  * @param relativePath - Path relative to assets/brands/{brandId}/
  * @param brandId - Optional brand ID, uses active brand if not provided
  * @returns Resolved asset path
- * 
+ *
  * @example
  * getBrandAsset('logo.png') -> '~assets/brands/bitpoints/logo.png'
  * getBrandAsset('logo.png', 'trails') -> '~assets/brands/trails/logo.png'
@@ -34,12 +38,15 @@ export function getBrandAsset(relativePath: string, brandId?: string): string {
 
 /**
  * Get brand-specific color value
- * 
+ *
  * @param colorKey - Color key from brand config (primary, secondary, accent, etc.)
  * @param brandId - Optional brand ID, uses active brand if not provided
  * @returns Color hex value
  */
-export function getBrandColor(colorKey: keyof BrandConfig["colors"], brandId?: string): string {
+export function getBrandColor(
+  colorKey: keyof BrandConfig["colors"],
+  brandId?: string
+): string {
   const brand = getBrand(brandId);
   return brand.colors[colorKey] || brand.colors.primary;
 }
@@ -84,4 +91,3 @@ export function getBrandLogo(brandId?: string): string {
   const brand = getBrand(brandId);
   return getBrandAsset(brand.logoPath, brandId);
 }
-

@@ -6,36 +6,24 @@
 
 /* Trails Coffee CSS Variables */
 :root {
-  --brand-primary: #8B4513; /* Saddle brown - coffee color */
-  --brand-secondary: #D2691E; /* Chocolate */
-  --brand-accent: #CD853F; /* Peru - warm accent */
-  --brand-warm: #A0522D; /* Sienna */
-  --brand-cream: #FFF8E7; /* Light cream */
-  --brand-warm-white: #FFF8DC; /* Cornsilk */
-  --brand-off-white: #FAF8F3;
-  --brand-charcoal: #2F1B14; /* Dark coffee */
-  --brand-soft-gray: #F5F3EE;
-  --brand-text-dark: #3E2723; /* Dark brown */
-  --brand-text-medium: #5D4037;
-  --brand-text-light: #8D6E63;
+  --brand-primary: #8b4513; /* Saddle brown - coffee color */
+  --brand-secondary: #d2691e; /* Chocolate */
+  --brand-accent: #cd853f; /* Peru - warm accent */
+  --brand-warm: #a0522d; /* Sienna */
+  --brand-cream: #fff8e7; /* Light cream */
+  --brand-warm-white: #fff8dc; /* Cornsilk */
+  --brand-off-white: #faf8f3;
+  --brand-charcoal: #2f1b14; /* Dark coffee */
+  --brand-soft-gray: #f5f3ee;
+  --brand-text-dark: #3e2723; /* Dark brown */
+  --brand-text-medium: #5d4037;
+  --brand-text-light: #8d6e63;
   --brand-shadow-soft: rgba(139, 69, 19, 0.1);
   --brand-shadow-medium: rgba(139, 69, 19, 0.15);
-  --brand-gradient-warm: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
-  --brand-gradient-subtle: linear-gradient(
-    135deg,
-    #FFF8DC 0%,
-    #FAF8F3 100%
-  );
-  --brand-gradient-primary: linear-gradient(
-    135deg,
-    #8B4513 0%,
-    #D2691E 100%
-  );
-  --brand-gradient-secondary: linear-gradient(
-    135deg,
-    #D2691E 0%,
-    #CD853F 100%
-  );
+  --brand-gradient-warm: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, #fff8dc 0%, #faf8f3 100%);
+  --brand-gradient-primary: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
+  --brand-gradient-secondary: linear-gradient(135deg, #d2691e 0%, #cd853f 100%);
 }
 
 /* Typography - Trails Coffee Style (same as Bitpoints for consistency) */
@@ -184,4 +172,3 @@
     font-size: 1rem;
   }
 }
-

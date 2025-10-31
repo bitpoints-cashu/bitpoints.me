@@ -61,14 +61,14 @@ export default {
     const welcomeStore = useWelcomeStore();
     const { t } = useI18n();
     const brand = computed(() => getBrand());
-    
+
     // Get brand logo and name - use static imports for proper Vite bundling
     const brandLogo = computed(() => {
       const brandId = getActiveBrandId();
       return brandId === "trails" ? trailsLogo : bitpointsLogo;
     });
     const brandName = computed(() => getBrandName());
-    
+
     // Dynamic welcome text based on brand
     const welcomeTitle = computed(() => {
       return `Welcome to ${brand.value.shortName}`;
@@ -79,7 +79,7 @@ export default {
       }
       return t("WelcomeSlide1.text");
     });
-    
+
     return {
       welcomeStore,
       brandLogo,

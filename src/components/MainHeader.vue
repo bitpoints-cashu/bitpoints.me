@@ -135,7 +135,7 @@ export default defineComponent({
     const { t } = useI18n();
     const countdown = ref(0);
     let countdownInterval;
-    
+
     // Get brand logo and name - use static imports for proper Vite bundling
     const brand = computed(() => getBrand());
     const brandLogo = computed(() => {

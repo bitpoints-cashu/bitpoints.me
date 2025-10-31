@@ -1,6 +1,6 @@
 /**
  * Brand Configuration
- * 
+ *
  * Centralized configuration for all supported brands.
  * Each brand defines its name, domain, colors, assets, and other brand-specific settings.
  */
@@ -60,7 +60,8 @@ const brands: Record<string, BrandConfig> = {
       cream: "#fff8f0",
       charcoal: "#2c2c2c",
     },
-    description: "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
+    description:
+      "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
     themeColor: "#6B4FBB",
     favicon: "favicon.ico",
     ogImage: "og-image.png",
@@ -90,7 +91,8 @@ const brands: Record<string, BrandConfig> = {
       cream: "#FFF8E7", // Light cream
       charcoal: "#2F1B14", // Dark coffee
     },
-    description: "Rewards points powered by Bitcoin. Earn, send, and receive points with Trails Coffee.",
+    description:
+      "Rewards points powered by Bitcoin. Earn, send, and receive points with Trails Coffee.",
     themeColor: "#6F4E37",
     favicon: "trails-favicon.ico",
     ogImage: "trails-og-image.png",
@@ -108,12 +110,12 @@ const brands: Record<string, BrandConfig> = {
 export function getBrandConfig(brandId?: string): BrandConfig {
   const activeBrandId = brandId || getActiveBrandId();
   const brand = brands[activeBrandId];
-  
+
   if (!brand) {
     console.warn(`Brand "${activeBrandId}" not found, defaulting to bitpoints`);
     return brands.bitpoints;
   }
-  
+
   return brand;
 }
 
@@ -133,12 +135,12 @@ export function getActiveBrandId(): string {
     }
     return String(injected);
   }
-  
+
   // Check for BRAND environment variable (set at build time or runtime)
   if (typeof process !== "undefined" && process.env?.BRAND) {
     return process.env.BRAND;
   }
-  
+
   // Check for window location (dev mode or runtime)
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
@@ -166,7 +168,7 @@ export function getActiveBrandId(): string {
       return "bitpoints";
     }
   }
-  
+
   // Default to bitpoints
   return "bitpoints";
 }
@@ -186,4 +188,3 @@ export function getAllBrands(): Record<string, BrandConfig> {
 }
 
 export default brands;
-

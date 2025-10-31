@@ -52,9 +52,7 @@
         </div>
 
         <!-- Contacts (Bluetooth + QR Code) -->
-        <div
-          class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
-        >
+        <div class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
           <q-btn
             rounded
             outline

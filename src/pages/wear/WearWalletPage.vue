@@ -272,4 +272,3 @@ const loadRecentTransactions = () => {
   }
 }
 </style>
-
