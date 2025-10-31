@@ -115,6 +115,13 @@ export interface BluetoothEcashPlugin {
   getUnclaimedTokens(): Promise<{ tokens: EcashMessage[] }>;
 
   /**
+   * Get offline favorites (favorites stored locally, not currently connected)
+   *
+   * @returns Array of offline favorite contacts
+   */
+  getOfflineFavorites?(): Promise<{ favorites: any[] }>;
+
+  /**
    * Mark a token as claimed after redemption
    *
    * @param options Message ID of the token
@@ -174,6 +181,7 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
     sendTextMessage: async () => {},
     getAvailablePeers: async () => ({ peers: [] }),
     getUnclaimedTokens: async () => ({ tokens: [] }),
+    getOfflineFavorites: async () => ({ favorites: [] }),
     markTokenClaimed: async () => {},
     requestPermissions: async () => ({ granted: false }),
     addListener: async () => ({ remove: () => {} }),

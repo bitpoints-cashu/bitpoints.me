@@ -51,9 +51,8 @@
           <SendDialog v-model="showSendDialog" />
         </div>
 
-        <!-- Bluetooth Contacts (Android only) -->
+        <!-- Contacts (Bluetooth + QR Code) -->
         <div
-          v-if="isNativeApp || (webBluetoothSupported && isContextSecure)"
           class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
         >
           <q-btn
@@ -91,16 +90,7 @@
         </div>
 
         <!-- Unified Contacts Dialog -->
-        <q-dialog v-model="showContactsDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px">
-            <ContactsDialog @close="showContactsDialog = false" />
-            <q-card-actions align="right">
-              <q-btn flat round icon="close" color="grey" v-close-popup>
-                <q-tooltip>Close</q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
+        <ContactsDialog v-model="showContactsDialog" />
 
         <!-- Favorite Requests Dialog -->
         <q-dialog v-model="showRequestsDialog" position="bottom">

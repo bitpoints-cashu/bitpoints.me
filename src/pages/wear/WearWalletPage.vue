@@ -74,7 +74,7 @@
   </q-page>
 </template>
 
-<script setup lang="js">
+<script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useWalletStore } from "src/stores/wallet";
@@ -272,3 +272,4 @@ const loadRecentTransactions = () => {
   }
 }
 </style>
+

@@ -116,7 +116,29 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
           btLog.error("Token decode failed - invalid format");
           return false;
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Check if error is "Token already spent" - handle gracefully
+        const errorMessage = error?.message || error?.toString() || "";
+        if (
+          errorMessage.includes("Token already spent") ||
+          errorMessage.includes("already spent") ||
+          errorMessage.includes("Outputs have already been signed")
+        ) {
+          // Token was already claimed (likely duplicate claim), silently handle
+          btLog.claim("Token already spent, marking as claimed", {
+            tokenLength: this.receiveData.tokensBase64.length,
+          });
+          const tokensStore = useTokensStore();
+          const historyToken = tokensStore.tokenAlreadyInHistory(
+            this.receiveData.tokensBase64
+          );
+          if (historyToken && historyToken.amount > 0) {
+            // Mark as claimed
+            tokensStore.setTokenPaid(this.receiveData.tokensBase64);
+          }
+          // Return true to indicate "success" (token is claimed, just not by us)
+          return true;
+        }
         btLog.error("receiveIfDecodes failed", {
           error: error?.message || error?.toString(),
         });
