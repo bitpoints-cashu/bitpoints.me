@@ -64,13 +64,10 @@ export class MessageRouter {
       );
 
       try {
-        const favorite = this.favoritesStore.getFavoriteStatus(recipientPeerID);
-        if (favorite?.peerNostrNpub) {
-          await this.sendTokenViaNostr(
-            token,
-            favorite.peerNostrNpub,
-            recipientNickname
-          );
+        // NEW: Use the peerID index for faster npub resolution
+        const recipientNpub = this.resolveNpubFromPeerID(recipientPeerID);
+        if (recipientNpub) {
+          await this.sendTokenViaNostr(token, recipientNpub, recipientNickname);
 
           notifySuccess(
             `Sent via Nostr to ${recipientNickname} (they'll receive when online)!`
@@ -123,29 +120,40 @@ export class MessageRouter {
   }
 
   /**
-   * Send token via Nostr DM (for mutual favorites)
+   * NEW: Resolve npub from peerID using the peerID index
+   */
+  private resolveNpubFromPeerID(peerID: string): string | null {
+    // First try the fast peerID index lookup
+    const npubFromIndex = this.favoritesStore.findNostrPubkeyForPeerID(peerID);
+    if (npubFromIndex) {
+      return npubFromIndex;
+    }
+
+    // Fallback to the favorites store
+    const favorite = this.favoritesStore.getFavoriteStatus(peerID);
+    return favorite?.peerNostrNpub || null;
+  }
+
+  /**
+   * Send token via Nostr DM (for mutual favorites) using 2-byte TLV format
    */
   private async sendTokenViaNostr(
     token: string,
     recipientNpub: string,
     recipientNickname: string
   ): Promise<void> {
-    // Create Nostr DM with token
-    const content = JSON.stringify({
-      type: "BITPOINTS_TOKEN",
+    // Send token using the updated sendTokenViaNostr method with TLV format
+    await this.nostrStore.sendTokenViaNostr(
       token,
-      timestamp: Date.now(),
-      senderNpub: this.nostrStore.npub,
-    });
-
-    // Send as encrypted Nostr DM (NIP-04 or gift-wrap NIP-17)
-    await this.nostrStore.sendEncryptedDM(content, recipientNpub);
+      recipientNpub,
+      recipientNickname
+    );
 
     console.log(
       `📨 Sent token via Nostr to ${recipientNickname} (${recipientNpub.substring(
         0,
         16
-      )}...)`
+      )}...) using 2-byte TLV format`
     );
   }
 

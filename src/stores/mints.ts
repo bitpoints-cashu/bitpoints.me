@@ -108,7 +108,7 @@ export const useMintsStore = defineStore("mints", {
     const activeUnit = useLocalStorage<string>("cashu.activeUnit", "sat");
     const activeMintUrl = useLocalStorage<string>(
       "cashu.activeMintUrl",
-      "https://ecash.trailscoffee.com"
+      "https://mint.minibits.cash/Bitcoin"
     );
     const addMintData = ref({
       url: "",
@@ -116,10 +116,10 @@ export const useMintsStore = defineStore("mints", {
     });
     const mints = useLocalStorage("cashu.mints", [
       {
-        url: "https://ecash.trailscoffee.com",
+        url: "https://mint.minibits.cash/Bitcoin",
         keys: [],
         keysets: [],
-        nickname: "Trails Coffee",
+        nickname: "MiniBits",
         errored: false,
         motdDismissed: false,
         multinutSelected: false,

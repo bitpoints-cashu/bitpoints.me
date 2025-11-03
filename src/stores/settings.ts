@@ -88,8 +88,18 @@ export const useSettingsStore = defineStore("settings", {
       ),
       nostrMintBackupEnabled: useLocalStorage<boolean>(
         "cashu.settings.nostrMintBackupEnabled",
+        true
+      ),
+      walletDisplayUnit: useLocalStorage<string>(
+        "cashu.settings.walletDisplayUnit",
+        "sat"
+      ),
+      googleDriveBackupEnabled: useLocalStorage<boolean>(
+        "cashu.settings.googleDriveBackupEnabled",
         false
       ),
+      showBitcoin: useLocalStorage<boolean>("cashu.settings.showBitcoin", true),
+      showPoints: useLocalStorage<boolean>("cashu.settings.showPoints", false),
     };
   },
 });

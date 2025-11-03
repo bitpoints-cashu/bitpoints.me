@@ -10,6 +10,7 @@
 
 const { configure } = require("quasar/wrappers");
 const { execSync } = require("child_process");
+const path = require("path");
 
 function resolveGitCommit() {
   try {
@@ -25,7 +26,83 @@ function resolveGitCommit() {
   }
 }
 
-module.exports = configure(function (/* ctx */) {
+// Get active brand from environment or default to bitpoints
+function getActiveBrandId() {
+  return process.env.BRAND || "bitpoints";
+}
+
+// Load brand configuration
+function getBrandConfig(brandId) {
+  try {
+    // In Node.js context, we can't use TypeScript directly
+    // So we'll use a JSON file or require the compiled JS
+    // For now, we'll inline the brand configs here for build-time use
+    const brands = {
+      bitpoints: {
+        id: "bitpoints",
+        name: "Bitpoints.me",
+        shortName: "Bitpoints",
+        domain: "bitpoints.me",
+        logoPath: "bitpoints-logo.png",
+        logoAlt: "Bitpoints",
+        iconPath: "icon.png", // Root icon.png for all platforms
+        colors: {
+          primary: "#ff6b35",
+          secondary: "#6b4fbb",
+          accent: "#ff8c42",
+          background: "#fffef7",
+          text: "#1a1a1a",
+          theme: "#6B4FBB",
+        },
+        description:
+          "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
+        themeColor: "#6B4FBB",
+      },
+      trails: {
+        id: "trails",
+        name: "Trails Coffee Points",
+        shortName: "Trails Points",
+        domain: "points.trailscoffee.com",
+        logoPath: "trails-logo.png",
+        logoAlt: "Trails Coffee",
+        iconPath: "src/assets/brands/trails/trails-iso.png", // Trails coffee icon for PWA
+        colors: {
+          primary: "#8B4513",
+          secondary: "#D2691E",
+          accent: "#CD853F",
+          background: "#FFF8DC",
+          text: "#3E2723",
+          theme: "#6F4E37",
+        },
+        description:
+          "Rewards points powered by Bitcoin. Earn, send, and receive points with Trails Coffee.",
+        themeColor: "#6F4E37",
+      },
+    };
+
+    return brands[brandId] || brands.bitpoints;
+  } catch (err) {
+    console.warn(`Failed to load brand config for ${brandId}, using bitpoints`);
+    return brands.bitpoints;
+  }
+}
+
+module.exports = configure(function (ctx) {
+  // Get active brand for this build
+  const activeBrandId = getActiveBrandId();
+  const brandConfig = getBrandConfig(activeBrandId);
+
+  console.log(`🏷️  Building for brand: ${brandConfig.name} (${activeBrandId})`);
+
+  // Determine brand-specific CSS file
+  const brandCssFile = `brands/${activeBrandId}.scss`;
+
+  // For PWA builds, set brand-specific output directory
+  let distDir = undefined;
+  if (ctx.mode.pwa) {
+    distDir = path.resolve(__dirname, `dist/pwa/${activeBrandId}`);
+  }
+
   return {
     eslint: {
       // fix: true,
@@ -45,7 +122,7 @@ module.exports = configure(function (/* ctx */) {
     boot: ["base", "global-components", "cashu", "i18n"],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
-    css: ["app.scss", "base.scss", "bitpoints-branding.scss"],
+    css: ["app.scss", "base.scss", brandCssFile],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
@@ -83,11 +160,67 @@ module.exports = configure(function (/* ctx */) {
       // ignorePublicFolder: true,
       // minify: false,
       // polyfillModulePreload: true,
-      // distDir
+      distDir: distDir,
 
       extendViteConf(viteConf) {
         viteConf.define = viteConf.define || {};
         viteConf.define.GIT_COMMIT = JSON.stringify(resolveGitCommit());
+
+        // Inject brand configuration into build as global constants
+        // Vite define replaces these at build time, so they'll be literal strings
+        viteConf.define.__BRAND_ID__ = JSON.stringify(activeBrandId);
+        viteConf.define.__BRAND_CONFIG__ = JSON.stringify(brandConfig);
+
+        // Add custom plugin to transform index.html with brand values
+        // This runs after Quasar's template processing
+        if (!viteConf.plugins) {
+          viteConf.plugins = [];
+        }
+
+        viteConf.plugins.push({
+          name: "brand-html-transform",
+          transformIndexHtml: {
+            enforce: "post",
+            transform(html) {
+              // Replace productName and productDescription from package.json with brand values
+              // This happens after Quasar processes the template
+              const packageJson = require("./package.json");
+              const defaultProductName = packageJson.productName;
+              const defaultDescription = packageJson.description;
+
+              return (
+                html
+                  // Replace title (uses productName from package.json)
+                  .replace(
+                    new RegExp(defaultProductName, "g"),
+                    brandConfig.name
+                  )
+                  // Replace description (uses productDescription from package.json)
+                  .replace(
+                    new RegExp(
+                      defaultDescription.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                      "g"
+                    ),
+                    brandConfig.description
+                  )
+                  // Replace OpenGraph and meta tags
+                  .replace(/Bitpoints\.me/g, brandConfig.name)
+                  .replace(
+                    /Bitpoints\.me - Bitcoin-backed Rewards/g,
+                    `${brandConfig.name} - ${brandConfig.shortName}`
+                  )
+                  .replace(
+                    /Rewards that appreciate over time\. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh\./g,
+                    brandConfig.description
+                  )
+                  .replace(
+                    /https:\/\/bitpoints\.me/g,
+                    `https://${brandConfig.domain}`
+                  )
+              );
+            },
+          },
+        });
 
         // Wear OS specific configuration
         if (process.env.CAPACITOR_TARGET === "wear") {
@@ -104,7 +237,7 @@ module.exports = configure(function (/* ctx */) {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
-      https: true,
+      https: false,
       open: true, // opens browser window automatically
       port: 8080,
     },
@@ -178,7 +311,21 @@ module.exports = configure(function (/* ctx */) {
       // useFilenameHashes: true,
       // extendGenerateSWOptions (cfg) {}
       // extendInjectManifestOptions (cfg) {},
-      // extendManifestJson (json) {}
+      extendManifestJson(json) {
+        // Update manifest with brand-specific values
+        json.name = brandConfig.name;
+        json.short_name = brandConfig.shortName;
+        json.description = brandConfig.description;
+        json.theme_color = brandConfig.themeColor;
+        json.background_color = brandConfig.colors.background;
+
+        // Note: Icons should be generated separately based on brand
+        // For trails brand, use trails-iso.png; for bitpoints, use icon.png
+        // Icon paths in manifest should point to public/icons/icon-*.png
+        // The actual icon files should be generated before build based on brandConfig.iconPath
+      },
+      // Override productName and productDescription for index.html template
+      // Note: These come from package.json but we transform them in HTML after processing
       // extendPWACustomSWConf (esbuildConf) {}
     },
 

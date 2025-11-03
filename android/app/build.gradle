@@ -2,6 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 
+// Load keystore properties
+def keystorePropertiesFile = rootProject.file("app/keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "me.bitpoints.wallet"
     compileSdk rootProject.ext.compileSdkVersion
@@ -9,8 +16,8 @@ android {
         applicationId "me.bitpoints.wallet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 6
+        versionName "0.1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,10 +25,21 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -66,6 +84,17 @@ dependencies {
 
     // AndroidX Security for encrypted storage
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
+
+    // OkHttp for WebSocket connections (Nostr relays)
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+
+    // Tink for XChaCha20Poly1305 encryption (NIP-44)
+    implementation "com.google.crypto.tink:tink-android:1.12.0"
+
+    // Google Sign-In and Drive API for Google Drive backups
+    // implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    // implementation 'com.google.api-client:google-api-client-android:1.32.1'
+    // implementation 'com.google.apis:google-api-services-drive:v3-rev105-1.25.0'
 }
 
 apply from: 'capacitor.build.gradle'

@@ -51,22 +51,8 @@
           <SendDialog v-model="showSendDialog" />
         </div>
 
-        <!-- Bluetooth Nearby Sending (Android only) -->
-        <div
-          v-if="isNativeApp"
-          class="row justify-center q-gutter-sm q-mt-sm q-mb-md"
-        >
-          <q-btn
-            rounded
-            outline
-            color="secondary"
-            class="q-px-lg"
-            @click="showNearbyDialog = true"
-          >
-            <q-icon name="bluetooth" size="1.2rem" class="q-mr-sm" />
-            <span>Send to Nearby</span>
-          </q-btn>
-
+        <!-- Contacts (Bluetooth + QR Code) -->
+        <div class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
           <q-btn
             rounded
             outline
@@ -101,29 +87,8 @@
           </q-btn>
         </div>
 
-        <!-- Nearby Contacts Dialog -->
-        <q-dialog v-model="showNearbyDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px">
-            <NearbyContactsDialog @close="showNearbyDialog = false" />
-            <q-card-actions align="right">
-              <q-btn flat round icon="close" color="grey" v-close-popup>
-                <q-tooltip>Close</q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
-
-        <!-- Nostr Contacts Dialog -->
-        <q-dialog v-model="showContactsDialog" position="bottom">
-          <q-card style="width: 100%; max-width: 600px">
-            <NostrContactsDialog />
-            <q-card-actions align="right">
-              <q-btn flat round icon="close" color="grey" v-close-popup>
-                <q-tooltip>Close</q-tooltip>
-              </q-btn>
-            </q-card-actions>
-          </q-card>
-        </q-dialog>
+        <!-- Unified Contacts Dialog -->
+        <ContactsDialog v-model="showContactsDialog" />
 
         <!-- Favorite Requests Dialog -->
         <q-dialog v-model="showRequestsDialog" position="bottom">
@@ -292,15 +257,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- WELCOME DIALOG  -->
-  <WelcomeDialog
-    :welcome-dialog="welcomeDialog"
-    :trigger-pwa-install="triggerPwaInstall"
-    :set-tab="setTab"
-    :get-pwa-display-mode="getPwaDisplayMode"
-    :set-welcome-dialog-seen="setWelcomeDialogSeen"
-  />
-
   <!-- INVOICE DETAILS  -->
   <InvoiceDetailDialog v-model="showInvoiceDetails" />
 
@@ -395,7 +351,6 @@ import BalanceView from "components/BalanceView.vue";
 import MintSettings from "components/MintSettings.vue";
 import HistoryTable from "components/HistoryTable.vue";
 import NoMintWarnBanner from "components/NoMintWarnBanner.vue";
-import WelcomeDialog from "components/WelcomeDialog.vue";
 import SendTokenDialog from "components/SendTokenDialog.vue";
 import PayInvoiceDialog from "components/PayInvoiceDialog.vue";
 import InvoiceDetailDialog from "components/InvoiceDetailDialog.vue";
@@ -403,8 +358,7 @@ import SendDialog from "components/SendDialog.vue";
 import ReceiveDialog from "components/ReceiveDialog.vue";
 import QrcodeReader from "components/QrcodeReader.vue";
 import EcashClaimNotification from "components/EcashClaimNotification.vue";
-import NearbyContactsDialog from "components/NearbyContactsDialog.vue";
-import NostrContactsDialog from "components/NostrContactsDialog.vue";
+import ContactsDialog from "components/ContactsDialog.vue";
 import FavoriteRequestsDialog from "components/FavoriteRequestsDialog.vue";
 import iOSPWAPrompt from "components/iOSPWAPrompt.vue";
 import AndroidPWAPrompt from "components/AndroidPWAPrompt.vue";
@@ -453,7 +407,6 @@ export default {
     MintSettings,
     HistoryTable,
     NoMintWarnBanner,
-    WelcomeDialog,
     SendTokenDialog,
     ReceiveTokenDialog,
     PayInvoiceDialog,
@@ -468,8 +421,7 @@ export default {
     ZapIcon,
     ActivityOrb,
     EcashClaimNotification,
-    NearbyContactsDialog,
-    NostrContactsDialog,
+    ContactsDialog,
     FavoriteRequestsDialog,
   },
   data: function () {
@@ -478,7 +430,6 @@ export default {
       mintId: "",
       mintName: "",
       deferredPWAInstallPrompt: null,
-      showNearbyDialog: false,
       showContactsDialog: false,
       showRequestsDialog: false,
       action: "main",
@@ -499,9 +450,6 @@ export default {
       },
       payments: [],
       paymentsChart: {
-        show: false,
-      },
-      welcomeDialog: {
         show: false,
       },
       baseHost: location.protocol + "//" + location.host,
@@ -527,6 +475,26 @@ export default {
         return platform === "android" || platform === "ios";
       }
       return false;
+    },
+    webBluetoothSupported: function () {
+      try {
+        // Web Bluetooth API only available on secure contexts and supported browsers
+        return (
+          typeof navigator !== "undefined" &&
+          // @ts-ignore
+          !!navigator.bluetooth &&
+          window.isSecureContext === true
+        );
+      } catch (_e) {
+        return false;
+      }
+    },
+    isContextSecure: function () {
+      try {
+        return window.isSecureContext === true;
+      } catch (_e) {
+        return false;
+      }
     },
     ...mapWritableState(useUiStore, [
       "showInvoiceDetails",
@@ -641,15 +609,11 @@ export default {
       return token.getMint(decoded_token);
     },
     autoClaimPendingNostrTokens: async function () {
-      console.log("🔍 Checking for pending Nostr tokens to auto-claim...");
       const tokensStore = useTokensStore();
       const receiveStore = useReceiveTokensStore();
 
       // Check if history is initialized
       if (!tokensStore.history || !Array.isArray(tokensStore.history)) {
-        console.log(
-          "ℹ️ Tokens history not yet initialized, skipping auto-claim"
-        );
         return;
       }
 
@@ -658,19 +622,11 @@ export default {
         (t) => t.amount > 0 && t.token && t.token.length > 0
       );
 
-      console.log(`Found ${pendingTokens.length} pending token(s) in history`);
-
       for (const pendingToken of pendingTokens) {
         try {
-          console.log(
-            `💎 Auto-claiming pending token: ${pendingToken.amount} ${pendingToken.unit}`
-          );
           receiveStore.receiveData.tokensBase64 = pendingToken.token;
           const success = await receiveStore.receiveIfDecodes();
           if (success) {
-            console.log(
-              `✅ Auto-claimed ${pendingToken.amount} ${pendingToken.unit}`
-            );
             notifySuccess(
               `💰 Auto-claimed ${pendingToken.amount} ${pendingToken.unit} from Nostr!`
             );
@@ -678,10 +634,6 @@ export default {
         } catch (error) {
           console.warn(`⚠️ Failed to auto-claim token:`, error);
         }
-      }
-
-      if (pendingTokens.length > 0) {
-        console.log("✅ Finished auto-claiming pending tokens");
       }
     },
     //
@@ -727,10 +679,8 @@ export default {
       this.focusInput("parseDialogInput");
     },
     showWelcomePage: function () {
-      if (!useWelcomeStore().termsAccepted) {
-        useWelcomeStore().showWelcome = true;
-      }
-      if (useWelcomeStore().showWelcome) {
+      const welcomeStore = useWelcomeStore();
+      if (!welcomeStore.termsAccepted || welcomeStore.showWelcome) {
         const currentQuery = window.location.search;
         const currentHash = window.location.hash;
         this.$router.push("/welcome" + currentQuery + currentHash);
@@ -746,7 +696,6 @@ export default {
     },
     /////////////////////////////////// WALLET ///////////////////////////////////
     showInvoiceCreateDialog: async function () {
-      console.log("##### showInvoiceCreateDialog");
       this.invoiceData.amount = "";
       this.invoiceData.bolt11 = "";
       this.invoiceData.hash = "";
@@ -755,7 +704,6 @@ export default {
       this.camera.show = false; // Close camera when switching to lightning
     },
     showSendTokensDialog: function () {
-      console.log("##### showSendTokensDialog");
       this.sendData.tokens = "";
       this.sendData.tokensBase64 = "";
       this.sendData.amount = null;
@@ -808,10 +756,7 @@ export default {
       // Wait for the user to respond to the prompt
       this.deferredPWAInstallPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
-          console.log("User accepted the install prompt");
-          this.setWelcomeDialogSeen();
-        } else {
-          console.log("User dismissed the install prompt");
+          // PWA install completed successfully
         }
       });
     },
@@ -850,11 +795,6 @@ export default {
         if (this.isNativeApp) {
           // Only auto-start for native mobile apps
           await bluetoothStore.startService();
-          console.log("Bluetooth mesh service auto-started (native app)");
-        } else {
-          console.log(
-            '💡 Bluetooth ready. Go to Settings → Bluetooth Mesh and click "Connect Device" to enable.'
-          );
         }
       } catch (e) {
         console.error("Failed to initialize Bluetooth:", e);
@@ -907,8 +847,6 @@ export default {
   },
 
   created: async function () {
-    console.log(`Git commit: ${GIT_COMMIT}`);
-
     // Initialize and run migrations
     const migrationsStore = useMigrationsStore();
     migrationsStore.initMigrations();
@@ -927,49 +865,59 @@ export default {
       this.showAddMintDialog = true;
       this.addMintData = { url: addMintUrl };
     }
-    // Auto-activate Trails Coffee mint on first load
+    // Auto-activate MiniBits mint on first load
     try {
       if (
         !localStorage.getItem("cashu.activeMintUrl") ||
         localStorage.getItem("cashu.activeMintUrl") === ""
       ) {
         await this.activateMintUrl(
-          "https://ecash.trailscoffee.com",
+          "https://mint.minibits.cash/Bitcoin",
           false,
           true
         );
       } else {
-        // Ensure Trails Coffee mint is available even if another mint is active
+        // Ensure MiniBits mint is available even if another mint is active
         const mintsStore = useMintsStore();
-        const trailsMint = mintsStore.mints.find(
-          (m) => m.url === "https://ecash.trailscoffee.com"
+        const minibitsMint = mintsStore.mints.find(
+          (m) => m.url === "https://mint.minibits.cash/Bitcoin"
         );
-        if (!trailsMint) {
-          console.log("Adding Trails Coffee mint...");
+        if (!minibitsMint) {
           const addedMint = await mintsStore.addMint(
             {
-              url: "https://ecash.trailscoffee.com",
-              nickname: "Trails Coffee",
+              url: "https://mint.minibits.cash/Bitcoin",
+              nickname: "MiniBits",
             },
             false
           );
-          console.log("Added mint:", addedMint);
           // The addMint function already activates the mint, but let's ensure it's active
-          if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
-            console.log("Activating Trails Coffee mint...");
+          if (
+            mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin"
+          ) {
             await this.activateMintUrl(
-              "https://ecash.trailscoffee.com",
+              "https://mint.minibits.cash/Bitcoin",
               false,
               true
             );
           }
         } else {
-          console.log(
-            "Trails Coffee mint already exists, ensuring it's active..."
-          );
-          if (mintsStore.activeMintUrl !== "https://ecash.trailscoffee.com") {
+          // Check if mint has keys, if not, force re-initialization
+          if (
+            !minibitsMint.keys ||
+            minibitsMint.keys.length === 0 ||
+            !minibitsMint.keysets ||
+            minibitsMint.keysets.length === 0
+          ) {
             await this.activateMintUrl(
-              "https://ecash.trailscoffee.com",
+              "https://mint.minibits.cash/Bitcoin",
+              false,
+              true
+            );
+          } else if (
+            mintsStore.activeMintUrl !== "https://mint.minibits.cash/Bitcoin"
+          ) {
+            await this.activateMintUrl(
+              "https://mint.minibits.cash/Bitcoin",
               false,
               true
             );
@@ -977,38 +925,10 @@ export default {
         }
       }
     } catch (error) {
-      console.error("Error initializing Trails Coffee mint:", error);
+      console.error("Error initializing MiniBits mint:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
       // Continue with app initialization even if mint setup fails
-    }
-
-    console.log("Mint URL " + this.activeMintUrl);
-    console.log("Wallet URL " + this.baseURL);
-
-    // Debug: Check if mint has keysets
-    try {
-      const mintsStore = useMintsStore();
-      const activeMint = mintsStore.mints.find(
-        (m) => m.url === this.activeMintUrl
-      );
-      if (activeMint) {
-        console.log("Active mint keysets:", activeMint.keysets);
-        console.log("Active mint keys:", activeMint.keys);
-
-        // If no keysets, try to fetch them again
-        if (!activeMint.keysets || activeMint.keysets.length === 0) {
-          console.log("No keysets found, attempting to fetch...");
-          try {
-            await mintsStore.fetchMintKeys(activeMint);
-            console.log("Keysets fetched successfully:", activeMint.keysets);
-          } catch (error) {
-            console.error("Failed to fetch keysets:", error);
-          }
-        }
-      } else {
-        console.log("No active mint found");
-      }
-    } catch (error) {
-      console.error("Error in debug section:", error);
     }
 
     // get token to receive tokens from a link
@@ -1043,7 +963,6 @@ export default {
       window.location.href.split("?")[0].split("#")[0]
     );
     */
-    console.log(`location.hash: ${window.location.hash}`);
 
     // startup tasks
 
@@ -1077,7 +996,6 @@ export default {
     }
 
     // Subscribe to NIP-04 DMs for Nostr contacts feature
-    console.log("🔔 Subscribing to NIP-04 DMs for contacts...");
     this.subscribeToNip04DirectMessages();
 
     // Auto-claim any pending Nostr tokens from history

@@ -1,15 +1,7 @@
-<!-- src/components/WelcomePage.vue -->
+<!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-dialog
-    v-model="welcomeStore.showWelcome"
-    persistent
-    transition-show="slide-up"
-    transition-hide="fadeOut"
-    full-screen
-    @drop.prevent="dragFile"
-    @dragover.prevent
-  >
-    <q-card class="q-pa-none" style="height: 100%">
+  <q-page class="welcome-page">
+    <q-card class="q-pa-none full-height">
       <q-carousel
         v-model="welcomeStore.currentSlide"
         animated
@@ -58,7 +50,7 @@
         />
       </div>
     </q-card>
-  </q-dialog>
+  </q-page>
 </template>
 
 <script lang="ts">
@@ -136,15 +128,22 @@ export default {
     };
 
     onMounted(() => {
+      // Check if welcome is needed
+      if (!welcomeStore.showWelcome) {
+        // User has already completed welcome, redirect to wallet
+        router.push("/");
+        return;
+      }
+
       welcomeStore.initializeWelcome();
     });
 
-    // Watch for welcome completion and navigate to wallet (PWA only)
+    // Watch for welcome completion and navigate to wallet
     watch(
       () => welcomeStore.showWelcome,
       (newValue) => {
-        if (!newValue && !window.Capacitor) {
-          // Only for PWA - let Vue Router handle navigation
+        if (!newValue) {
+          // Welcome completed, navigate to wallet
           router.push("/");
         }
       }
@@ -161,10 +160,16 @@ export default {
 </script>
 
 <style scoped>
-.q-dialog__inner {
+.welcome-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-height {
   height: 100%;
-  width: 100%;
-  margin: 0; /* Align dialog to cover the entire viewport */
+  display: flex;
+  flex-direction: column;
 }
 
 .q-card {

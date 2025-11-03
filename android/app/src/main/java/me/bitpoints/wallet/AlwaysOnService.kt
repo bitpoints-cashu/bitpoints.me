@@ -45,12 +45,15 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
     private var isBluetoothActive = false
     private var peerCount = 0
     private var lastActivityTime = System.currentTimeMillis()
+    private var nostrClient: me.bitpoints.wallet.nostr.NostrClient? = null
+    private var nostrMessageHandler: me.bitpoints.wallet.nostr.NostrDirectMessageHandler? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "AlwaysOnService created")
         createNotificationChannel()
         acquireWakeLock()
+        initializeNostr()
         initializeBluetoothMesh()
     }
 
@@ -201,6 +204,46 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
     }
 
     /**
+     * Initialize Nostr services
+     */
+    private fun initializeNostr() {
+        try {
+            // Initialize FavoritesPersistenceService
+            me.bitpoints.wallet.favorites.FavoritesPersistenceService.initialize(this)
+            
+            // Load/create Nostr identity
+            me.bitpoints.wallet.nostr.NostrIdentityBridge.getCurrentNostrIdentity(this)
+            Log.d(TAG, "Nostr identity initialized")
+            
+            // Initialize NostrClient
+            nostrClient = me.bitpoints.wallet.nostr.NostrClient.getInstance(this)
+            
+            // Set up message handler for incoming Nostr DMs
+            nostrMessageHandler = me.bitpoints.wallet.nostr.NostrDirectMessageHandler(
+                context = this,
+                onMessageReceived = { message ->
+                    // Route Nostr messages through the same delegate as mesh messages
+                    didReceiveMessage(message)
+                },
+                onDeliveryAckReceived = { messageID, peerID ->
+                    didReceiveDeliveryAck(messageID, peerID)
+                },
+                onReadReceiptReceived = { messageID, peerID ->
+                    didReceiveReadReceipt(messageID, peerID)
+                }
+            )
+            
+            // Initialize and subscribe to private messages
+            nostrClient?.initialize()
+            nostrClient?.subscribeToPrivateMessages(nostrMessageHandler!!)
+            
+            Log.d(TAG, "Nostr services initialized")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize Nostr services: ${e.message}", e)
+        }
+    }
+    
+    /**
      * Initialize Bluetooth mesh service
      */
     private fun initializeBluetoothMesh() {
@@ -249,6 +292,9 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
      */
     private fun cleanup() {
         stopBluetoothMesh()
+        
+        // Shutdown Nostr client
+        nostrClient?.shutdown()
 
         wakeLock?.let { wl ->
             if (wl.isHeld) {

@@ -59,12 +59,23 @@ class BluetoothMeshService(private val context: Context) {
     // Delegate for message callbacks (maintains same interface)
     var delegate: BluetoothMeshDelegate? = null
 
+    // MessageRouter for mesh/Nostr routing
+    private var messageRouter: me.bitpoints.wallet.services.MessageRouter? = null
+
     // Coroutines
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
         setupDelegates()
         messageHandler.packetProcessor = packetProcessor
+        
+        // Initialize MessageRouter for mesh/Nostr routing
+        try {
+            messageRouter = me.bitpoints.wallet.services.MessageRouter.getInstance(context, this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to initialize MessageRouter: ${e.message}")
+        }
+        
         //startPeriodicDebugLogging()
 
         // Initialize sync manager (needs serviceScope)
@@ -147,6 +158,10 @@ class BluetoothMeshService(private val context: Context) {
         peerManager.delegate = object : PeerManagerDelegate {
             override fun onPeerListUpdated(peerIDs: List<String>) {
                 delegate?.didUpdatePeerList(peerIDs)
+                // Notify MessageRouter so it can flush outbox
+                try {
+                    messageRouter?.onPeersUpdated(peerIDs)
+                } catch (_: Exception) {}
             }
             override fun onPeerRemoved(peerID: String) {
                 try { gossipSyncManager.removeAnnouncementForPeer(peerID) } catch (_: Exception) { }
@@ -241,8 +256,8 @@ class BluetoothMeshService(private val context: Context) {
                 return peerManager.getPeerInfo(peerID)
             }
 
-            override fun updatePeerInfo(peerID: String, nickname: String, noisePublicKey: ByteArray, signingPublicKey: ByteArray, isVerified: Boolean): Boolean {
-                return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified)
+            override fun updatePeerInfo(peerID: String, nickname: String, noisePublicKey: ByteArray, signingPublicKey: ByteArray, isVerified: Boolean, features: Int): Boolean {
+                return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified, features)
             }
 
             // Packet operations
@@ -630,21 +645,71 @@ class BluetoothMeshService(private val context: Context) {
         if (content.isEmpty()) return
 
         serviceScope.launch {
-            val packet = BitchatPacket(
-                version = 1u,
-                type = MessageType.MESSAGE.value,
-                senderID = hexStringToByteArray(myPeerID),
-                recipientID = hexStringToByteArray(peerID),  // Target specific peer
-                timestamp = System.currentTimeMillis().toULong(),
-                payload = content.toByteArray(Charsets.UTF_8),
-                signature = null,
-                ttl = MAX_TTL
-            )
+            Log.d(TAG, "🔐 sendMessageToPeer called for peer $peerID with content: ${content.take(30)}...")
 
-            // Sign the packet before sending
-            val signedPacket = signPacketBeforeBroadcast(packet)
-            connectionManager.sendPacketToPeer(peerID, signedPacket)
-            Log.d(TAG, "Sent text message to $peerID (${content.length} chars)")
+            // Check if we have a Noise session for encryption
+            val hasSession = encryptionService.hasEstablishedSession(peerID)
+            Log.d(TAG, "🔐 Noise session exists for $peerID: $hasSession")
+
+        if (hasSession) {
+            try {
+                // Create TLV-encoded private message exactly like sendPrivateMessage
+                val messageID = java.util.UUID.randomUUID().toString()
+                val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
+                    messageID = messageID,
+                    content = content
+                )
+
+                val use2Byte = peerManager.peerHasFeature(peerID, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
+                var tlvData = if (use2Byte) privateMessage.encode2B() else privateMessage.encode1B()
+                if (tlvData == null && !use2Byte) {
+                    // Fallback: if legacy 1-byte TLV cannot encode (likely content >255), try 2-byte TLV
+                    Log.w(TAG, "Legacy TLV encode failed (likely >255 bytes). Falling back to 2-byte TLV for $peerID")
+                    tlvData = privateMessage.encode2B()
+                }
+                if (tlvData == null) {
+                    Log.e(TAG, "Failed to encode private message with TLV")
+                    return@launch
+                }
+
+                // Create message payload with NoisePayloadType prefix: [type byte] + [TLV data]
+                val messagePayload = me.bitpoints.wallet.model.NoisePayload(
+                    type = me.bitpoints.wallet.model.NoisePayloadType.PRIVATE_MESSAGE,
+                    data = tlvData
+                )
+
+                // Encrypt the payload
+                val encrypted = encryptionService.encrypt(messagePayload.encode(), peerID)
+
+                // Create NOISE_ENCRYPTED packet
+                val packet = BitchatPacket(
+                    version = 1u,
+                    type = MessageType.NOISE_ENCRYPTED.value,
+                    senderID = hexStringToByteArray(myPeerID),
+                    recipientID = hexStringToByteArray(peerID),
+                    timestamp = System.currentTimeMillis().toULong(),
+                    payload = encrypted,
+                    signature = null,
+                    ttl = MAX_TTL
+                )
+
+                // Sign and broadcast
+                val signedPacket = signPacketBeforeBroadcast(packet)
+                connectionManager.broadcastPacket(RoutedPacket(signedPacket))
+                Log.d(TAG, "📤 Sent encrypted private message to $peerID (${encrypted.size} bytes)")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to encrypt private message for $peerID: ${e.message}")
+            }
+        } else {
+                // No session yet - initiate handshake
+                Log.d(TAG, "🤝 No Noise session with $peerID, initiating handshake")
+                messageHandler.delegate?.initiateNoiseHandshake(peerID)
+
+                // REMOVED: Fallback to broadcast mode - this was causing unwanted broadcast messages
+                // Instead, let the message router handle fallback to Nostr or queuing
+                Log.d(TAG, "📤 No Noise session available, message will be handled by message router")
+            }
         }
     }
 
@@ -762,28 +827,49 @@ class BluetoothMeshService(private val context: Context) {
     } catch (_: Exception) { bytes.size.toString(16) }
 
     /**
-     * Send private message - SIMPLIFIED iOS-compatible version
+     * Send private message - Routes via MessageRouter (mesh first, then Nostr if mutual favorites)
      * Uses NoisePayloadType system exactly like iOS SimplifiedBluetoothService
      */
     fun sendPrivateMessage(content: String, recipientPeerID: String, recipientNickname: String, messageID: String? = null) {
         if (content.isEmpty() || recipientPeerID.isEmpty()) return
         if (recipientNickname.isEmpty()) return
 
+        val finalMessageID = messageID ?: java.util.UUID.randomUUID().toString()
+        
+        // Use MessageRouter if available (for mesh/Nostr routing)
+        messageRouter?.let { router ->
+            router.sendPrivate(content, recipientPeerID, recipientNickname, finalMessageID)
+            return
+        }
+        
+        // Fallback to direct mesh send if MessageRouter not available
+        sendPrivateMessageViaMesh(content, recipientPeerID, recipientNickname, finalMessageID)
+    }
+    
+    /**
+     * Send private message directly via mesh (used by MessageRouter - bypasses routing)
+     */
+    fun sendPrivateMessageViaMesh(content: String, recipientPeerID: String, recipientNickname: String, messageID: String) {
         serviceScope.launch {
-            val finalMessageID = messageID ?: java.util.UUID.randomUUID().toString()
-
-            Log.d(TAG, "📨 Sending PM to $recipientPeerID: ${content.take(30)}...")
+            Log.d(TAG, "📨 Sending PM via mesh to $recipientPeerID: ${content.take(30)}...")
 
             // Check if we have an established Noise session
             if (encryptionService.hasEstablishedSession(recipientPeerID)) {
                 try {
                     // Create TLV-encoded private message exactly like iOS
                     val privateMessage = me.bitpoints.wallet.model.PrivateMessagePacket(
-                        messageID = finalMessageID,
+                        messageID = messageID,
                         content = content
                     )
 
-                    val tlvData = privateMessage.encode()
+                    val use2Byte = peerManager.peerHasFeature(recipientPeerID, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
+                    var tlvData = if (use2Byte) privateMessage.encode2B() else privateMessage.encode1B()
+                    if (tlvData == null && !use2Byte) {
+                        // Fallback: if legacy 1-byte TLV cannot encode (likely content >255), try 2-byte TLV
+                        // Older peers may not decode this, but it enables Cashu-sized messages to updated peers.
+                        Log.w(TAG, "Legacy TLV encode failed (likely >255 bytes). Falling back to 2-byte TLV for $recipientPeerID")
+                        tlvData = privateMessage.encode2B()
+                    }
                     if (tlvData == null) {
                         Log.e(TAG, "Failed to encode private message with TLV")
                         return@launch
@@ -831,6 +917,28 @@ class BluetoothMeshService(private val context: Context) {
                 // The UI will handle showing the message in the chat interface
             }
         }
+    }
+    
+    /**
+     * Send favorite notification - automatically sent when favoriting a peer
+     * Routes via mesh if connected, else via Nostr if mutual favorite
+     */
+    fun sendFavoriteNotification(toPeerID: String, isFavorite: Boolean) {
+        messageRouter?.sendFavoriteNotification(toPeerID, isFavorite)
+    }
+    
+    /**
+     * Update favorite status and automatically send notification (matches Bitchat behavior)
+     * This should be called when favoriting/unfavoriting a peer in the UI
+     */
+    fun updateFavoriteAndNotify(peerID: String, noisePublicKey: ByteArray, nickname: String, isFavorite: Boolean) {
+        // Update favorite status in persistence
+        me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.updateFavoriteStatus(
+            noisePublicKey, nickname, isFavorite
+        )
+        
+        // Automatically send notification (matches Bitchat's automatic exchange pattern)
+        sendFavoriteNotification(peerID, isFavorite)
     }
 
     /**
@@ -900,7 +1008,7 @@ class BluetoothMeshService(private val context: Context) {
             }
 
             // Create iOS-compatible IdentityAnnouncement with TLV encoding
-            val announcement = IdentityAnnouncement(nickname, staticKey, signingKey)
+            val announcement = IdentityAnnouncement(nickname, staticKey, signingKey, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
             val tlvPayload = announcement.encode()
             if (tlvPayload == null) {
                 Log.e(TAG, "Failed to encode announcement as TLV")
@@ -949,7 +1057,7 @@ class BluetoothMeshService(private val context: Context) {
         }
 
         // Create iOS-compatible IdentityAnnouncement with TLV encoding
-        val announcement = IdentityAnnouncement(nickname, staticKey, signingKey)
+        val announcement = IdentityAnnouncement(nickname, staticKey, signingKey, me.bitpoints.wallet.protocol.ProtocolFeatures.DM_TLV_2BYTE)
         val tlvPayload = announcement.encode()
         if (tlvPayload == null) {
             Log.e(TAG, "Failed to encode peer announcement as TLV")
@@ -1068,9 +1176,10 @@ class BluetoothMeshService(private val context: Context) {
         nickname: String,
         noisePublicKey: ByteArray,
         signingPublicKey: ByteArray,
-        isVerified: Boolean
+        isVerified: Boolean,
+        features: Int = 0
     ): Boolean {
-        return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified)
+        return peerManager.updatePeerInfo(peerID, nickname, noisePublicKey, signingPublicKey, isVerified, features)
     }
 
     /**

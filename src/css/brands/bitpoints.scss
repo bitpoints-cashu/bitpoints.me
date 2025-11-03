@@ -1,0 +1,194 @@
+/* Bitpoints Branding - Custom Styles */
+
+/* Import Bitpoints fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap");
+
+/* Bitpoints CSS Variables */
+:root {
+  --brand-primary: #ff6b35; /* Primary orange */
+  --brand-secondary: #6b4fbb; /* Secondary purple */
+  --brand-accent: #ff8c42; /* Accent orange */
+  --brand-warm: #ffb366; /* Warm orange */
+  --brand-cream: #fff8f0;
+  --brand-warm-white: #fffef7;
+  --brand-off-white: #faf9f7;
+  --brand-charcoal: #2c2c2c;
+  --brand-soft-gray: #f8f9fa;
+  --brand-text-dark: #1a1a1a;
+  --brand-text-medium: #4a4a4a;
+  --brand-text-light: #666666;
+  --brand-shadow-soft: rgba(255, 107, 53, 0.1);
+  --brand-shadow-medium: rgba(255, 107, 53, 0.15);
+  --brand-gradient-warm: linear-gradient(135deg, #ff6b35 0%, #ffb366 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, #fffef7 0%, #faf9f7 100%);
+  --brand-gradient-primary: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  --brand-gradient-secondary: linear-gradient(135deg, #6b4fbb 0%, #8b5cf6 100%);
+
+  /* Legacy variable names for backward compatibility */
+  --bitpoints-primary-orange: var(--brand-primary);
+  --bitpoints-secondary-purple: var(--brand-secondary);
+  --bitpoints-accent-orange: var(--brand-accent);
+  --bitpoints-warm-orange: var(--brand-warm);
+  --bitpoints-cream: var(--brand-cream);
+  --bitpoints-warm-white: var(--brand-warm-white);
+  --bitpoints-off-white: var(--brand-off-white);
+  --bitpoints-charcoal: var(--brand-charcoal);
+  --bitpoints-soft-gray: var(--brand-soft-gray);
+  --bitpoints-text-dark: var(--brand-text-dark);
+  --bitpoints-text-medium: var(--brand-text-medium);
+  --bitpoints-text-light: var(--brand-text-light);
+  --bitpoints-shadow-soft: var(--brand-shadow-soft);
+  --bitpoints-shadow-medium: var(--brand-shadow-medium);
+  --bitpoints-gradient-warm: var(--brand-gradient-warm);
+  --bitpoints-gradient-subtle: var(--brand-gradient-subtle);
+  --bitpoints-gradient-orange: var(--brand-gradient-primary);
+  --bitpoints-gradient-purple: var(--brand-gradient-secondary);
+}
+
+/* Typography - Bitpoints Style */
+.bitpoints-heading {
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+}
+
+.bitpoints-body {
+  font-family: "Inter", sans-serif;
+}
+
+.bitpoints-brand {
+  font-family: "Quicksand", sans-serif;
+}
+
+/* Bitpoints gradients */
+.bitpoints-gradient-warm {
+  background: var(--bitpoints-gradient-warm);
+}
+
+.bitpoints-gradient-text {
+  background: var(--bitpoints-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Modern card styling */
+.bitpoints-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px var(--bitpoints-shadow-soft);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.bitpoints-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px var(--bitpoints-shadow-medium);
+}
+
+/* Bitpoints button styles */
+.bitpoints-button {
+  background: var(--bitpoints-gradient-warm);
+  color: white;
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+  transition: all 0.3s ease;
+}
+
+.bitpoints-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(255, 107, 53, 0.4);
+}
+
+/* Background pattern (subtle bitcoin-themed) */
+.bitpoints-background {
+  background-color: var(--bitpoints-warm-white);
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="bitcoin" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%23FF6B35" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23bitcoin)"/></svg>');
+}
+
+/* Warm white background for dark mode */
+.body--dark .bitpoints-background {
+  background-color: #1a1a1a;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="bitcoin-dark" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%23FFB366" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23bitcoin-dark)"/></svg>');
+}
+
+/* Override Quasar default colors with Bitpoints branding */
+.text-primary {
+  color: var(--brand-primary) !important;
+}
+
+.bg-primary {
+  background: var(--brand-primary) !important;
+}
+
+.text-secondary {
+  color: var(--brand-secondary) !important;
+}
+
+.bg-secondary {
+  background: var(--brand-secondary) !important;
+}
+
+/* Bitpoints specific elements */
+.bitpoints-logo {
+  max-height: 60px;
+  transition: transform 0.3s ease;
+}
+
+.bitpoints-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Custom balance display with gradient */
+.bitpoints-balance {
+  background: var(--bitpoints-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-family: "Playfair Display", serif;
+}
+
+/* Watermark effect (subtle logo in background) */
+.bitpoints-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.03;
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth animations */
+@keyframes bitpointsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bitpoints-fade-in {
+  animation: bitpointsFadeIn 0.6s ease-out;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .bitpoints-card {
+    padding: 1.5rem;
+  }
+
+  .bitpoints-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+}

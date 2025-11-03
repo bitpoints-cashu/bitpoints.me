@@ -348,26 +348,222 @@ class BluetoothEcashPlugin : Plugin() {
     }
 
     /**
-     * Get list of currently available peers
+     * Toggle favorite status for a peer (matches Bitchat's toggleFavorite behavior)
+     * Updates FavoritesPersistenceService and sends notification automatically
+     */
+    @PluginMethod
+    fun toggleFavorite(call: PluginCall) {
+        try {
+            val peerID = call.getString("peerID") ?: run {
+                call.reject("Peer ID is required")
+                return
+            }
+
+            val meshService = bluetoothService?.getMeshService() ?: run {
+                call.reject("Mesh service not available")
+                return
+            }
+
+            // Get peer info to find noise key and nickname
+            val peerInfo = try {
+                meshService.getPeerInfo(peerID)
+            } catch (_: Exception) { null }
+
+            val noiseKey = peerInfo?.noisePublicKey
+            val nickname = peerInfo?.nickname ?: meshService.getPeerNicknames()[peerID] ?: peerID
+
+            if (noiseKey == null) {
+                call.reject("Could not find noise key for peer: $peerID")
+                return
+            }
+
+            // Check current favorite status
+            val currentStatus = try {
+                me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(noiseKey)
+            } catch (_: Exception) { null }
+
+            val wasFavorite = currentStatus?.isFavorite == true
+            val isNowFavorite = !wasFavorite
+
+            // Update favorite status in persistence (matches Bitchat's updateFavoriteStatus call)
+            me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.updateFavoriteStatus(
+                noisePublicKey = noiseKey,
+                nickname = nickname,
+                isFavorite = isNowFavorite
+            )
+
+            // Send favorite notification via mesh/Nostr (matches Bitchat's automatic send)
+            meshService.sendFavoriteNotification(peerID, isNowFavorite)
+
+            val result = JSObject()
+            result.put("isFavorite", isNowFavorite)
+            result.put("wasFavorite", wasFavorite)
+            call.resolve(result)
+
+            Log.d(TAG, "✅ Toggled favorite for $peerID: $wasFavorite -> $isNowFavorite")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to toggle favorite", e)
+            call.reject("Failed to toggle favorite: ${e.message}")
+        }
+    }
+
+    /**
+     * Check if a peer can send/receive messages via Nostr (mutual favorite + has npub)
+     * This allows the UI to show Nostr capability indicators matching Bitchat's behavior
+     */
+    @PluginMethod
+    fun canSendViaNostr(call: PluginCall) {
+        try {
+            val peerID = call.getString("peerID") ?: run {
+                call.reject("Peer ID is required")
+                return
+            }
+
+            val canSend = canSendViaNostrInternal(peerID)
+
+            val result = JSObject()
+            result.put("canSend", canSend)
+            call.resolve(result)
+            Log.d(TAG, "Nostr capability check for $peerID: $canSend")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check Nostr capability", e)
+            call.reject("Failed to check Nostr capability: ${e.message}")
+        }
+    }
+
+    /**
+     * Get list of currently available peers with Nostr capability flags
      */
     @PluginMethod
     fun getAvailablePeers(call: PluginCall) {
         try {
             val peers = bluetoothService?.getAvailablePeers() ?: emptyList()
+            val meshService = bluetoothService?.getMeshService()
 
             val peersArray = JSArray()
             peers.forEach { peer ->
-                peersArray.put(peerToJSObject(peer))
+                val peerObj = peerToJSObject(peer)
+                
+                // Check Nostr capability for this peer
+                val canSendViaNostr = try {
+                    val noiseKey = peer.noisePublicKey
+                    if (noiseKey != null) {
+                        val fav = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(noiseKey)
+                        val isMutual = fav?.isMutual == true
+                        val hasNpub = fav?.peerNostrPublicKey != null
+                        isMutual && hasNpub
+                    } else {
+                        // Fallback: check by peerID
+                        val canSendResult = try {
+                            canSendViaNostrInternal(peer.id)
+                        } catch (_: Exception) { false }
+                        canSendResult
+                    }
+                } catch (_: Exception) { false }
+                
+                peerObj.put("canSendViaNostr", canSendViaNostr)
+                peersArray.put(peerObj)
             }
 
             val ret = JSObject()
             ret.put("peers", peersArray)
             call.resolve(ret)
 
-            Log.d(TAG, "Returned ${peers.size} available peers")
+            Log.d(TAG, "Returned ${peers.size} available peers with Nostr capability flags")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get peers", e)
             call.reject("Failed to get peers: ${e.message}")
+        }
+    }
+
+    /**
+     * Get offline mutual favorites (not currently connected) - matches Bitchat's offline favorites list
+     */
+    @PluginMethod
+    fun getOfflineFavorites(call: PluginCall) {
+        try {
+            val meshService = bluetoothService?.getMeshService() ?: run {
+                call.resolve(JSObject().apply { put("favorites", JSArray()) })
+                return
+            }
+
+            // Get all our favorites
+            val ourFavorites = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getOurFavorites()
+            
+            // Get noise hex mapping for currently connected peers
+            val connectedNoiseHexes = meshService.getAllPeers()
+                .mapNotNull { it.noisePublicKey }
+                .map { it.joinToString("") { b -> "%02x".format(b) } }
+                .toSet()
+
+            // Filter offline favorites (mutual + not currently connected)
+            val offlineFavorites = ourFavorites.filter { fav ->
+                val favPeerID = fav.peerNoisePublicKey.joinToString("") { b -> "%02x".format(b) }
+                // Exclude if mapped to a connected peer
+                !connectedNoiseHexes.contains(favPeerID)
+            }.filter { fav ->
+                // Only include mutual favorites
+                fav.isMutual
+            }
+
+            val favoritesArray = JSArray()
+            offlineFavorites.forEach { fav ->
+                val favPeerID = fav.peerNoisePublicKey.joinToString("") { b -> "%02x".format(b) }
+                val favObj = JSObject()
+                favObj.put("peerID", favPeerID)
+                favObj.put("nickname", fav.peerNickname)
+                favObj.put("isMutual", fav.isMutual)
+                favObj.put("hasNostr", fav.peerNostrPublicKey != null)
+                favObj.put("npub", fav.peerNostrPublicKey ?: "")
+                favoritesArray.put(favObj)
+            }
+
+            val ret = JSObject()
+            ret.put("favorites", favoritesArray)
+            call.resolve(ret)
+
+            Log.d(TAG, "Returned ${offlineFavorites.size} offline mutual favorites")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get offline favorites", e)
+            call.reject("Failed to get offline favorites: ${e.message}")
+        }
+    }
+
+    /**
+     * Internal helper for canSendViaNostr check (reused by getAvailablePeers)
+     */
+    private fun canSendViaNostrInternal(peerID: String): Boolean {
+        return try {
+            val peerInfo = try {
+                bluetoothService?.getPeerInfo(peerID)
+            } catch (_: Exception) { null }
+            val noiseKey = peerInfo?.noisePublicKey
+
+            if (noiseKey != null) {
+                val fav = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(noiseKey)
+                val isMutual = fav?.isMutual == true
+                val hasNpub = fav?.peerNostrPublicKey != null
+                isMutual && hasNpub
+            } else {
+                // Try lookup by peerID if it's a 64-hex noise key
+                if (peerID.length == 64 && peerID.matches(Regex("^[0-9a-fA-F]+$"))) {
+                    val noiseKeyBytes = peerID.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                    val fav = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(noiseKeyBytes)
+                    val isMutual = fav?.isMutual == true
+                    val hasNpub = fav?.peerNostrPublicKey != null
+                    isMutual && hasNpub
+                } else if (peerID.length == 16 && peerID.matches(Regex("^[0-9a-fA-F]+$"))) {
+                    // 16-hex mesh peerID - lookup by peerID
+                    val fav = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getFavoriteStatus(peerID)
+                    val isMutual = fav?.isMutual == true
+                    val hasNpub = fav?.peerNostrPublicKey != null
+                    isMutual && hasNpub
+                } else {
+                    false
+                }
+            }
+        } catch (_: Exception) {
+            false
         }
     }
 

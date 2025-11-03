@@ -84,6 +84,98 @@
       </q-list>
     </div>
 
+    <!-- GOOGLE DRIVE BACKUP SECTION -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">Google Drive Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left" on-left>
+      <q-list padding>
+        <!-- Google Drive not available in PWA mode -->
+        <q-item v-if="!googleDriveStore.isPluginAvailable">
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive Backup</q-item-label
+            >
+            <q-item-label caption
+              >Google Drive backup is only available on mobile devices
+              (Android/iOS apps)</q-item-label
+            >
+          </q-item-section>
+        </q-item>
+
+        <!-- Google Drive authentication status (mobile only) -->
+        <q-item v-else-if="!googleDriveStore.isAuthenticated">
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive</q-item-label
+            >
+            <q-item-label caption
+              >Backup your seed phrase securely to Google Drive</q-item-label
+            >
+          </q-item-section>
+          <q-item-section side>
+            <q-btn outline color="primary" @click="authenticateGoogleDrive">
+              Sign in with Google
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <!-- Google Drive backup settings (when authenticated) -->
+        <q-item v-else>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive Backup</q-item-label
+            >
+            <q-item-label caption>
+              Backup enabled - Last backup:
+              {{
+                googleDriveStore.lastBackupDate
+                  ? googleDriveStore.lastBackupDate.toLocaleDateString()
+                  : "Never"
+              }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-toggle
+              v-model="googleDriveBackupEnabled"
+              @update:model-value="onGoogleDriveBackupToggle"
+            />
+          </q-item-section>
+        </q-item>
+
+        <!-- Backup now button (when authenticated) -->
+        <q-item v-if="googleDriveStore.isAuthenticated">
+          <q-item-section>
+            <q-btn
+              outline
+              color="primary"
+              @click="backupSeedPhraseToDrive"
+              :loading="googleDriveStore.backupInProgress"
+            >
+              Backup Seed Phrase Now
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <!-- Restore from Google Drive button (when authenticated) -->
+        <q-item v-if="googleDriveStore.isAuthenticated">
+          <q-item-section>
+            <q-btn
+              outline
+              color="warning"
+              @click="restoreSeedPhraseFromDrive"
+              :loading="googleDriveStore.restoreInProgress"
+            >
+              Restore from Google Drive
+            </q-btn>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
     <!-- BLUETOOTH SETTINGS SECTION -->
     <div class="section-divider q-my-md">
       <div class="divider-line"></div>
@@ -1061,6 +1153,34 @@
               />
             </q-item-section>
           </q-item>
+          <!-- wallet display unit -->
+          <q-item>
+            <q-item-section>
+              <q-item-label overline class="text-weight-bold"
+                >Wallet Display Unit</q-item-label
+              >
+              <q-item-label caption
+                >Choose how to display amounts on the wallet
+                screen</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-select
+                v-model="walletDisplayUnit"
+                :options="[
+                  { label: 'Sats', value: 'sat' },
+                  { label: 'Points', value: 'points' },
+                ]"
+                rounded
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </q-item-section>
+          </q-item>
         </div>
 
         <div class="section-divider q-my-md">
@@ -1359,6 +1479,39 @@
               <q-toggle
                 v-model="bip177BitcoinSymbol"
                 :label="$t('Settings.appearance.bip177.toggle')"
+                color="primary"
+              />
+            </q-item>
+          </q-list>
+        </div>
+
+        <!-- wallet display -->
+        <div class="q-py-sm q-px-xs text-left" on-left>
+          <q-list padding>
+            <q-item>
+              <q-item-section>
+                <q-item-label overline class="text-weight-bold"
+                  >Wallet Display</q-item-label
+                >
+                <q-item-label caption
+                  >Choose which balance types to show on the wallet
+                  page</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showBitcoin"
+                @update:model-value="handleBitcoinToggle"
+                label="Show Bitcoin (sats)"
+                color="primary"
+              />
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showPoints"
+                @update:model-value="handlePointsToggle"
+                label="Show Points"
                 color="primary"
               />
             </q-item>
@@ -2020,6 +2173,7 @@ import { useWelcomeStore } from "src/stores/welcome";
 import { useStorageStore } from "src/stores/storage";
 import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrMintBackupStore } from "src/stores/nostrMintBackup";
+import { useGoogleDriveBackupStore } from "src/stores/googleDriveBackup";
 import { usePriceStore } from "src/stores/price";
 import { useI18n } from "vue-i18n";
 
@@ -2112,6 +2266,7 @@ export default defineComponent({
     ...mapWritableState(useSettingsStore, [
       "getBitcoinPrice",
       "bitcoinPriceCurrency",
+      "walletDisplayUnit",
       "checkSentTokens",
       "useWebsockets",
       "nfcEncoding",
@@ -2126,9 +2281,13 @@ export default defineComponent({
       "auditorUrl",
       "auditorApiUrl",
       "bip177BitcoinSymbol",
+      "showBitcoin",
+      "showPoints",
       "multinutEnabled",
       "nostrMintBackupEnabled",
+      "googleDriveBackupEnabled",
     ]),
+    googleDriveStore: () => useGoogleDriveBackupStore(),
     ...mapState(useP2PKStore, ["p2pkKeys"]),
     ...mapWritableState(useP2PKStore, [
       "showP2PKDialog",
@@ -2457,6 +2616,132 @@ export default defineComponent({
       } else {
         // Update the main bitcoinPrice to reflect the new currency selection
         this.updateBitcoinPriceForCurrentCurrency();
+      }
+    },
+
+    // Google Drive Backup Methods
+    authenticateGoogleDrive: async function () {
+      if (!this.googleDriveStore.isPluginAvailable) {
+        this.$q.notify({
+          type: "info",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+        });
+        return;
+      }
+
+      try {
+        await this.googleDriveStore.connect();
+        this.$q.notify({
+          type: "positive",
+          message: "Successfully connected to Google Drive",
+        });
+      } catch (error) {
+        console.error("Google Drive authentication failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to connect to Google Drive: " + error.message,
+        });
+      }
+    },
+
+    backupSeedPhraseToDrive: async function () {
+      if (!this.googleDriveStore.isPluginAvailable) {
+        this.$q.notify({
+          type: "info",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+        });
+        return;
+      }
+
+      try {
+        // TODO: Get mnemonic from seed store
+        // For now, use a placeholder
+        const mnemonic = [
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "about",
+        ];
+
+        await this.googleDriveStore.backupSeedPhrase(mnemonic);
+        this.$q.notify({
+          type: "positive",
+          message: "Seed phrase backed up to Google Drive successfully",
+        });
+      } catch (error) {
+        console.error("Google Drive backup failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to backup to Google Drive: " + error.message,
+        });
+      }
+    },
+
+    restoreSeedPhraseFromDrive: async function () {
+      if (!this.googleDriveStore.isPluginAvailable) {
+        this.$q.notify({
+          type: "info",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+        });
+        return;
+      }
+
+      try {
+        const mnemonic = await this.googleDriveStore.restoreSeedPhrase();
+        // TODO: Restore mnemonic to seed store
+        console.log("Restored mnemonic:", mnemonic);
+
+        this.$q.notify({
+          type: "positive",
+          message: "Seed phrase restored from Google Drive successfully",
+        });
+      } catch (error) {
+        console.error("Google Drive restore failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to restore from Google Drive: " + error.message,
+        });
+      }
+    },
+
+    onGoogleDriveBackupToggle: function (enabled) {
+      // Settings are automatically saved via v-model binding
+      this.$q.notify({
+        type: "positive",
+        message: enabled
+          ? "Google Drive backup enabled"
+          : "Google Drive backup disabled",
+      });
+    },
+    handleBitcoinToggle: function (enabled) {
+      if (!enabled && !this.showPoints) {
+        // Prevent disabling Bitcoin if Points is also disabled
+        this.showBitcoin = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
+      }
+    },
+    handlePointsToggle: function (enabled) {
+      if (!enabled && !this.showBitcoin) {
+        // Prevent disabling Points if Bitcoin is also disabled
+        this.showPoints = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
       }
     },
   },

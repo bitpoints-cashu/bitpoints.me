@@ -519,6 +519,27 @@ export const useWalletStore = defineStore("wallet", {
           await proofsStore.addProofs(proofs);
           this.increaseKeysetCounter(keysetId, proofs.length);
         } catch (error: any) {
+          // Check if error is "Token already spent" - handle gracefully
+          const errorMessage = error?.message || error?.toString() || "";
+          if (
+            errorMessage.includes("Token already spent") ||
+            errorMessage.includes("already spent")
+          ) {
+            // Token was already claimed (likely duplicate claim), mark as claimed and return gracefully
+            console.log("ℹ️ Token already spent, marking as claimed");
+            const existingToken = tokenStore.historyTokens.find(
+              (t) =>
+                t.token === receiveStore.receiveData.tokensBase64 &&
+                t.amount > 0
+            );
+            if (existingToken) {
+              tokenStore.setTokenPaid(receiveStore.receiveData.tokensBase64);
+            }
+            // Return early - token is already claimed, nothing more to do
+            return;
+          }
+
+          // Handle other errors normally
           console.error(error);
           this.handleOutputsHaveAlreadyBeenSignedError(keysetId, error);
           throw new Error("Error receiving tokens: " + error);

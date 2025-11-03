@@ -172,4 +172,3 @@ const setupTouchGestures = () => {
   }
 }
 </style>
-

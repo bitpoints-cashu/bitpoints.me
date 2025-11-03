@@ -18,6 +18,19 @@
         </template>
       </q-banner>
 
+      <!-- Mint Selection -->
+      <div class="q-mb-md">
+        <ChooseMint />
+      </div>
+
+      <!-- Balance Display -->
+      <div class="q-mb-md">
+        <q-badge color="primary" class="text-weight-bold q-pa-sm">
+          Available:
+          {{ formatCurrency(mintsStore.activeBalance, mintsStore.activeUnit) }}
+        </q-badge>
+      </div>
+
       <!-- Scanning indicator -->
       <div
         v-if="bluetoothStore.isActive && nearbyPeers.length === 0"
@@ -145,6 +158,13 @@
           "
           :loading="sending"
           @click="sendToPeers"
+          @click.stop="
+            console.log('🟢 [UI] Send button clicked!', {
+              selectedPeers: selectedPeers.size,
+              amount,
+              sending,
+            })
+          "
         >
           <q-icon name="send" class="q-mr-sm" />
           Send {{ amount || "" }} {{ unit }} to {{ selectedPeers.size }} peer{{
@@ -181,11 +201,18 @@ import { useNostrStore } from "src/stores/nostr";
 import { notifySuccess, notifyError } from "src/js/notify";
 import { Peer } from "src/plugins/bluetooth-ecash";
 import { nip19 } from "nostr-tools";
+import ChooseMint from "src/components/ChooseMint.vue";
 
 export default defineComponent({
   name: "NearbyContactsDialog",
 
   emits: ["close"],
+
+  mixins: [window.windowMixin],
+
+  components: {
+    ChooseMint,
+  },
 
   setup(props, { emit }) {
     const bluetoothStore = useBluetoothStore();
@@ -219,13 +246,38 @@ export default defineComponent({
     };
 
     const sendToPeers = async () => {
+      console.log("🟢 [UI] sendToPeers called!", {
+        amount: amount.value,
+        selectedPeers: selectedPeers.value.size,
+        sending: sending.value,
+      });
+
       if (!amount.value || amount.value <= 0) {
+        console.log("🟢 [UI] Validation failed: invalid amount", amount.value);
         notifyError("Please enter a valid amount");
         return;
       }
 
       if (selectedPeers.value.size === 0) {
+        console.log(
+          "🟢 [UI] Validation failed: no peers selected",
+          selectedPeers.value
+        );
         notifyError("Please select at least one peer");
+        return;
+      }
+
+      // Check if we have sufficient balance
+      const sendAmount = Math.floor(
+        amount.value * mintsStore.activeUnitCurrencyMultiplyer
+      );
+      if (sendAmount > mintsStore.activeBalance) {
+        notifyError(
+          `Insufficient balance. Available: ${formatCurrency(
+            mintsStore.activeBalance,
+            mintsStore.activeUnit
+          )}`
+        );
         return;
       }
 
@@ -233,9 +285,6 @@ export default defineComponent({
 
       try {
         // Create token for sending
-        const sendAmount = Math.floor(
-          amount.value * mintsStore.activeUnitCurrencyMultiplyer
-        );
         const mintWallet = walletStore.mintWallet(
           mintsStore.activeMintUrl,
           mintsStore.activeUnit
@@ -326,13 +375,24 @@ export default defineComponent({
         return;
       }
 
+      // Check if we have sufficient balance
+      const sendAmount = Math.floor(
+        amount.value * mintsStore.activeUnitCurrencyMultiplyer
+      );
+      if (sendAmount > mintsStore.activeBalance) {
+        notifyError(
+          `Insufficient balance. Available: ${formatCurrency(
+            mintsStore.activeBalance,
+            mintsStore.activeUnit
+          )}`
+        );
+        return;
+      }
+
       sending.value = true;
 
       try {
         // Create token for sending
-        const sendAmount = Math.floor(
-          amount.value * mintsStore.activeUnitCurrencyMultiplyer
-        );
         const mintWallet = walletStore.mintWallet(
           mintsStore.activeMintUrl,
           mintsStore.activeUnit

@@ -78,6 +78,17 @@
           {{ $t("WelcomeSlide2.pwa.success.text") }}
         </p>
       </div>
+      <div class="q-mt-lg text-left">
+        <q-checkbox
+          v-model="welcomeStore.seedPhraseValidated"
+          :label="
+            $t(
+              'WelcomeSlide2.inputs.checkbox.label',
+              'I understand how to backup my wallet'
+            )
+          "
+        />
+      </div>
     </div>
   </div>
   <iOSPWAPrompt v-if="!isPWA()" />
@@ -85,6 +96,7 @@
 </template>
 
 <script lang="ts">
+import { useWelcomeStore } from "src/stores/welcome";
 import iOSPWAPrompt from "components/iOSPWAPrompt.vue";
 import AndroidPWAPrompt from "components/AndroidPWAPrompt.vue";
 export default {
@@ -94,10 +106,12 @@ export default {
     AndroidPWAPrompt,
   },
   setup() {
+    const welcomeStore = useWelcomeStore();
     const isPWA = () => {
       return window.matchMedia("(display-mode: standalone)").matches;
     };
     return {
+      welcomeStore,
       isPWA,
     };
   },
@@ -121,16 +135,14 @@ export default {
 }
 h2 {
   font-weight: bold;
-  color: #ff6b35; /* Bitpoints orange */
 }
 h3 {
-  color: #ff6b35; /* Bitpoints orange */
+  font-weight: bold;
 }
 h6 {
   font-weight: bold;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
-  color: #ff6b35; /* Bitpoints orange */
 }
 p {
   font-size: large;

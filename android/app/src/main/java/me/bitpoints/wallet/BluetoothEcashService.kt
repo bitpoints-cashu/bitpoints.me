@@ -56,11 +56,14 @@ class BluetoothEcashService(private val context: Context) {
             override fun didReceiveMessage(message: me.bitpoints.wallet.model.BitchatMessage) {
                 // Check if message content contains a Cashu token or favorite notification
                 val content = message.content.trim()
-                Log.d(TAG, "Received TEXT message: ${content.take(50)}...")
+                Log.d(TAG, "📨 Received TEXT message: ${content.take(50)}...")
+                Log.i(TAG, "📨 didReceiveMessage called - isPrivate: ${message.isPrivate}, sender: ${message.sender}")
 
                 // Handle favorite notifications (matches bitchat implementation)
+                // Note: [FAVORITED] is handled by MessageHandler, but we also handle it here for completeness
                 if (content.startsWith("[FAVORITE_REQUEST]:") ||
                     content.startsWith("[FAVORITE_ACCEPTED]:") ||
+                    content.startsWith("[FAVORITED]:") ||
                     content.startsWith("[UNFAVORITED]:")) {
                     Log.i(TAG, "🔔 FAVORITE NOTIFICATION DETECTED: ${content.substring(0, 30)}...")
                     handleFavoriteNotification(content, message.senderPeerID ?: "unknown", message.sender)
@@ -70,10 +73,12 @@ class BluetoothEcashService(private val context: Context) {
                 // Detect Cashu token (starts with "cashuA" or "cashuB")
                 if (content.startsWith("cashuA") || content.startsWith("cashuB")) {
                     Log.i(TAG, "🎉 Detected Cashu token in TEXT message!")
+                    Log.d(TAG, "📥 Full message content: ${content.take(100)}...")
 
                     // Parse token and optional metadata
                     val lines = content.split("\n")
                     val tokenString = lines[0]  // First line is always the token
+                    Log.d(TAG, "🔑 Token string: ${tokenString.take(50)}...")
 
                     // Extract metadata if present (from memo format)
                     var amount = 0
@@ -86,9 +91,11 @@ class BluetoothEcashService(private val context: Context) {
                                 val parts = line.substringAfter("Amount: ").split(" ")
                                 amount = parts[0].toIntOrNull() ?: 0
                                 unit = parts.getOrNull(1) ?: "sat"
+                                Log.d(TAG, "💰 Parsed amount: $amount $unit")
                             }
                             line.startsWith("Memo: ") -> {
                                 parsedMemo = line.substringAfter("Memo: ")
+                                Log.d(TAG, "📝 Parsed memo: $parsedMemo")
                             }
                         }
                     }
@@ -115,6 +122,10 @@ class BluetoothEcashService(private val context: Context) {
                     delegate?.onEcashReceived(ecashMessage)
 
                     Log.i(TAG, "✅ Stored ecash token: ${amount} ${unit} from ${message.sender.take(16)}...")
+                    Log.d(TAG, "📦 Message ID: ${ecashMessage.id}")
+                    Log.d(TAG, "👤 Sender peer ID: ${message.senderPeerID}")
+                    Log.d(TAG, "🔑 Token length: ${tokenString.length}")
+                    Log.d(TAG, "📝 Memo: ${parsedMemo ?: "none"}")
                 }
             }
 
@@ -242,16 +253,19 @@ class BluetoothEcashService(private val context: Context) {
         }
 
         Log.d(TAG, "Sending ecash token as TEXT message: ${amount} ${unit}, token length: ${token.length}")
+        Log.d(TAG, "Token preview: ${token.take(50)}...")
+        Log.d(TAG, "Mint: $mint")
+        Log.d(TAG, "Memo: ${memo ?: "none"}")
 
         serviceScope.launch {
             try {
                 if (peerID != null) {
                     // Send to specific peer
-                    Log.d(TAG, "Sending TEXT to specific peer: $peerID")
+                    Log.d(TAG, "📤 Sending TEXT to specific peer: $peerID")
                     meshService.sendMessageToPeer(peerID, messageText)
                 } else {
                     // Broadcast to all nearby peers
-                    Log.d(TAG, "Broadcasting TEXT to all nearby peers")
+                    Log.d(TAG, "📡 Broadcasting TEXT to all nearby peers")
                     meshService.sendMessage(messageText)
                 }
 
@@ -302,6 +316,50 @@ class BluetoothEcashService(private val context: Context) {
      */
     fun getAvailablePeers(): List<PeerInfo> {
         return meshService.getAllPeers()
+    }
+
+    /**
+     * Get peer info for a specific peerID (for checking Nostr capability)
+     */
+    fun getPeerInfo(peerID: String): me.bitpoints.wallet.mesh.PeerInfo? {
+        return try {
+            meshService.getPeerInfo(peerID)
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Get mesh service instance (for plugin access)
+     */
+    fun getMeshService(): me.bitpoints.wallet.mesh.BluetoothMeshService? {
+        return meshService
+    }
+
+    /**
+     * Get offline mutual favorites (not currently connected) - helper for plugin
+     */
+    fun getOfflineMutualFavorites(): List<me.bitpoints.wallet.favorites.FavoriteRelationship> {
+        try {
+            val ourFavorites = me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.getOurFavorites()
+            
+            // Get noise hex mapping for currently connected peers
+            val connectedNoiseHexes = meshService.getAllPeers()
+                .mapNotNull { it.noisePublicKey }
+                .map { it.joinToString("") { b -> "%02x".format(b) } }
+                .toSet()
+
+            // Filter offline mutual favorites (not currently connected)
+            return ourFavorites.filter { fav ->
+                val favPeerID = fav.peerNoisePublicKey.joinToString("") { b -> "%02x".format(b) }
+                // Exclude if mapped to a connected peer
+                !connectedNoiseHexes.contains(favPeerID)
+            }.filter { fav ->
+                // Only include mutual favorites
+                fav.isMutual
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get offline mutual favorites: ${e.message}")
+            return emptyList()
+        }
     }
 
     /**
@@ -407,7 +465,60 @@ class BluetoothEcashService(private val context: Context) {
      */
     fun sendTextMessageToPeer(peerID: String, message: String) {
         Log.d(TAG, "Sending text message to $peerID: ${message.take(30)}...")
-        meshService.sendMessageToPeer(peerID, message)
+        
+        // Convert [FAVORITE_REQUEST] to [FAVORITED] for Bitchat compatibility
+        // Also handle favorite notifications through MessageRouter for proper routing
+        if (message.startsWith("[FAVORITE_REQUEST]:") || message.startsWith("[FAVORITED]:") || message.startsWith("[UNFAVORITED]:")) {
+            val processedMessage = if (message.startsWith("[FAVORITE_REQUEST]:")) {
+                val npub = message.substringAfter(":", "").trim()
+                val converted = "[FAVORITED]:$npub"
+                Log.d(TAG, "🔄 Converting FAVORITE_REQUEST to FAVORITED for Bitchat compatibility")
+                converted
+            } else {
+                message
+            }
+            
+            // Extract isFavorite from processed message
+            val isFavorite = processedMessage.startsWith("[FAVORITED]:")
+            
+            // IMPORTANT: Update FavoritesPersistenceService first (matches Bitchat behavior)
+            // This ensures the favorite is stored locally before sending notification
+            try {
+                val peerInfo = meshService.getPeerInfo(peerID)
+                val noiseKey = peerInfo?.noisePublicKey
+                val nickname = peerInfo?.nickname ?: meshService.getPeerNicknames()[peerID] ?: peerID
+                
+                if (noiseKey != null) {
+                    me.bitpoints.wallet.favorites.FavoritesPersistenceService.shared.updateFavoriteStatus(
+                        noisePublicKey = noiseKey,
+                        nickname = nickname,
+                        isFavorite = isFavorite
+                    )
+                    Log.d(TAG, "✅ Updated FavoritesPersistenceService for $peerID: isFavorite=$isFavorite")
+                } else {
+                    Log.w(TAG, "⚠️ Could not find noise key for $peerID, favorite won't be persisted")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update FavoritesPersistenceService: ${e.message}")
+            }
+            
+            // Route through MessageRouter for proper mesh/Nostr routing
+            val messageRouter = try {
+                me.bitpoints.wallet.services.MessageRouter.tryGetInstance()
+            } catch (_: Exception) { null }
+            
+            if (messageRouter != null) {
+                messageRouter.sendFavoriteNotification(peerID, isFavorite)
+                Log.d(TAG, "✅ Routed favorite notification via MessageRouter")
+            } else {
+                // Fallback: send directly via sendMessageToPeer
+                meshService.sendMessageToPeer(peerID, processedMessage)
+                Log.d(TAG, "⚠️ MessageRouter not available, sent favorite notification directly")
+            }
+        } else {
+            // Regular message - send directly
+            meshService.sendMessageToPeer(peerID, message)
+        }
     }
 
     /**
@@ -434,6 +545,11 @@ class BluetoothEcashService(private val context: Context) {
                     Log.i(TAG, "✅ Processing FAVORITE_ACCEPTED from $fromPeerID with npub: ${npub.take(16)}...")
                     delegate?.onFavoriteAcceptedReceived(fromPeerID, npub)
                     Log.i(TAG, "✅ Delegate notified for FAVORITE_ACCEPTED")
+                }
+                content.startsWith("[FAVORITED]:") -> {
+                    Log.i(TAG, "⭐ Processing FAVORITED notification from $fromPeerID with npub: ${npub.take(16)}...")
+                    delegate?.onFavoriteNotificationReceived(fromPeerID, npub, true)
+                    Log.i(TAG, "⭐ Delegate notified for FAVORITED")
                 }
                 content.startsWith("[UNFAVORITED]:") -> {
                     Log.i(TAG, "💔 Processing UNFAVORITE notification from $fromPeerID with npub: ${npub.take(16)}...")
