@@ -3,6 +3,7 @@ import { useUiStore } from "stores/ui";
 import { Clipboard } from "@capacitor/clipboard";
 import { SafeArea } from "capacitor-plugin-safe-area";
 import { useSettingsStore } from "stores/settings";
+import { useMintsStore } from "stores/mints";
 window.LOCALE = "en";
 // window.EventHub = new Vue();
 
@@ -227,6 +228,25 @@ window.windowMixin = {
     const language = this.$q.localStorage.getItem("cashu.language");
     if (language) {
       this.$i18n.locale = language;
+    }
+
+    // Migration: Handle legacy activeUnit for wallet display
+    const settingsStore = useSettingsStore();
+    const mintsStore = useMintsStore();
+    // Check if walletDisplayUnit has been set (new setting)
+    const walletDisplayUnit = this.$q.localStorage.getItem("cashu.settings.walletDisplayUnit");
+    if (!walletDisplayUnit) {
+      // First time with new setting - check if user was explicitly using points
+      const activeUnit = this.$q.localStorage.getItem("cashu.activeUnit");
+      if (activeUnit === "points") {
+        // User was explicitly using points, preserve this for wallet display only
+        settingsStore.walletDisplayUnit = "points";
+      } else {
+        // Default to sats for wallet display
+        settingsStore.walletDisplayUnit = "sat";
+      }
+      // Reset activeUnit to sat for the rest of the app
+      mintsStore.activeUnit = "sat";
     }
 
     // only for iOS

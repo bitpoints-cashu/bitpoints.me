@@ -257,14 +257,6 @@
     </q-card>
   </q-dialog>
 
-  <!-- WELCOME DIALOG  -->
-  <WelcomeDialog
-    :welcome-dialog="welcomeDialog"
-    :trigger-pwa-install="triggerPwaInstall"
-    :set-tab="setTab"
-    :get-pwa-display-mode="getPwaDisplayMode"
-    :set-welcome-dialog-seen="setWelcomeDialogSeen"
-  />
 
   <!-- INVOICE DETAILS  -->
   <InvoiceDetailDialog v-model="showInvoiceDetails" />
@@ -360,7 +352,6 @@ import BalanceView from "components/BalanceView.vue";
 import MintSettings from "components/MintSettings.vue";
 import HistoryTable from "components/HistoryTable.vue";
 import NoMintWarnBanner from "components/NoMintWarnBanner.vue";
-import WelcomeDialog from "components/WelcomeDialog.vue";
 import SendTokenDialog from "components/SendTokenDialog.vue";
 import PayInvoiceDialog from "components/PayInvoiceDialog.vue";
 import InvoiceDetailDialog from "components/InvoiceDetailDialog.vue";
@@ -417,7 +408,6 @@ export default {
     MintSettings,
     HistoryTable,
     NoMintWarnBanner,
-    WelcomeDialog,
     SendTokenDialog,
     ReceiveTokenDialog,
     PayInvoiceDialog,
@@ -461,9 +451,6 @@ export default {
       },
       payments: [],
       paymentsChart: {
-        show: false,
-      },
-      welcomeDialog: {
         show: false,
       },
       baseHost: location.protocol + "//" + location.host,
@@ -693,10 +680,8 @@ export default {
       this.focusInput("parseDialogInput");
     },
     showWelcomePage: function () {
-      if (!useWelcomeStore().termsAccepted) {
-        useWelcomeStore().showWelcome = true;
-      }
-      if (useWelcomeStore().showWelcome) {
+      const welcomeStore = useWelcomeStore();
+      if (!welcomeStore.termsAccepted || welcomeStore.showWelcome) {
         const currentQuery = window.location.search;
         const currentHash = window.location.hash;
         this.$router.push("/welcome" + currentQuery + currentHash);
@@ -772,7 +757,7 @@ export default {
       // Wait for the user to respond to the prompt
       this.deferredPWAInstallPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === "accepted") {
-          this.setWelcomeDialogSeen();
+          // PWA install completed successfully
         }
       });
     },

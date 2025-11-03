@@ -10,8 +10,9 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { getShortUrl } from "src/js/wallet-helpers";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 import { useMintsStore } from "stores/mints";
+import { useSettingsStore } from "stores/settings";
 export default defineComponent({
   name: "ToggleUnit",
   mixins: [windowMixin],
@@ -33,18 +34,16 @@ export default defineComponent({
   mounted() {},
   watch: {},
   computed: {
-    ...mapState(useMintsStore, ["activeUnit", "activeUnitLabel"]),
+    ...mapState(useSettingsStore, ["walletDisplayUnit"]),
     activeUnitLabelAdopted: function () {
-      // Show Points when unit is sat
-      if (this.activeUnit === "sat") {
-        return "Points";
-      } else {
-        return this.activeUnitLabel;
-      }
+      return this.walletDisplayUnit === "sat" ? "Sats" : "Points";
     },
   },
   methods: {
-    ...mapActions(useMintsStore, ["toggleUnit"]),
+    toggleUnit: function () {
+      const settingsStore = useSettingsStore();
+      settingsStore.walletDisplayUnit = this.walletDisplayUnit === "sat" ? "points" : "sat";
+    },
   },
 });
 </script>

@@ -20,6 +20,10 @@ end
 target 'App' do
   capacitor_pods
   # Add your Pods here
+
+  # Google Sign-In and Drive API for Google Drive backups
+  pod 'GoogleSignIn'
+  pod 'GoogleAPIClientForREST/Drive', '~> 3.0'
 end
 
 post_install do |installer|

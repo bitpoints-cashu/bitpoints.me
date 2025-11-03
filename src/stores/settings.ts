@@ -90,6 +90,14 @@ export const useSettingsStore = defineStore("settings", {
         "cashu.settings.nostrMintBackupEnabled",
         true
       ),
+      walletDisplayUnit: useLocalStorage<string>(
+        "cashu.settings.walletDisplayUnit",
+        "sat"
+      ),
+      googleDriveBackupEnabled: useLocalStorage<boolean>(
+        "cashu.settings.googleDriveBackupEnabled",
+        false
+      ),
     };
   },
 });

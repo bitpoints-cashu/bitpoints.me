@@ -58,7 +58,7 @@
                 <strong>
                   <AnimatedNumber
                     :value="getTotalBalance"
-                    :format="(val) => formatCurrencyDisplay(val, activeUnit)"
+                    :format="(val) => this.formatCurrency(val, walletDisplayUnit)"
                     class="q-my-none q-py-none cursor-pointer"
                   />
                 </strong>
@@ -170,7 +170,7 @@ export default defineComponent({
       "bitcoinPrices",
       "currentCurrencyPrice",
     ]),
-    ...mapState(useSettingsStore, ["bitcoinPriceCurrency"]),
+    ...mapState(useSettingsStore, ["bitcoinPriceCurrency", "walletDisplayUnit"]),
     ...mapWritableState(useUiStore, ["hideBalance", "lastBalanceCached"]),
     pendingBalance: function () {
       return -this.historyTokens
@@ -233,16 +233,6 @@ export default defineComponent({
       this.activeUnit =
         units[(units.indexOf(this.activeUnit) + 1) % units.length];
       return this.activeUnit;
-    },
-    formatCurrencyDisplay: function (value: number, currency: string) {
-      // If currency is 'sat', display as 'points'
-      if (currency === "sat") {
-        return (
-          new Intl.NumberFormat(navigator.language).format(value) + " points"
-        );
-      }
-      // For other currencies, use the normal formatCurrency function
-      return this.formatCurrency(value, currency);
     },
   },
 });

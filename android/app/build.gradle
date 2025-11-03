@@ -90,6 +90,11 @@ dependencies {
 
     // Tink for XChaCha20Poly1305 encryption (NIP-44)
     implementation "com.google.crypto.tink:tink-android:1.12.0"
+
+    // Google Sign-In and Drive API for Google Drive backups
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    implementation 'com.google.api-client:google-api-client-android:2.0.0'
+    implementation 'com.google.apis:google-api-services-drive:v3-rev20231130-2.0.0'
 }
 
 apply from: 'capacitor.build.gradle'

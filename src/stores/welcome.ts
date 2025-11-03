@@ -47,13 +47,13 @@ export const useWelcomeStore = defineStore("welcome", {
   },
   actions: {
     /**
-     * Initializes the welcome dialog based on local storage.
-     * Should be called when the store is initialized.
+     * Initializes the welcome flow.
+     * Called when the welcome page component is mounted.
+     * The component itself handles redirect if welcome is not needed.
      */
     initializeWelcome() {
-      if (!this.showWelcome) {
-        window.location.href = "/";
-      }
+      // Initialization logic if needed
+      // Redirect logic is handled by the WelcomePage component
     },
 
     /**
