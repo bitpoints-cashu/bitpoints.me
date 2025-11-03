@@ -45,6 +45,7 @@ function getBrandConfig(brandId) {
         domain: "bitpoints.me",
         logoPath: "bitpoints-logo.png",
         logoAlt: "Bitpoints",
+        iconPath: "icon.png", // Root icon.png for all platforms
         colors: {
           primary: "#ff6b35",
           secondary: "#6b4fbb",
@@ -64,6 +65,7 @@ function getBrandConfig(brandId) {
         domain: "points.trailscoffee.com",
         logoPath: "trails-logo.png",
         logoAlt: "Trails Coffee",
+        iconPath: "src/assets/brands/trails/trails-iso.png", // Trails coffee icon for PWA
         colors: {
           primary: "#8B4513",
           secondary: "#D2691E",
@@ -316,6 +318,11 @@ module.exports = configure(function (ctx) {
         json.description = brandConfig.description;
         json.theme_color = brandConfig.themeColor;
         json.background_color = brandConfig.colors.background;
+
+        // Note: Icons should be generated separately based on brand
+        // For trails brand, use trails-iso.png; for bitpoints, use icon.png
+        // Icon paths in manifest should point to public/icons/icon-*.png
+        // The actual icon files should be generated before build based on brandConfig.iconPath
       },
       // Override productName and productDescription for index.html template
       // Note: These come from package.json but we transform them in HTML after processing

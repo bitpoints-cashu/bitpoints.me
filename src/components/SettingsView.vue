@@ -1451,6 +1451,34 @@
           </q-list>
         </div>
 
+        <!-- wallet display -->
+        <div class="q-py-sm q-px-xs text-left" on-left>
+          <q-list padding>
+            <q-item>
+              <q-item-section>
+                <q-item-label overline class="text-weight-bold">Wallet Display</q-item-label>
+                <q-item-label caption>Choose which balance types to show on the wallet page</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showBitcoin"
+                @update:model-value="handleBitcoinToggle"
+                label="Show Bitcoin (sats)"
+                color="primary"
+              />
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showPoints"
+                @update:model-value="handlePointsToggle"
+                label="Show Points"
+                color="primary"
+              />
+            </q-item>
+          </q-list>
+        </div>
+
         <!-- theme -->
         <div class="q-py-mb q-px-xs text-left" on-left>
           <q-list padding>
@@ -2214,6 +2242,8 @@ export default defineComponent({
       "auditorUrl",
       "auditorApiUrl",
       "bip177BitcoinSymbol",
+      "showBitcoin",
+      "showPoints",
       "multinutEnabled",
       "nostrMintBackupEnabled",
       "googleDriveBackupEnabled",
@@ -2636,6 +2666,26 @@ export default defineComponent({
         type: "positive",
         message: enabled ? "Google Drive backup enabled" : "Google Drive backup disabled",
       });
+    },
+    handleBitcoinToggle: function (enabled) {
+      if (!enabled && !this.showPoints) {
+        // Prevent disabling Bitcoin if Points is also disabled
+        this.showBitcoin = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
+      }
+    },
+    handlePointsToggle: function (enabled) {
+      if (!enabled && !this.showBitcoin) {
+        // Prevent disabling Points if Bitcoin is also disabled
+        this.showPoints = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
+      }
     },
   },
   created: async function () {

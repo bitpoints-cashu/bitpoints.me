@@ -170,7 +170,7 @@ export default defineComponent({
       "bitcoinPrices",
       "currentCurrencyPrice",
     ]),
-    ...mapState(useSettingsStore, ["bitcoinPriceCurrency", "walletDisplayUnit"]),
+    ...mapState(useSettingsStore, ["bitcoinPriceCurrency", "walletDisplayUnit", "showBitcoin", "showPoints"]),
     ...mapWritableState(useUiStore, ["hideBalance", "lastBalanceCached"]),
     pendingBalance: function () {
       return -this.historyTokens
@@ -187,7 +187,15 @@ export default defineComponent({
         })
       );
 
-      return mintBalances;
+      // Filter balances based on settings
+      const filteredBalances = mintBalances.filter(balance => {
+        if (balance.value === "sat" && this.showBitcoin) return true;
+        if (balance.value === "points" && this.showPoints) return true;
+        return false;
+      });
+
+      // Fallback: if no balances are enabled (shouldn't happen due to validation), show all
+      return filteredBalances.length > 0 ? filteredBalances : mintBalances;
     },
     allMintKeysets: function () {
       return [].concat(...this.mints.map((m) => m.keysets));
@@ -221,6 +229,29 @@ export default defineComponent({
   },
   mounted() {
     this.fetchBitcoinPrice();
+    // Sync walletDisplayUnit with activeUnit on mount
+    this.syncUnits();
+  },
+  watch: {
+    walletDisplayUnit: function (newUnit) {
+      // When walletDisplayUnit changes, update activeUnit to match
+      if (newUnit !== this.activeUnit) {
+        this.activeUnit = newUnit;
+      }
+    },
+    activeUnit: function (newUnit) {
+      // When activeUnit changes, update walletDisplayUnit to match
+      const settingsStore = useSettingsStore();
+      if (newUnit !== settingsStore.walletDisplayUnit) {
+        settingsStore.walletDisplayUnit = newUnit;
+      }
+    },
+    showBitcoin: function () {
+      this.validateActiveUnit();
+    },
+    showPoints: function () {
+      this.validateActiveUnit();
+    },
   },
   methods: {
     ...mapActions(useWalletStore, ["checkPendingTokens"]),
@@ -233,6 +264,22 @@ export default defineComponent({
       this.activeUnit =
         units[(units.indexOf(this.activeUnit) + 1) % units.length];
       return this.activeUnit;
+    },
+    syncUnits: function () {
+      // Ensure walletDisplayUnit and activeUnit are synchronized
+      const settingsStore = useSettingsStore();
+      if (settingsStore.walletDisplayUnit !== this.activeUnit) {
+        // Prioritize settings store value
+        this.activeUnit = settingsStore.walletDisplayUnit;
+      }
+    },
+    validateActiveUnit: function () {
+      // Ensure activeUnit is valid based on current settings
+      const validUnits = this.balancesOptions.map(b => b.value);
+      if (this.activeUnit && !validUnits.includes(this.activeUnit)) {
+        // Switch to first available unit
+        this.activeUnit = validUnits[0] || "sat";
+      }
     },
   },
 });

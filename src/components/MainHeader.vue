@@ -122,7 +122,7 @@ import { useI18n } from "vue-i18n";
 import { getBrand, getBrandName, getActiveBrandId } from "src/utils/branding";
 
 // Import brand logos statically so Vite can bundle them
-import bitpointsLogo from "../assets/brands/bitpoints/bitpoints-logo.png";
+import bitpointsLogo from "../assets/brands/bitpoints/bitpoints-logo-purple.png";
 import trailsLogo from "../assets/brands/trails/trails-logo.png";
 
 export default defineComponent({
