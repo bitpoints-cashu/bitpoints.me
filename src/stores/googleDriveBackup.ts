@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia';
-import { useLocalStorage } from '@vueuse/core';
+import { defineStore } from "pinia";
+import { useLocalStorage } from "@vueuse/core";
 
 // Import Google Drive plugin - will be undefined in PWA mode
-import GoogleDrive from 'src/plugins/google-drive';
+import GoogleDrive from "src/plugins/google-drive";
 
 export interface DriveFileMetadata {
   id: string;
@@ -17,17 +17,27 @@ export interface GoogleDriveBackupState {
   restoreInProgress: boolean;
 }
 
-export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
+export const useGoogleDriveBackupStore = defineStore("googleDriveBackup", {
   state: (): GoogleDriveBackupState => ({
-    isAuthenticated: useLocalStorage<boolean>('cashu.googleDrive.isAuthenticated', false),
-    lastBackupTimestamp: useLocalStorage<number>('cashu.googleDrive.lastBackupTimestamp', 0),
+    isAuthenticated: useLocalStorage<boolean>(
+      "cashu.googleDrive.isAuthenticated",
+      false
+    ),
+    lastBackupTimestamp: useLocalStorage<number>(
+      "cashu.googleDrive.lastBackupTimestamp",
+      0
+    ),
     backupInProgress: false,
     restoreInProgress: false,
   }),
 
   getters: {
-    isBackupAvailable: (state) => state.isAuthenticated && !state.backupInProgress,
-    lastBackupDate: (state) => state.lastBackupTimestamp > 0 ? new Date(state.lastBackupTimestamp) : null,
+    isBackupAvailable: (state) =>
+      state.isAuthenticated && !state.backupInProgress,
+    lastBackupDate: (state) =>
+      state.lastBackupTimestamp > 0
+        ? new Date(state.lastBackupTimestamp)
+        : null,
     isPluginAvailable: () => !!GoogleDrive,
   },
 
@@ -37,7 +47,9 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
      */
     async connect(): Promise<void> {
       if (!this.isPluginAvailable) {
-        throw new Error('Google Drive backup is only available on mobile devices (Android/iOS)');
+        throw new Error(
+          "Google Drive backup is only available on mobile devices (Android/iOS)"
+        );
       }
 
       try {
@@ -57,7 +69,7 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
         await GoogleDrive.disconnect();
       } catch (error) {
         // Ignore disconnect errors
-        console.warn('Google Drive disconnect error:', error);
+        console.warn("Google Drive disconnect error:", error);
       } finally {
         this.isAuthenticated = false;
       }
@@ -68,11 +80,13 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
      */
     async storeBackup(content: string): Promise<void> {
       if (!this.isPluginAvailable) {
-        throw new Error('Google Drive backup is only available on mobile devices (Android/iOS)');
+        throw new Error(
+          "Google Drive backup is only available on mobile devices (Android/iOS)"
+        );
       }
 
       if (!this.isAuthenticated) {
-        throw new Error('Not authenticated with Google Drive');
+        throw new Error("Not authenticated with Google Drive");
       }
 
       this.backupInProgress = true;
@@ -88,15 +102,17 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
      */
     async fetchAllMetadata(): Promise<DriveFileMetadata[]> {
       if (!this.isPluginAvailable) {
-        throw new Error('Google Drive backup is only available on mobile devices (Android/iOS)');
+        throw new Error(
+          "Google Drive backup is only available on mobile devices (Android/iOS)"
+        );
       }
 
       if (!this.isAuthenticated) {
-        throw new Error('Not authenticated with Google Drive');
+        throw new Error("Not authenticated with Google Drive");
       }
 
       const response = await GoogleDrive.fetchAllMetadata();
-      return response.files.map(file => ({
+      return response.files.map((file) => ({
         id: file.id,
         name: file.name,
         createdTime: new Date(file.createdTime),
@@ -108,11 +124,13 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
      */
     async fetchFileContent(fileId: string): Promise<string> {
       if (!this.isPluginAvailable) {
-        throw new Error('Google Drive backup is only available on mobile devices (Android/iOS)');
+        throw new Error(
+          "Google Drive backup is only available on mobile devices (Android/iOS)"
+        );
       }
 
       if (!this.isAuthenticated) {
-        throw new Error('Not authenticated with Google Drive');
+        throw new Error("Not authenticated with Google Drive");
       }
 
       const response = await GoogleDrive.fetchFileContent({ fileId });
@@ -126,7 +144,7 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
       const backups = await this.fetchAllMetadata();
 
       if (backups.length === 0) {
-        throw new Error('No backups found');
+        throw new Error("No backups found");
       }
 
       // Sort by creation time (newest first) and get the first one
@@ -143,11 +161,13 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
      */
     async trashBackup(filename: string): Promise<void> {
       if (!this.isPluginAvailable) {
-        throw new Error('Google Drive backup is only available on mobile devices (Android/iOS)');
+        throw new Error(
+          "Google Drive backup is only available on mobile devices (Android/iOS)"
+        );
       }
 
       if (!this.isAuthenticated) {
-        throw new Error('Not authenticated with Google Drive');
+        throw new Error("Not authenticated with Google Drive");
       }
 
       await GoogleDrive.trash({ path: filename });
@@ -166,7 +186,7 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
       const vault = {
         mnemonic: mnemonic,
         createdAt: Date.now(),
-        version: '1.0',
+        version: "1.0",
       };
 
       const content = JSON.stringify(vault);
@@ -185,7 +205,7 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
         const vault = JSON.parse(content);
 
         if (!vault.mnemonic || !Array.isArray(vault.mnemonic)) {
-          throw new Error('Invalid backup format');
+          throw new Error("Invalid backup format");
         }
 
         return vault.mnemonic;
@@ -209,7 +229,10 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
     /**
      * Get backup information
      */
-    async getBackupInfo(): Promise<{ timestamp: number; version: string } | null> {
+    async getBackupInfo(): Promise<{
+      timestamp: number;
+      version: string;
+    } | null> {
       try {
         const backups = await this.fetchAllMetadata();
         if (backups.length === 0) return null;
@@ -221,7 +244,7 @@ export const useGoogleDriveBackupStore = defineStore('googleDriveBackup', {
         // TODO: Parse version from backup content
         return {
           timestamp: latest.createdTime.getTime(),
-          version: '1.0', // Placeholder
+          version: "1.0", // Placeholder
         };
       } catch {
         return null;

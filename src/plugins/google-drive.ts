@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin } from "@capacitor/core";
 
 export interface GoogleDrivePlugin {
   connect(): Promise<void>;
@@ -15,6 +15,6 @@ export interface DriveFileMetadata {
   createdTime: string; // ISO string
 }
 
-const GoogleDrive = registerPlugin<GoogleDrivePlugin>('GoogleDrive');
+const GoogleDrive = registerPlugin<GoogleDrivePlugin>("GoogleDrive");
 
 export default GoogleDrive;

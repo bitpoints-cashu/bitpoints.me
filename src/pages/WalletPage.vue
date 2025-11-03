@@ -257,7 +257,6 @@
     </q-card>
   </q-dialog>
 
-
   <!-- INVOICE DETAILS  -->
   <InvoiceDetailDialog v-model="showInvoiceDetails" />
 

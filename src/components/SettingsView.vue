@@ -96,16 +96,25 @@
         <!-- Google Drive not available in PWA mode -->
         <q-item v-if="!googleDriveStore.isPluginAvailable">
           <q-item-section>
-            <q-item-label overline class="text-weight-bold">Google Drive Backup</q-item-label>
-            <q-item-label caption>Google Drive backup is only available on mobile devices (Android/iOS apps)</q-item-label>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive Backup</q-item-label
+            >
+            <q-item-label caption
+              >Google Drive backup is only available on mobile devices
+              (Android/iOS apps)</q-item-label
+            >
           </q-item-section>
         </q-item>
 
         <!-- Google Drive authentication status (mobile only) -->
         <q-item v-else-if="!googleDriveStore.isAuthenticated">
           <q-item-section>
-            <q-item-label overline class="text-weight-bold">Google Drive</q-item-label>
-            <q-item-label caption>Backup your seed phrase securely to Google Drive</q-item-label>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive</q-item-label
+            >
+            <q-item-label caption
+              >Backup your seed phrase securely to Google Drive</q-item-label
+            >
           </q-item-section>
           <q-item-section side>
             <q-btn outline color="primary" @click="authenticateGoogleDrive">
@@ -117,20 +126,35 @@
         <!-- Google Drive backup settings (when authenticated) -->
         <q-item v-else>
           <q-item-section>
-            <q-item-label overline class="text-weight-bold">Google Drive Backup</q-item-label>
+            <q-item-label overline class="text-weight-bold"
+              >Google Drive Backup</q-item-label
+            >
             <q-item-label caption>
-              Backup enabled - Last backup: {{ googleDriveStore.lastBackupDate ? googleDriveStore.lastBackupDate.toLocaleDateString() : 'Never' }}
+              Backup enabled - Last backup:
+              {{
+                googleDriveStore.lastBackupDate
+                  ? googleDriveStore.lastBackupDate.toLocaleDateString()
+                  : "Never"
+              }}
             </q-item-label>
           </q-item-section>
           <q-item-section side>
-            <q-toggle v-model="googleDriveBackupEnabled" @update:model-value="onGoogleDriveBackupToggle" />
+            <q-toggle
+              v-model="googleDriveBackupEnabled"
+              @update:model-value="onGoogleDriveBackupToggle"
+            />
           </q-item-section>
         </q-item>
 
         <!-- Backup now button (when authenticated) -->
         <q-item v-if="googleDriveStore.isAuthenticated">
           <q-item-section>
-            <q-btn outline color="primary" @click="backupSeedPhraseToDrive" :loading="googleDriveStore.backupInProgress">
+            <q-btn
+              outline
+              color="primary"
+              @click="backupSeedPhraseToDrive"
+              :loading="googleDriveStore.backupInProgress"
+            >
               Backup Seed Phrase Now
             </q-btn>
           </q-item-section>
@@ -139,7 +163,12 @@
         <!-- Restore from Google Drive button (when authenticated) -->
         <q-item v-if="googleDriveStore.isAuthenticated">
           <q-item-section>
-            <q-btn outline color="warning" @click="restoreSeedPhraseFromDrive" :loading="googleDriveStore.restoreInProgress">
+            <q-btn
+              outline
+              color="warning"
+              @click="restoreSeedPhraseFromDrive"
+              :loading="googleDriveStore.restoreInProgress"
+            >
               Restore from Google Drive
             </q-btn>
           </q-item-section>
@@ -1127,8 +1156,13 @@
           <!-- wallet display unit -->
           <q-item>
             <q-item-section>
-              <q-item-label overline class="text-weight-bold">Wallet Display Unit</q-item-label>
-              <q-item-label caption>Choose how to display amounts on the wallet screen</q-item-label>
+              <q-item-label overline class="text-weight-bold"
+                >Wallet Display Unit</q-item-label
+              >
+              <q-item-label caption
+                >Choose how to display amounts on the wallet
+                screen</q-item-label
+              >
             </q-item-section>
           </q-item>
           <q-item>
@@ -1137,7 +1171,7 @@
                 v-model="walletDisplayUnit"
                 :options="[
                   { label: 'Sats', value: 'sat' },
-                  { label: 'Points', value: 'points' }
+                  { label: 'Points', value: 'points' },
                 ]"
                 rounded
                 outlined
@@ -1456,8 +1490,13 @@
           <q-list padding>
             <q-item>
               <q-item-section>
-                <q-item-label overline class="text-weight-bold">Wallet Display</q-item-label>
-                <q-item-label caption>Choose which balance types to show on the wallet page</q-item-label>
+                <q-item-label overline class="text-weight-bold"
+                  >Wallet Display</q-item-label
+                >
+                <q-item-label caption
+                  >Choose which balance types to show on the wallet
+                  page</q-item-label
+                >
               </q-item-section>
             </q-item>
             <q-item>
@@ -2585,7 +2624,8 @@ export default defineComponent({
       if (!this.googleDriveStore.isPluginAvailable) {
         this.$q.notify({
           type: "info",
-          message: "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
         });
         return;
       }
@@ -2609,7 +2649,8 @@ export default defineComponent({
       if (!this.googleDriveStore.isPluginAvailable) {
         this.$q.notify({
           type: "info",
-          message: "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
         });
         return;
       }
@@ -2617,7 +2658,20 @@ export default defineComponent({
       try {
         // TODO: Get mnemonic from seed store
         // For now, use a placeholder
-        const mnemonic = ["abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "about"];
+        const mnemonic = [
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "abandon",
+          "about",
+        ];
 
         await this.googleDriveStore.backupSeedPhrase(mnemonic);
         this.$q.notify({
@@ -2637,7 +2691,8 @@ export default defineComponent({
       if (!this.googleDriveStore.isPluginAvailable) {
         this.$q.notify({
           type: "info",
-          message: "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+          message:
+            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
         });
         return;
       }
@@ -2664,7 +2719,9 @@ export default defineComponent({
       // Settings are automatically saved via v-model binding
       this.$q.notify({
         type: "positive",
-        message: enabled ? "Google Drive backup enabled" : "Google Drive backup disabled",
+        message: enabled
+          ? "Google Drive backup enabled"
+          : "Google Drive backup disabled",
       });
     },
     handleBitcoinToggle: function (enabled) {

@@ -234,7 +234,9 @@ window.windowMixin = {
     const settingsStore = useSettingsStore();
     const mintsStore = useMintsStore();
     // Check if walletDisplayUnit has been set (new setting)
-    const walletDisplayUnit = this.$q.localStorage.getItem("cashu.settings.walletDisplayUnit");
+    const walletDisplayUnit = this.$q.localStorage.getItem(
+      "cashu.settings.walletDisplayUnit"
+    );
     if (!walletDisplayUnit) {
       // First time with new setting - check if user was explicitly using points
       const activeUnit = this.$q.localStorage.getItem("cashu.activeUnit");

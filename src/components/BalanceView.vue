@@ -58,7 +58,9 @@
                 <strong>
                   <AnimatedNumber
                     :value="getTotalBalance"
-                    :format="(val) => this.formatCurrency(val, walletDisplayUnit)"
+                    :format="
+                      (val) => this.formatCurrency(val, walletDisplayUnit)
+                    "
                     class="q-my-none q-py-none cursor-pointer"
                   />
                 </strong>
@@ -170,7 +172,12 @@ export default defineComponent({
       "bitcoinPrices",
       "currentCurrencyPrice",
     ]),
-    ...mapState(useSettingsStore, ["bitcoinPriceCurrency", "walletDisplayUnit", "showBitcoin", "showPoints"]),
+    ...mapState(useSettingsStore, [
+      "bitcoinPriceCurrency",
+      "walletDisplayUnit",
+      "showBitcoin",
+      "showPoints",
+    ]),
     ...mapWritableState(useUiStore, ["hideBalance", "lastBalanceCached"]),
     pendingBalance: function () {
       return -this.historyTokens
@@ -188,7 +195,7 @@ export default defineComponent({
       );
 
       // Filter balances based on settings
-      const filteredBalances = mintBalances.filter(balance => {
+      const filteredBalances = mintBalances.filter((balance) => {
         if (balance.value === "sat" && this.showBitcoin) return true;
         if (balance.value === "points" && this.showPoints) return true;
         return false;
@@ -275,7 +282,7 @@ export default defineComponent({
     },
     validateActiveUnit: function () {
       // Ensure activeUnit is valid based on current settings
-      const validUnits = this.balancesOptions.map(b => b.value);
+      const validUnits = this.balancesOptions.map((b) => b.value);
       if (this.activeUnit && !validUnits.includes(this.activeUnit)) {
         // Switch to first available unit
         this.activeUnit = validUnits[0] || "sat";

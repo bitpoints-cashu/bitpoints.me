@@ -45,7 +45,11 @@ export default defineComponent({
     },
   },
   computed: {
-    ...mapState(useSettingsStore, ["walletDisplayUnit", "showBitcoin", "showPoints"]),
+    ...mapState(useSettingsStore, [
+      "walletDisplayUnit",
+      "showBitcoin",
+      "showPoints",
+    ]),
     activeUnitLabelAdopted: function () {
       return this.walletDisplayUnit === "sat" ? "Sats" : "Points";
     },
@@ -57,7 +61,8 @@ export default defineComponent({
   methods: {
     toggleUnit: function () {
       const settingsStore = useSettingsStore();
-      settingsStore.walletDisplayUnit = this.walletDisplayUnit === "sat" ? "points" : "sat";
+      settingsStore.walletDisplayUnit =
+        this.walletDisplayUnit === "sat" ? "points" : "sat";
     },
     handleUnitAvailabilityChange: function () {
       const settingsStore = useSettingsStore();
@@ -66,7 +71,11 @@ export default defineComponent({
       // If current unit is disabled, switch to the other enabled unit
       if (currentUnit === "sat" && !this.showBitcoin && this.showPoints) {
         settingsStore.walletDisplayUnit = "points";
-      } else if (currentUnit === "points" && !this.showPoints && this.showBitcoin) {
+      } else if (
+        currentUnit === "points" &&
+        !this.showPoints &&
+        this.showBitcoin
+      ) {
         settingsStore.walletDisplayUnit = "sat";
       }
 
@@ -79,7 +88,11 @@ export default defineComponent({
       // If only one is enabled, ensure we're showing that one
       if (this.showBitcoin && !this.showPoints && currentUnit !== "sat") {
         settingsStore.walletDisplayUnit = "sat";
-      } else if (this.showPoints && !this.showBitcoin && currentUnit !== "points") {
+      } else if (
+        this.showPoints &&
+        !this.showBitcoin &&
+        currentUnit !== "points"
+      ) {
         settingsStore.walletDisplayUnit = "points";
       }
     },

@@ -98,14 +98,8 @@ export const useSettingsStore = defineStore("settings", {
         "cashu.settings.googleDriveBackupEnabled",
         false
       ),
-      showBitcoin: useLocalStorage<boolean>(
-        "cashu.settings.showBitcoin",
-        true
-      ),
-      showPoints: useLocalStorage<boolean>(
-        "cashu.settings.showPoints",
-        false
-      ),
+      showBitcoin: useLocalStorage<boolean>("cashu.settings.showBitcoin", true),
+      showPoints: useLocalStorage<boolean>("cashu.settings.showPoints", false),
     };
   },
 });

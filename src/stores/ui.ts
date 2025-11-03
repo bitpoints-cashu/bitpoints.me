@@ -100,7 +100,10 @@ export const useUiStore = defineStore("ui", {
           return "****";
         }
         if (currency == "points") return this.formatPoints(value);
-        if (currency == "sat") return new Intl.NumberFormat(navigator.language).format(value) + " sats";
+        if (currency == "sat")
+          return (
+            new Intl.NumberFormat(navigator.language).format(value) + " sats"
+          );
         if (currency == "msat") return this.fromMsat(value);
         if (currency == "usd") value = value / 100;
         if (currency == "eur") value = value / 100;
