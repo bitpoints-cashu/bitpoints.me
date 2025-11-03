@@ -115,13 +115,6 @@ export interface BluetoothEcashPlugin {
   getUnclaimedTokens(): Promise<{ tokens: EcashMessage[] }>;
 
   /**
-   * Get offline favorites (favorites stored locally, not currently connected)
-   *
-   * @returns Array of offline favorite contacts
-   */
-  getOfflineFavorites?(): Promise<{ favorites: any[] }>;
-
-  /**
    * Mark a token as claimed after redemption
    *
    * @param options Message ID of the token
@@ -161,32 +154,291 @@ export interface BluetoothEcashPlugin {
   requestBatteryOptimizationExemption?(): Promise<void>;
 }
 
+// Detect if we're running in the native iOS app with WebKit bridge
+const isNativeIOS = Capacitor.getPlatform() === 'ios' && 
+                    typeof window.webkit?.messageHandlers?.bluetoothBridge !== 'undefined';
+
 console.log(
-  "🔵 [BluetoothEcash] Registering plugin, platform:",
-  Capacitor.getPlatform()
+  "🔵 [BluetoothEcash] Platform:",
+  Capacitor.getPlatform(),
+  "Native iOS:", isNativeIOS
 );
 
-const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
-  web: () => ({
-    // Web implementation (stub - Bluetooth not available in browser)
-    startService: async () => {
-      console.warn("Bluetooth mesh not available in web browser");
-    },
-    stopService: async () => {},
-    setNickname: async () => ({ nickname: "" }),
-    getNickname: async () => ({ nickname: "" }),
-    isBluetoothEnabled: async () => ({ enabled: false }),
-    requestBluetoothEnable: async () => ({ requested: false }),
-    sendToken: async () => ({ messageId: "" }),
-    sendTextMessage: async () => {},
-    getAvailablePeers: async () => ({ peers: [] }),
-    getUnclaimedTokens: async () => ({ tokens: [] }),
-    getOfflineFavorites: async () => ({ favorites: [] }),
-    markTokenClaimed: async () => {},
-    requestPermissions: async () => ({ granted: false }),
-    addListener: async () => ({ remove: () => {} }),
-  }),
-});
+// Native iOS WebKit bridge implementation
+const nativeIOSBridge = {
+  startService: async (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve();
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'startBluetoothService',
+        callbackId
+      });
+    });
+  },
+
+  stopService: async (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve();
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'stopBluetoothService',
+        callbackId
+      });
+    });
+  },
+
+  sendToken: async (options: SendTokenOptions): Promise<{ messageId: string }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'sendToken',
+        callbackId,
+        options
+      });
+    });
+  },
+
+  getAvailablePeers: async (): Promise<{ peers: Peer[] }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'getAvailablePeers',
+        callbackId
+      });
+    });
+  },
+
+  getUnclaimedTokens: async (): Promise<{ tokens: EcashMessage[] }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'getUnclaimedTokens',
+        callbackId
+      });
+    });
+  },
+
+  markTokenClaimed: async (options: { messageId: string }): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve();
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'markTokenClaimed',
+        callbackId,
+        messageId: options.messageId
+      });
+    });
+  },
+
+  setNickname: async (options: { nickname: string }): Promise<{ nickname: string }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'setNickname',
+        callbackId,
+        nickname: options.nickname
+      });
+    });
+  },
+
+  getNickname: async (): Promise<{ nickname: string }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'getNickname',
+        callbackId
+      });
+    });
+  },
+
+  isBluetoothEnabled: async (): Promise<{ enabled: boolean }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'isBluetoothEnabled',
+        callbackId
+      });
+    });
+  },
+
+  requestBluetoothEnable: async (): Promise<{ enabled?: boolean; requested?: boolean }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'requestBluetoothEnable',
+        callbackId
+      });
+    });
+  },
+
+  requestPermissions: async (): Promise<{ granted: boolean }> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve(event.detail);
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'requestPermissions',
+        callbackId
+      });
+    });
+  },
+
+  sendTextMessage: async (options: { peerID: string; message: string }): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const callbackId = Math.random().toString(36);
+      
+      const handleResponse = (event: CustomEvent) => {
+        window.removeEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener);
+        resolve();
+      };
+      
+      window.addEventListener(`bluetooth_callback_${callbackId}`, handleResponse as EventListener, { once: true });
+      
+      window.webkit.messageHandlers.bluetoothBridge.postMessage({
+        action: 'sendTextMessage',
+        callbackId,
+        peerID: options.peerID,
+        message: options.message
+      });
+    });
+  },
+
+  addListener: async (eventName: string, listenerFunc: (event: any) => void): Promise<{ remove: () => void }> => {
+    // Map event names to native iOS events
+    const eventMap: { [key: string]: string } = {
+      'ecashReceived': 'bluetooth_ecashReceived',
+      'peerDiscovered': 'bluetooth_peerDiscovered',
+      'peerLost': 'bluetooth_peerLost',
+      'tokenSent': 'bluetooth_tokenSent',
+      'tokenSendFailed': 'bluetooth_tokenSendFailed',
+      'tokenDelivered': 'bluetooth_tokenDelivered',
+      'favoriteNotificationReceived': 'bluetooth_favoriteNotificationReceived',
+      'favoriteRequestReceived': 'bluetooth_favoriteRequestReceived',
+      'favoriteAcceptedReceived': 'bluetooth_favoriteAcceptedReceived'
+    };
+
+    const nativeEventName = eventMap[eventName] || eventName;
+    
+    const wrappedListener = (event: CustomEvent) => {
+      listenerFunc(event.detail);
+    };
+
+    window.addEventListener(nativeEventName, wrappedListener as EventListener);
+
+    return {
+      remove: () => {
+        window.removeEventListener(nativeEventName, wrappedListener as EventListener);
+      }
+    };
+  }
+};
+
+const BluetoothEcash = isNativeIOS 
+  ? nativeIOSBridge
+  : registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
+      web: () => ({
+        // Web implementation (stub - Bluetooth not available in browser)
+        startService: async () => {
+          console.warn("Bluetooth mesh not available in web browser");
+        },
+        stopService: async () => {},
+        setNickname: async () => ({ nickname: "" }),
+        getNickname: async () => ({ nickname: "" }),
+        isBluetoothEnabled: async () => ({ enabled: false }),
+        requestBluetoothEnable: async () => ({ requested: false }),
+        sendToken: async () => ({ messageId: "" }),
+        sendTextMessage: async () => {},
+        getAvailablePeers: async () => ({ peers: [] }),
+        getUnclaimedTokens: async () => ({ tokens: [] }),
+        markTokenClaimed: async () => {},
+        requestPermissions: async () => ({ granted: false }),
+        addListener: async () => ({ remove: () => {} }),
+      }),
+    });
 
 console.log("🔵 [BluetoothEcash] Plugin registered successfully");
 
