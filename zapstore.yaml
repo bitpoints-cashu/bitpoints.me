@@ -1,8 +1,8 @@
 repository: https://github.com/bitpoints-cashu/bitpoints.me
 license: MIT
 icon: icon.png
-summary: A Cashu Ecash Wallet with Bluetooth Mesh Networking and Nostr Integration
-tags: bitcoin cashu nostr bluetooth mesh privacy ecash wallet offline payments
+summary: A Cashu Ecash Wallet with Bluetooth Mesh Networking, Nostr Integration, and PWA Support
+tags: bitcoin cashu nostr bluetooth mesh privacy ecash wallet offline payments pwa progressive-web-app
 assets:
   - bitpoints-v\d+\.\d+\.\d+-.*\.apk
 remote_metadata:
