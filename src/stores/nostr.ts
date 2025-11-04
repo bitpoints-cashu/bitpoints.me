@@ -18,6 +18,7 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils"; // already an inst
 import { useWalletStore } from "./wallet";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { useLocalStorage } from "@vueuse/core";
+import { generateDefaultUsername } from "src/utils/username";
 import { useSettingsStore } from "./settings";
 import { useReceiveTokensStore } from "./receiveTokensStore";
 import {
@@ -701,7 +702,7 @@ export const useNostrStore = defineStore("nostr", {
     async sendTokenViaNostr(
       token: string,
       recipientNpub: string,
-      senderNickname: string = "Bitpoints User"
+      senderNickname: string = generateDefaultUsername()
     ) {
       try {
         if (!this.ndk || !this.connected) {

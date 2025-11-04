@@ -13,42 +13,6 @@
     <q-separator />
 
     <q-card-section>
-      <q-input
-        v-model="localNickname"
-        label="Bluetooth Name"
-        hint="How you appear to nearby peers"
-        outlined
-        :rules="[
-          (val) => (val && val.length >= 3) || 'Minimum 3 characters',
-          (val) => (val && val.length <= 32) || 'Maximum 32 characters',
-        ]"
-      >
-        <template #prepend>
-          <q-icon name="person" />
-        </template>
-        <template #append>
-          <q-btn
-            v-if="nicknameChanged"
-            flat
-            dense
-            round
-            icon="check"
-            color="primary"
-            @click="saveNickname"
-          >
-            <q-tooltip>Apply changes</q-tooltip>
-          </q-btn>
-        </template>
-      </q-input>
-
-      <div class="text-caption text-grey-6 q-mt-xs">
-        Current: <strong>{{ bluetoothStore.nickname }}</strong>
-      </div>
-    </q-card-section>
-
-    <q-separator />
-
-    <q-card-section>
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
@@ -302,7 +266,6 @@ const emit = defineEmits<{
 const bluetoothStore = useBluetoothStore();
 const favoritesStore = useFavoritesStore();
 
-const localNickname = ref("");
 const isDesktop = computed(() => !Capacitor.isNativePlatform());
 
 const isWebBluetoothSupported = computed(() => {
@@ -314,23 +277,7 @@ const isWebBluetoothSupported = computed(() => {
   }
 });
 
-const nicknameChanged = computed(() => {
-  return localNickname.value !== bluetoothStore.nickname;
-});
 
-async function saveNickname() {
-  if (!localNickname.value || localNickname.value.length < 3) {
-    return;
-  }
-
-  try {
-    // Update nickname in store
-    await bluetoothStore.updateNickname(localNickname.value);
-    notifySuccess("Bluetooth name updated!");
-  } catch (error) {
-    console.error("Failed to update nickname:", error);
-  }
-}
 
 async function toggleBluetooth(enabled: boolean) {
   if (enabled) {
@@ -388,8 +335,6 @@ function showBatteryInfo() {
 }
 
 onMounted(async () => {
-  localNickname.value = bluetoothStore.nickname;
-
   // Check always-on status on mount
   if (!isDesktop.value) {
     await bluetoothStore.checkAlwaysOnStatus();

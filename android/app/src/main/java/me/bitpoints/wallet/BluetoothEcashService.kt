@@ -29,6 +29,17 @@ class BluetoothEcashService(private val context: Context) {
     companion object {
         private const val TAG = "BluetoothEcashService"
         private const val ECASH_MESSAGE_TYPE: UByte = 0xE1u  // Custom message type for ecash
+
+        /**
+         * Generate a default username with format "anonXXXX" where XXXX are random alphanumeric characters
+         */
+        fun generateDefaultUsername(): String {
+            val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            val randomPart = (1..4)
+                .map { chars.random() }
+                .joinToString("")
+            return "anon$randomPart"
+        }
     }
 
     private val meshService = BluetoothMeshService(context)
@@ -39,7 +50,7 @@ class BluetoothEcashService(private val context: Context) {
     private val receivedTokens = ConcurrentHashMap<String, EcashMessage>()
 
     // User configurable nickname
-    private var myNickname: String = "Bitpoints User"
+    private var myNickname: String = generateDefaultUsername()
 
     // Delegate for callbacks to UI
     var delegate: EcashDelegate? = null

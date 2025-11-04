@@ -189,7 +189,7 @@ class BluetoothEcashPlugin : Plugin() {
     @PluginMethod
     fun getNickname(call: PluginCall) {
         try {
-            val nickname = bluetoothService?.getNickname() ?: "Bitpoints User"
+            val nickname = bluetoothService?.getNickname() ?: BluetoothEcashService.generateDefaultUsername()
 
             val ret = JSObject()
             ret.put("nickname", nickname)

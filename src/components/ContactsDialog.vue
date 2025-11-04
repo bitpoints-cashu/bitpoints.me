@@ -54,6 +54,101 @@
             Use QR codes to add contacts without Bluetooth.
           </q-banner>
 
+          <!-- Username Section -->
+          <div class="q-mb-md">
+            <div class="row items-center q-gutter-sm">
+              <div class="col">
+                <div class="text-caption text-grey-6 q-mb-xs">Username</div>
+                <div v-if="!isEditingUsername" class="row items-center">
+                  <div class="col">
+                    <span class="text-h6">{{ bluetoothStore.nickname }}</span>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="edit"
+                      color="primary"
+                      @click="startEditingUsername"
+                    >
+                      <q-tooltip>Edit username</q-tooltip>
+                    </q-btn>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="qr_code"
+                      color="secondary"
+                      @click="showQRCodeDialogHandler"
+                    >
+                      <q-tooltip>Show QR code</q-tooltip>
+                    </q-btn>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="camera_alt"
+                      color="accent"
+                      @click="showScanDialog = true"
+                    >
+                      <q-tooltip>Scan QR code</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+                <div v-else class="row items-center q-gutter-xs">
+                  <div class="col">
+                    <q-input
+                      v-model="localUsername"
+                      dense
+                      outlined
+                      placeholder="Enter username"
+                      :rules="[
+                        (val) => (val && val.length >= 3) || 'Minimum 3 characters',
+                        (val) => (val && val.length <= 32) || 'Maximum 32 characters',
+                      ]"
+                      @keyup.enter="saveUsername"
+                      autofocus
+                    />
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="check"
+                      color="positive"
+                      @click="saveUsername"
+                    >
+                      <q-tooltip>Save</q-tooltip>
+                    </q-btn>
+                  </div>
+                  <div class="col-auto">
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      size="sm"
+                      icon="close"
+                      color="negative"
+                      @click="cancelEditingUsername"
+                    >
+                      <q-tooltip>Cancel</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Mint Selection -->
           <div class="q-mb-md">
             <ChooseMint />
@@ -304,26 +399,6 @@
             </template>
           </q-list>
 
-          <!-- QR Code Exchange Buttons -->
-          <div class="row q-gutter-sm q-mt-md q-mb-md">
-            <q-btn
-              outline
-              color="primary"
-              icon="qr_code"
-              label="My QR Code"
-              class="col"
-              @click="showQRCodeDialogHandler"
-            />
-            <q-btn
-              outline
-              color="secondary"
-              icon="camera_alt"
-              label="Scan QR Code"
-              class="col"
-              @click="showScanDialog = true"
-            />
-          </div>
-
           <!-- QR Code Display Dialog -->
           <q-dialog v-model="showQRCodeDialog">
             <q-card style="min-width: 350px">
@@ -473,6 +548,7 @@ import {
   onMounted,
   onUnmounted,
   nextTick,
+  watch,
 } from "vue";
 import { useBluetoothStore } from "src/stores/bluetooth";
 import { useFavoritesStore } from "src/stores/favorites";
@@ -539,6 +615,8 @@ export default defineComponent({
     const showQRCodeDialog = ref(false);
     const showScanDialog = ref(false);
     const qrCodeData = ref<string | null>(null);
+    const isEditingUsername = ref(false);
+    const localUsername = ref("");
 
     const connectedPeers = ref<Array<Peer & { canSendViaNostr?: boolean }>>([]);
     const offlineFavorites = ref<OfflineFavorite[]>([]);
@@ -985,6 +1063,49 @@ export default defineComponent({
       }
     };
 
+    // Username editing functions
+    const startEditingUsername = () => {
+      localUsername.value = bluetoothStore.nickname;
+      isEditingUsername.value = true;
+    };
+
+    const saveUsername = async () => {
+      if (!localUsername.value || localUsername.value.trim() === "") {
+        notifyError("Username cannot be empty");
+        return;
+      }
+
+      if (localUsername.value.length < 3) {
+        notifyError("Username must be at least 3 characters");
+        return;
+      }
+
+      if (localUsername.value.length > 32) {
+        notifyError("Username must be less than 32 characters");
+        return;
+      }
+
+      try {
+        await bluetoothStore.updateNickname(localUsername.value.trim());
+        notifySuccess("Username updated!");
+        isEditingUsername.value = false;
+
+        // Regenerate QR code with new username
+        if (showQRCodeDialog.value) {
+          const data = await generateQRCodeData();
+          qrCodeData.value = data;
+        }
+      } catch (error) {
+        console.error("Failed to update username:", error);
+        notifyError("Failed to update username");
+      }
+    };
+
+    const cancelEditingUsername = () => {
+      isEditingUsername.value = false;
+      localUsername.value = "";
+    };
+
     // Generate QR code data for contact exchange
     const generateQRCodeData = async (): Promise<string | null> => {
       try {
@@ -1125,6 +1246,15 @@ export default defineComponent({
       return `${formatted} ${unit}`;
     };
 
+    // Watch for nickname changes to update QR code
+    watch(() => bluetoothStore.nickname, () => {
+      if (showQRCodeDialog.value && qrCodeData.value) {
+        generateQRCodeData().then(data => {
+          qrCodeData.value = data;
+        });
+      }
+    });
+
     return {
       bluetoothStore,
       mintsStore,
@@ -1158,6 +1288,11 @@ export default defineComponent({
       showScanDialog,
       handleQRCodeScanned,
       isBluetoothEcashAvailable,
+      isEditingUsername,
+      localUsername,
+      startEditingUsername,
+      saveUsername,
+      cancelEditingUsername,
     };
   },
 });
