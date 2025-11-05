@@ -175,6 +175,9 @@ export const useWalletStore = defineStore("wallet", {
       return wallet;
     },
     seed(): Uint8Array {
+      if (this.mnemonic == "") {
+        this.mnemonic = generateMnemonic(wordlist);
+      }
       return mnemonicToSeedSync(this.mnemonic);
     },
   },

@@ -2,90 +2,53 @@
 <template>
   <div class="q-pa-md flex flex-center">
     <div class="text-center">
-      <transition appear enter-active-class="animated bounce">
-        <img
-          :src="brandLogo"
-          :alt="brandName"
-          class="q-my-lg"
-          style="max-width: 250px; height: auto"
-        />
-      </transition>
-      <h2 class="q-mt-md">{{ welcomeTitle }}</h2>
+      <h2 class="q-mt-md">Welcome to Bitpoints</h2>
       <div class="text-left">
-        <p class="q-mt-sm">{{ welcomeText }}</p>
-        <q-expansion-item
-          dense
-          dense-toggle
-          class="text-left q-mt-lg"
-          :label="$t('WelcomeSlide1.actions.more.label')"
+        <p class="q-mt-sm">Your personal Bitcoin-backed rewards wallet.</p>
+
+        <div
+          class="q-mt-lg q-pa-md"
+          style="background: rgba(0, 0, 0, 0.05); border-radius: 8px"
         >
-          <i18n-t keypath="WelcomeSlide1.p1.text" tag="p" class="q-mt-md">
-            <template v-slot:link>
-              <a href="https://cashu.space" target="_blank">{{
-                $t("WelcomeSlide1.p1.link.text")
-              }}</a>
-            </template>
-          </i18n-t>
-          <i18n-t keypath="WelcomeSlide1.p2.text" tag="p" class="q-mt-md" />
-          <i18n-t keypath="WelcomeSlide1.p3.text" tag="p" class="q-mt-md" />
-          <i18n-t keypath="WelcomeSlide1.p4.text" tag="p" class="q-mt-md" />
-        </q-expansion-item>
-        <q-checkbox
-          v-model="welcomeStore.termsAccepted"
-          :label="
-            $t(
-              'WelcomeSlide1.inputs.checkbox.label',
-              'I have read and agree to the terms'
-            )
-          "
-          class="q-mt-lg"
-        />
+          <h3 class="q-mb-md text-weight-medium">Terms and Conditions</h3>
+          <p class="q-mb-sm">
+            By using Bitpoints, you agree to our terms of service. Please review
+            the full terms before continuing.
+          </p>
+          <p class="q-mb-sm text-caption">
+            • Use this app at your own risk<br />
+            • Keep your wallet backup secure<br />
+            • Bitcoin transactions are irreversible
+          </p>
+        </div>
+
+        <div class="q-mt-lg">
+          <q-checkbox
+            v-model="welcomeStore.termsAccepted"
+            label="I have read and agree to the terms and conditions"
+            class="q-mb-md"
+          />
+          <q-checkbox
+            v-model="welcomeStore.seedPhraseValidated"
+            label="I understand how to backup my wallet securely"
+            class="q-mb-md"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { computed } from "vue";
-import { useI18n } from "vue-i18n";
 import { useWelcomeStore } from "src/stores/welcome";
-import { getBrand, getBrandName, getActiveBrandId } from "src/utils/branding";
-
-// Import brand logos statically so Vite can bundle them
-import bitpointsLogo from "../../assets/brands/bitpoints/bitpoints-logo.png";
-import trailsLogo from "../../assets/brands/trails/trails-logo.png";
 
 export default {
   name: "WelcomeSlide1",
   setup() {
     const welcomeStore = useWelcomeStore();
-    const { t } = useI18n();
-    const brand = computed(() => getBrand());
-
-    // Get brand logo and name - use static imports for proper Vite bundling
-    const brandLogo = computed(() => {
-      const brandId = getActiveBrandId();
-      return brandId === "trails" ? trailsLogo : bitpointsLogo;
-    });
-    const brandName = computed(() => getBrandName());
-
-    // Dynamic welcome text based on brand
-    const welcomeTitle = computed(() => {
-      return `Welcome to ${brand.value.shortName}`;
-    });
-    const welcomeText = computed(() => {
-      if (getActiveBrandId() === "trails") {
-        return "Your personal Bitcoin-backed rewards points. Receive and manage your points securely.";
-      }
-      return t("WelcomeSlide1.text");
-    });
 
     return {
       welcomeStore,
-      brandLogo,
-      brandName,
-      welcomeTitle,
-      welcomeText,
     };
   },
 };
@@ -97,5 +60,41 @@ h2 {
 }
 p {
   font-size: large;
+}
+
+/* Scroll indicator for landscape mode */
+.scroll-indicator {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  animation: bounce 2s infinite;
+  z-index: 1000;
+  min-width: 200px;
+  text-align: center;
+}
+
+.scroll-indicator:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  40% {
+    transform: translateX(-50%) translateY(-10px);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-5px);
+  }
 }
 </style>

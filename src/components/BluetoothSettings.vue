@@ -277,8 +277,6 @@ const isWebBluetoothSupported = computed(() => {
   }
 });
 
-
-
 async function toggleBluetooth(enabled: boolean) {
   if (enabled) {
     await bluetoothStore.startService();

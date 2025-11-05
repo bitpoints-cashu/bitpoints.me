@@ -210,14 +210,14 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
         try {
             // Initialize FavoritesPersistenceService
             me.bitpoints.wallet.favorites.FavoritesPersistenceService.initialize(this)
-            
+
             // Load/create Nostr identity
             me.bitpoints.wallet.nostr.NostrIdentityBridge.getCurrentNostrIdentity(this)
             Log.d(TAG, "Nostr identity initialized")
-            
+
             // Initialize NostrClient
             nostrClient = me.bitpoints.wallet.nostr.NostrClient.getInstance(this)
-            
+
             // Set up message handler for incoming Nostr DMs
             nostrMessageHandler = me.bitpoints.wallet.nostr.NostrDirectMessageHandler(
                 context = this,
@@ -232,17 +232,17 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
                     didReceiveReadReceipt(messageID, peerID)
                 }
             )
-            
+
             // Initialize and subscribe to private messages
             nostrClient?.initialize()
             nostrClient?.subscribeToPrivateMessages(nostrMessageHandler!!)
-            
+
             Log.d(TAG, "Nostr services initialized")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Nostr services: ${e.message}", e)
         }
     }
-    
+
     /**
      * Initialize Bluetooth mesh service
      */
@@ -292,7 +292,7 @@ class AlwaysOnService : Service(), BluetoothMeshDelegate {
      */
     private fun cleanup() {
         stopBluetoothMesh()
-        
+
         // Shutdown Nostr client
         nostrClient?.shutdown()
 

@@ -590,6 +590,15 @@ export default {
     p4: {
       text: "This app is in beta. We hold no responsibility for people losing access to rewards. Use at your own risk!",
     },
+    inputs: {
+      checkbox: {
+        label: "I have read and agree to the terms",
+      },
+      backupCheckbox: {
+        label: "I understand how to backup my wallet",
+      },
+    },
+    scrollHint: "Scroll down to accept terms and conditions",
   },
   WelcomeSlide2: {
     title: "Install PWA",

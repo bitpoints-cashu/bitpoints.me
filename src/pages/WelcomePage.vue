@@ -11,7 +11,8 @@
         <q-carousel-slide :name="0">
           <WelcomeSlide1 />
         </q-carousel-slide>
-        <q-carousel-slide :name="1">
+        <!-- Only show second slide for PWA/web browsers -->
+        <q-carousel-slide v-if="!isNativeApp" :name="1">
           <WelcomeSlide2 />
         </q-carousel-slide>
       </q-carousel>
@@ -54,7 +55,7 @@
 </template>
 
 <script lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useWelcomeStore } from "src/stores/welcome";
 import { useStorageStore } from "src/stores/storage";
@@ -127,14 +128,44 @@ export default {
       if (file) readFile(file);
     };
 
+    const isNativeApp = computed(() => {
+      try {
+        // Check if we're running in Capacitor (native app)
+        const hasCapacitor =
+          typeof window !== "undefined" && !!window.Capacitor;
+        if (!hasCapacitor) {
+          return false;
+        }
+
+        const platform = window.Capacitor.getPlatform();
+        const isNativePlatform =
+          window.Capacitor.isNativePlatform &&
+          window.Capacitor.isNativePlatform();
+
+        // Android/iOS are native platforms
+        return platform === "android" || platform === "ios" || isNativePlatform;
+      } catch (error) {
+        return false;
+      }
+    });
+
     onMounted(() => {
+      console.log(
+        "WelcomePage: onMounted - showWelcome:",
+        welcomeStore.showWelcome
+      );
+
       // Check if welcome is needed
       if (!welcomeStore.showWelcome) {
+        console.log(
+          "WelcomePage: Welcome already completed, redirecting to wallet"
+        );
         // User has already completed welcome, redirect to wallet
         router.push("/");
         return;
       }
 
+      console.log("WelcomePage: Welcome needed, initializing");
       welcomeStore.initializeWelcome();
     });
 
@@ -143,6 +174,7 @@ export default {
       () => welcomeStore.showWelcome,
       (newValue) => {
         if (!newValue) {
+          console.log("WelcomePage: Welcome completed, navigating to wallet");
           // Welcome completed, navigate to wallet
           router.push("/");
         }
@@ -154,6 +186,7 @@ export default {
       fileUpload,
       onChangeFileUpload,
       dragFile,
+      isNativeApp,
     };
   },
 };

@@ -111,8 +111,10 @@
                       outlined
                       placeholder="Enter username"
                       :rules="[
-                        (val) => (val && val.length >= 3) || 'Minimum 3 characters',
-                        (val) => (val && val.length <= 32) || 'Maximum 32 characters',
+                        (val) =>
+                          (val && val.length >= 3) || 'Minimum 3 characters',
+                        (val) =>
+                          (val && val.length <= 32) || 'Maximum 32 characters',
                       ]"
                       @keyup.enter="saveUsername"
                       autofocus
@@ -1247,13 +1249,16 @@ export default defineComponent({
     };
 
     // Watch for nickname changes to update QR code
-    watch(() => bluetoothStore.nickname, () => {
-      if (showQRCodeDialog.value && qrCodeData.value) {
-        generateQRCodeData().then(data => {
-          qrCodeData.value = data;
-        });
+    watch(
+      () => bluetoothStore.nickname,
+      () => {
+        if (showQRCodeDialog.value && qrCodeData.value) {
+          generateQRCodeData().then((data) => {
+            qrCodeData.value = data;
+          });
+        }
       }
-    });
+    );
 
     return {
       bluetoothStore,

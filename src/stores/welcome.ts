@@ -25,17 +25,43 @@ export const useWelcomeStore = defineStore("welcome", {
     ),
   }),
   getters: {
-    // Determines if the current slide is the last one (only 2 slides now)
-    isLastSlide: (state) => state.currentSlide === 1,
+    // Determines if the current slide is the last one
+    // PWA shows 2 slides, Android shows 1 slide
+    isLastSlide: (state) => {
+      // Check if running on native platform (Android/iOS)
+      const isNative = (() => {
+        try {
+          const hasCapacitor =
+            typeof window !== "undefined" && !!window?.Capacitor;
+          if (!hasCapacitor) {
+            return false;
+          }
+
+          const platform = window.Capacitor.getPlatform();
+          const isNativePlatform =
+            window.Capacitor.isNativePlatform &&
+            window.Capacitor.isNativePlatform();
+          return (
+            platform === "android" || platform === "ios" || isNativePlatform
+          );
+        } catch (error) {
+          return false;
+        }
+      })();
+
+      // Android/iOS: only 1 slide (slide 0 is last)
+      // PWA/Web: 2 slides (slide 1 is last)
+      return isNative ? state.currentSlide === 0 : state.currentSlide === 1;
+    },
 
     // Determines if the user can proceed to the next slide
     canProceed: (state) => {
       switch (state.currentSlide) {
         case 0:
-          // First slide: require terms acceptance
-          return state.termsAccepted;
+          // First slide: require both terms acceptance AND seed phrase validation
+          return state.termsAccepted && state.seedPhraseValidated;
         case 1:
-          // Second slide: require seed phrase validation
+          // Second slide: require seed phrase validation (for PWA/web only)
           return state.seedPhraseValidated;
         default:
           return false;

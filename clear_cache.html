@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Clear Cache</title>
+  </head>
+  <body>
+    <script>
+      localStorage.removeItem("cashu.welcome.seedPhraseValidated");
+      localStorage.removeItem("cashu.welcome.termsAccepted");
+      localStorage.removeItem("cashu.welcome.completed");
+      window.location.href = "http://localhost:8081";
+    </script>
+  </body>
+</html>
