@@ -217,6 +217,136 @@
       </q-list>
     </div>
 
+    <!-- ENCRYPTED SEED BACKUP (OFFLINE) -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">Encrypted Seed Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left">
+      <input
+        ref="encryptedSeedFileInput"
+        type="file"
+        accept="application/json"
+        class="hidden-file-input"
+        @change="handleEncryptedSeedFile"
+      />
+      <q-list padding>
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Create Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Choose a passphrase (min 6 characters). The mnemonic will be encrypted client-side and offered as a downloadable JSON file.
+            </q-item-label>
+            <q-input
+              v-model="downloadPassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadPassphraseConfirm"
+              type="password"
+              outlined
+              dense
+              label="Confirm Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadNote"
+              type="text"
+              outlined
+              dense
+              label="Optional Note"
+              counter
+              maxlength="120"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="primary"
+                outline
+                label="Download Encrypted Seed"
+                :loading="downloadInProgress"
+                @click="downloadEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore From Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Upload a previously downloaded encrypted seed file or paste the JSON payload below, then enter the passphrase to restore.
+            </q-item-label>
+            <div class="q-mt-sm row items-center">
+              <q-btn
+                outline
+                color="primary"
+                label="Upload Encrypted File"
+                @click="triggerEncryptedSeedFileDialog"
+              />
+              <div v-if="restoreFileName" class="text-caption q-ml-sm">
+                {{ restoreFileName }}
+              </div>
+            </div>
+            <q-input
+              v-model="restorePayload"
+              type="textarea"
+              outlined
+              autogrow
+              label="Encrypted JSON payload"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="restorePassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="warning"
+                outline
+                label="Restore Seed From Encrypted Backup"
+                :loading="restoreInProgress"
+                @click="restoreEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="downloadMessage">
+          <q-item-section>
+            <q-banner dense :class="downloadMessage.type === 'error' ? 'bg-negative text-white' : 'bg-positive text-white'">
+              {{ downloadMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="restoreMessage">
+          <q-item-section>
+            <q-banner dense :class="restoreMessage.type === 'error' ? 'bg-negative text-white' : 'bg-positive text-white'">
+              {{ restoreMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
     <!-- BLUETOOTH SETTINGS SECTION -->
     <div class="section-divider q-my-md">
       <div class="divider-line"></div>
@@ -2197,6 +2327,12 @@ import { getShortUrl } from "src/js/wallet-helpers";
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { useMintsStore, MintClass } from "src/stores/mints";
 import { useWalletStore } from "src/stores/wallet";
+import {
+  encryptMnemonicWithPassphrase,
+  decryptMnemonicWithPassphrase,
+  downloadEncryptedVault,
+  parseEncryptedVaultPayload,
+} from "src/utils/passphraseVault";
 import { map } from "underscore";
 import { useSettingsStore } from "src/stores/settings";
 import { useNostrStore } from "src/stores/nostr";
@@ -2215,7 +2351,6 @@ import { useStorageStore } from "src/stores/storage";
 import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrMintBackupStore } from "src/stores/nostrMintBackup";
 import { useGoogleDriveBackupStore } from "src/stores/googleDriveBackup";
-import { useWalletStore } from "src/stores/wallet";
 import { usePriceStore } from "src/stores/price";
 import { useI18n } from "vue-i18n";
 
@@ -2302,6 +2437,16 @@ export default defineComponent({
       nip46Token: "",
       nip07SignerAvailable: false,
       newRelay: "",
+      downloadPassphrase: "",
+      downloadPassphraseConfirm: "",
+      downloadNote: "",
+      downloadInProgress: false,
+      downloadMessage: null,
+      restorePayload: "",
+      restorePassphrase: "",
+      restoreFileName: "",
+      restoreInProgress: false,
+      restoreMessage: null,
     };
   },
   computed: {
@@ -2878,6 +3023,157 @@ export default defineComponent({
       }
       return false;
     },
+    async downloadEncryptedSeed() {
+      if (this.downloadInProgress) {
+        return;
+      }
+      this.downloadMessage = null;
+      const passphrase = this.downloadPassphrase.trim();
+      const confirm = this.downloadPassphraseConfirm.trim();
+
+      if (passphrase.length < 6) {
+        this.$q.notify({
+          type: "warning",
+          message: "Passphrase must be at least 6 characters long.",
+        });
+        return;
+      }
+      if (passphrase !== confirm) {
+        this.$q.notify({
+          type: "warning",
+          message: "Passphrase confirmation does not match.",
+        });
+        return;
+      }
+
+      this.downloadInProgress = true;
+      try {
+        const mnemonicString = this.walletStore.initializeMnemonic();
+        const mnemonic = mnemonicString.trim().split(/\s+/);
+        const vault = await encryptMnemonicWithPassphrase(
+          mnemonic,
+          passphrase,
+          this.downloadNote ? this.downloadNote.trim() : undefined
+        );
+        downloadEncryptedVault(vault);
+        this.downloadMessage = {
+          type: "success",
+          text:
+            "Encrypted seed downloaded. Store the JSON file and passphrase securely—both are required to recover your wallet.",
+        };
+        this.$q.notify({
+          type: "positive",
+          message: "Encrypted seed downloaded successfully.",
+        });
+        this.downloadPassphrase = "";
+        this.downloadPassphraseConfirm = "";
+        this.downloadNote = "";
+      } catch (error) {
+        const message =
+          (error as Error).message || "Failed to generate encrypted seed backup.";
+        this.downloadMessage = {
+          type: "error",
+          text: message,
+        };
+        this.$q.notify({
+          type: "negative",
+          message,
+        });
+      } finally {
+        this.downloadInProgress = false;
+      }
+    },
+    triggerEncryptedSeedFileDialog() {
+      const input = this.$refs.encryptedSeedFileInput as HTMLInputElement | undefined;
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+    handleEncryptedSeedFile(event: Event) {
+      const target = event.target as HTMLInputElement;
+      const file = target?.files?.[0];
+      if (!file) {
+        return;
+      }
+      this.restoreFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          this.restorePayload = result;
+          this.restoreMessage = {
+            type: "success",
+            text: "Encrypted payload loaded from file. Enter your passphrase to restore.",
+          };
+        }
+      };
+      reader.onerror = () => {
+        this.restoreMessage = {
+          type: "error",
+          text: "Failed to read encrypted file. Please try again.",
+        };
+      };
+      reader.readAsText(file, "utf-8");
+    },
+    async restoreEncryptedSeed() {
+      if (this.restoreInProgress) {
+        return;
+      }
+      this.restoreMessage = null;
+      const payload = this.restorePayload.trim();
+      const passphrase = this.restorePassphrase.trim();
+
+      if (!payload) {
+        this.$q.notify({
+          type: "warning",
+          message: "Paste the encrypted JSON payload or upload the file first.",
+        });
+        return;
+      }
+      if (passphrase.length === 0) {
+        this.$q.notify({
+          type: "warning",
+          message: "Enter the passphrase you used when encrypting the backup.",
+        });
+        return;
+      }
+
+      this.restoreInProgress = true;
+      try {
+        const vault = parseEncryptedVaultPayload(payload);
+        const { mnemonic } = await decryptMnemonicWithPassphrase(vault, passphrase);
+        if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
+          throw new Error("Encrypted backup did not contain a valid mnemonic.");
+        }
+
+        this.walletStore.mnemonic = mnemonic.join(" ");
+        this.hideMnemonic = true;
+        this.restoreMessage = {
+          type: "success",
+          text:
+            "Seed phrase restored from encrypted backup. Remember to clear any sensitive data when you are done.",
+        };
+        this.$q.notify({
+          type: "positive",
+          message: "Seed phrase restored successfully.",
+        });
+      } catch (error) {
+        const message =
+          (error as Error).message ||
+          "Failed to decrypt encrypted backup. Check the passphrase and payload.";
+        this.restoreMessage = {
+          type: "error",
+          text: message,
+        };
+        this.$q.notify({
+          type: "negative",
+          message,
+        });
+      } finally {
+        this.restoreInProgress = false;
+      }
+    },
     handleBitcoinToggle: function (enabled) {
       if (!enabled && !this.showPoints) {
         // Prevent disabling Bitcoin if Points is also disabled
@@ -2922,6 +3218,10 @@ export default defineComponent({
   flex: 1;
   height: 1px;
   background-color: #48484a;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .divider-text {

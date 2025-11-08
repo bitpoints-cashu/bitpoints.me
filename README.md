@@ -43,6 +43,11 @@
 - **Multi-language** support
 - **Dark/light themes**
 
+### 🔐 Seed Backup Options
+
+- Encrypted Google Drive vault (Recoverbull compatible) — see [`docs/GOOGLE_DRIVE_BACKUP.md`](docs/GOOGLE_DRIVE_BACKUP.md)
+- Offline encrypted download/upload (passphrase protected JSON file) — see [`docs/OFFLINE_ENCRYPTED_BACKUP.md`](docs/OFFLINE_ENCRYPTED_BACKUP.md)
+
 ## Installation
 
 ### Android APK
