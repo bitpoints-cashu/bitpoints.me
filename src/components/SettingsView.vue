@@ -130,12 +130,7 @@
               >Google Drive Backup</q-item-label
             >
             <q-item-label caption>
-              Backup enabled - Last backup:
-              {{
-                googleDriveStore.lastBackupDate
-                  ? googleDriveStore.lastBackupDate.toLocaleDateString()
-                  : "Never"
-              }}
+              {{ googleDriveStatusLabel }}
             </q-item-label>
           </q-item-section>
           <q-item-section side>
@@ -143,6 +138,47 @@
               v-model="googleDriveBackupEnabled"
               @update:model-value="onGoogleDriveBackupToggle"
             />
+          </q-item-section>
+        </q-item>
+
+        <q-item
+          v-if="googleDriveStore.isAuthenticated && googleDriveStore.backupCount"
+        >
+          <q-item-section>
+            <q-item-label caption>
+              Latest backup: {{ googleDriveStore.latestBackupLabel }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item
+          v-if="googleDriveStore.isAuthenticated && googleDriveStore.hasVaultKey"
+        >
+          <q-item-section>
+            <q-item-label caption>
+              Vault key saved locally: {{ vaultKeyPreview }}
+            </q-item-label>
+            <q-item-label caption>
+              Store this key securely; it is required to decrypt Google Drive backups.
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-btn
+              flat
+              dense
+              icon="content_copy"
+              @click="copyVaultKey"
+            >
+              <q-tooltip>Copy vault key</q-tooltip>
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="googleDriveStore.lastError">
+          <q-item-section>
+            <q-banner class="bg-negative text-white" dense>
+              {{ googleDriveStore.lastError }}
+            </q-banner>
           </q-item-section>
         </q-item>
 
@@ -154,6 +190,7 @@
               color="primary"
               @click="backupSeedPhraseToDrive"
               :loading="googleDriveStore.backupInProgress"
+              :disable="!googleDriveBackupEnabled || googleDriveStore.backupInProgress"
             >
               Backup Seed Phrase Now
             </q-btn>
@@ -168,6 +205,10 @@
               color="warning"
               @click="restoreSeedPhraseFromDrive"
               :loading="googleDriveStore.restoreInProgress"
+              :disable="
+                !googleDriveStore.backupCount ||
+                googleDriveStore.restoreInProgress
+              "
             >
               Restore from Google Drive
             </q-btn>
@@ -2174,6 +2215,7 @@ import { useStorageStore } from "src/stores/storage";
 import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrMintBackupStore } from "src/stores/nostrMintBackup";
 import { useGoogleDriveBackupStore } from "src/stores/googleDriveBackup";
+import { useWalletStore } from "src/stores/wallet";
 import { usePriceStore } from "src/stores/price";
 import { useI18n } from "vue-i18n";
 
@@ -2309,6 +2351,7 @@ export default defineComponent({
       "seedSignerPrivateKeyNsec",
     ]),
     ...mapState(useWalletStore, ["mnemonic"]),
+    walletStore: () => useWalletStore(),
     ...mapState(useUiStore, ["ndefSupported"]),
     ...mapWritableState(useNPCV2Store, [
       "npcV2Loading",
@@ -2363,6 +2406,37 @@ export default defineComponent({
       set(value) {
         this.nwcEnabled = value;
       },
+    },
+    googleDriveStatusLabel() {
+      if (!this.googleDriveStore.isAuthenticated) {
+        return "Not connected";
+      }
+
+      const segments: string[] = [];
+      if (this.googleDriveStore.backupCount > 0) {
+        const count = this.googleDriveStore.backupCount;
+        segments.push(`${count} backup${count === 1 ? "" : "s"} found`);
+      } else {
+        segments.push("No backups yet");
+      }
+
+      if (this.googleDriveStore.lastBackupDate) {
+        segments.push(
+          `Last backup ${this.formatDateTime(this.googleDriveStore.lastBackupDate)}`
+        );
+      }
+
+      return segments.join(" • ");
+    },
+    vaultKeyPreview() {
+      const key = this.googleDriveStore.vaultKeyHex;
+      if (!key) {
+        return "";
+      }
+      if (key.length <= 12) {
+        return key;
+      }
+      return `${key.slice(0, 8)}…${key.slice(-4)}`;
     },
   },
   watch: {
@@ -2620,6 +2694,13 @@ export default defineComponent({
     },
 
     // Google Drive Backup Methods
+    formatDateTime(date: Date) {
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
+    },
+
     authenticateGoogleDrive: async function () {
       if (!this.googleDriveStore.isPluginAvailable) {
         this.$q.notify({
@@ -2655,29 +2736,34 @@ export default defineComponent({
         return;
       }
 
-      try {
-        // TODO: Get mnemonic from seed store
-        // For now, use a placeholder
-        const mnemonic = [
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "abandon",
-          "about",
-        ];
+      if (!this.googleDriveBackupEnabled) {
+        this.$q.notify({
+          type: "info",
+          message: "Enable Google Drive backup to create a secure copy.",
+        });
+        return;
+      }
 
-        await this.googleDriveStore.backupSeedPhrase(mnemonic);
+      try {
+        const mnemonicString = this.walletStore.initializeMnemonic();
+        const mnemonic = mnemonicString.trim().split(/\s+/);
+
+        const vaultKey = await this.googleDriveStore.backupSeedPhrase(mnemonic);
         this.$q.notify({
           type: "positive",
           message: "Seed phrase backed up to Google Drive successfully",
         });
+        this.$q
+          .dialog({
+            title: "Vault Key Generated",
+            message:
+              "Store this vault key securely. You will need it to restore your backup:<br><code>" +
+              vaultKey +
+              "</code>",
+            html: true,
+            ok: true,
+          })
+          .onOk(() => void 0);
       } catch (error) {
         console.error("Google Drive backup failed:", error);
         this.$q.notify({
@@ -2698,9 +2784,24 @@ export default defineComponent({
       }
 
       try {
+        if (!this.googleDriveStore.hasVaultKey) {
+          const provided = await this.promptForVaultKey();
+          if (!provided) {
+            this.$q.notify({
+              type: "warning",
+              message: "Vault key is required to restore from Google Drive.",
+            });
+            return;
+          }
+        }
+
         const mnemonic = await this.googleDriveStore.restoreSeedPhrase();
-        // TODO: Restore mnemonic to seed store
-        console.log("Restored mnemonic:", mnemonic);
+        if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
+          throw new Error("Invalid mnemonic returned from backup");
+        }
+
+        this.walletStore.mnemonic = mnemonic.join(" ");
+        this.hideMnemonic = true;
 
         this.$q.notify({
           type: "positive",
@@ -2723,6 +2824,59 @@ export default defineComponent({
           ? "Google Drive backup enabled"
           : "Google Drive backup disabled",
       });
+    },
+    async copyVaultKey() {
+      try {
+        const key = this.googleDriveStore.vaultKeyHex;
+        if (!key) {
+          throw new Error("No vault key available");
+        }
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard &&
+          navigator.clipboard.writeText
+        ) {
+          await navigator.clipboard.writeText(key);
+        } else {
+          throw new Error("Clipboard API not available");
+        }
+        this.$q.notify({
+          type: "positive",
+          message: "Vault key copied to clipboard",
+        });
+      } catch (error: any) {
+        console.error("Failed to copy vault key:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Unable to copy vault key: " + error.message,
+        });
+      }
+    },
+    async promptForVaultKey() {
+      try {
+        const result = await this.$q.dialog({
+          title: "Enter Vault Key",
+          message:
+            "Paste the vault key that was shown after your last backup. This key is required to decrypt your Google Drive backup.",
+          prompt: {
+            model: "",
+            type: "text",
+            isValid: (val) => !!val && /^[0-9a-fA-F]+$/.test(val.trim()),
+            attrs: {
+              autocapitalize: "off",
+              autocomplete: "off",
+            },
+          },
+          cancel: true,
+        });
+        if (typeof result === "string" && result.trim().length > 0) {
+          this.googleDriveStore.setVaultKey(result.trim());
+          return true;
+        }
+      } catch {
+        // dialog cancelled
+      }
+      return false;
     },
     handleBitcoinToggle: function (enabled) {
       if (!enabled && !this.showPoints) {
