@@ -124,6 +124,7 @@ import { getBrand, getBrandName, getActiveBrandId } from "src/utils/branding";
 // Import brand logos statically so Vite can bundle them
 import bitpointsLogo from "../assets/brands/bitpoints/bitpoints-logo-purple.png";
 import trailsLogo from "../assets/brands/trails/trails-logo.png";
+import pandewaffleLogo from "../assets/brands/pandewaffle/pandewaffle-logo.png";
 
 export default defineComponent({
   name: "MainHeader",
@@ -140,8 +141,12 @@ export default defineComponent({
     const brand = computed(() => getBrand());
     const brandLogo = computed(() => {
       const brandId = getActiveBrandId();
-      // Return the statically imported logo based on active brand
-      return brandId === "trails" ? trailsLogo : bitpointsLogo;
+      const logos = {
+        bitpoints: bitpointsLogo,
+        trails: trailsLogo,
+        pandewaffle: pandewaffleLogo,
+      };
+      return logos[brandId] || bitpointsLogo;
     });
     const brandName = computed(() => getBrandName());
 

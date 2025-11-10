@@ -1,0 +1,183 @@
+/* Pandewaffle Branding - Custom Styles */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap");
+
+:root {
+  --brand-primary: #ff6b35;
+  --brand-secondary: #6b4fbb;
+  --brand-accent: #ff8c42;
+  --brand-warm: #ffb366;
+  --brand-cream: #fff4e3;
+  --brand-warm-white: #fff9ec;
+  --brand-off-white: #ffe9d0;
+  --brand-charcoal: #0c2a33;
+  --brand-soft-gray: #ffe0b0;
+  --brand-text-dark: #0c2a33;
+  --brand-text-medium: #3a4850;
+  --brand-text-light: #6e7a81;
+  --brand-shadow-soft: rgba(107, 79, 187, 0.12);
+  --brand-shadow-medium: rgba(107, 79, 187, 0.18);
+  --brand-gradient-warm: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, #fff4e3 0%, #fff9ec 100%);
+  --brand-gradient-primary: linear-gradient(135deg, #6b4fbb 0%, #8d6fd8 100%);
+  --brand-gradient-secondary: linear-gradient(135deg, #ff6b35 0%, #ffb366 100%);
+}
+
+.bitpoints-heading {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.bitpoints-body {
+  font-family: "Nunito", sans-serif;
+  font-weight: 400;
+}
+
+.bitpoints-brand {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.bitpoints-gradient-warm {
+  background: var(--brand-gradient-warm);
+}
+
+.bitpoints-gradient-text {
+  background: var(--brand-gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bitpoints-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 2.25rem;
+  box-shadow: 0 14px 40px var(--brand-shadow-soft);
+  border: 1px solid rgba(255, 107, 53, 0.12);
+  transition: all 0.3s ease;
+}
+
+.bitpoints-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 45px var(--brand-shadow-medium);
+}
+
+.bitpoints-button {
+  background: var(--brand-gradient-primary);
+  color: white;
+  border-radius: 54px;
+  padding: 1rem 2.25rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 28px rgba(107, 79, 187, 0.32);
+  transition: all 0.3s ease;
+}
+
+.bitpoints-button:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(107, 79, 187, 0.38);
+}
+
+.bitpoints-background {
+  background-color: var(--brand-cream);
+  background-image: radial-gradient(
+      circle at 15% 15%,
+      rgba(255, 107, 53, 0.08),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 85% 20%,
+      rgba(107, 79, 187, 0.12),
+      transparent 38%
+    );
+}
+
+.body--dark .bitpoints-background {
+  background-color: #1a1a1a;
+  background-image: radial-gradient(
+      circle at 15% 15%,
+      rgba(255, 107, 53, 0.18),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 85% 20%,
+      rgba(107, 79, 187, 0.22),
+      transparent 42%
+    );
+}
+
+.text-primary {
+  color: var(--brand-primary) !important;
+}
+
+.bg-primary {
+  background: var(--brand-primary) !important;
+}
+
+.text-secondary {
+  color: var(--brand-secondary) !important;
+}
+
+.bg-secondary {
+  background: var(--brand-secondary) !important;
+}
+
+.bitpoints-logo {
+  max-height: 64px;
+  transition: transform 0.3s ease;
+}
+
+.bitpoints-logo:hover {
+  transform: scale(1.06);
+}
+
+.bitpoints-balance {
+  background: var(--brand-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-family: "Poppins", sans-serif;
+}
+
+.bitpoints-watermark {
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.04;
+  width: 320px;
+  height: 320px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes pandewaffleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bitpoints-fade-in {
+  animation: pandewaffleFadeIn 0.6s ease-out;
+}
+
+@media (max-width: 768px) {
+  .bitpoints-card {
+    padding: 1.75rem;
+  }
+
+  .bitpoints-button {
+    padding: 0.85rem 1.75rem;
+    font-size: 1rem;
+  }
+}
+

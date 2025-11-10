@@ -102,6 +102,30 @@ const brands: Record<string, BrandConfig> = {
       iconPath: "trails-icon.png",
     },
   },
+  pandewaffle: {
+    id: "pandewaffle",
+    name: "Pandewaffle",
+    shortName: "Pandewaffle",
+    domain: "pandewaffle.bitpoints.me",
+    logoPath: "pandewaffle-logo.png",
+    logoAlt: "Pandewaffle",
+    colors: {
+      primary: "#ff6b35",
+      secondary: "#6b4fbb",
+      accent: "#ff8c42",
+      background: "#fff4e3",
+      text: "#0c2a33",
+      theme: "#6B4FBB",
+      warm: "#ffb366",
+      cream: "#fff8f0",
+      charcoal: "#2c2c2c",
+    },
+    description:
+      "Waffles de pandeyuca versátiles, saludables y fáciles de preparar. Libres de gluten y sin azúcar añadida. Pandewaffle te transporta a momentos felices en cada mordisco.",
+    themeColor: "#6B4FBB",
+    favicon: "favicon.ico",
+    ogImage: "og-image.png",
+  },
 };
 
 /**
@@ -148,13 +172,13 @@ export function getActiveBrandId(): string {
     if (hostname.includes("localhost")) {
       const urlParams = new URLSearchParams(window.location.search);
       const brandParam = urlParams.get("brand");
-      if (brandParam === "trails" || brandParam === "bitpoints") {
+      if (brandParam && brandParam in brands) {
         return brandParam;
       }
       // Check localStorage for brand preference (useful for testing)
       try {
         const storedBrand = localStorage.getItem("activeBrand");
-        if (storedBrand === "trails" || storedBrand === "bitpoints") {
+        if (storedBrand && storedBrand in brands) {
           return storedBrand;
         }
       } catch (e) {
@@ -163,6 +187,9 @@ export function getActiveBrandId(): string {
     }
     if (hostname.includes("trailscoffee.com")) {
       return "trails";
+    }
+    if (hostname.includes("pandewaffle.bitpoints.me")) {
+      return "pandewaffle";
     }
     if (hostname.includes("bitpoints.me")) {
       return "bitpoints";

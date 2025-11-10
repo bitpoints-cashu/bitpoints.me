@@ -21,6 +21,10 @@ const brands = {
     id: "trails",
     name: "Trails Coffee Points",
   },
+  pandewaffle: {
+    id: "pandewaffle",
+    name: "Pandewaffle",
+  },
 };
 
 // Get version from package.json
