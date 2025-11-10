@@ -22,5 +22,5 @@ Bitpoints can export the wallet seed as an encrypted JSON file directly in the b
 - Keep multiple copies of the encrypted file (e.g. offline storage + cloud) to avoid single points of failure.
 - To verify a backup, restore it on a secondary device (with flight mode enabled) and confirm the mnemonic matches.
 
-For Google Drive integration (Recoverbull-compatible), see [`docs/GOOGLE_DRIVE_BACKUP.md`](./GOOGLE_DRIVE_BACKUP.md).
+For the RecoverBull protocol integration, see [`docs/RECOVERBULL_BACKUP.md`](./RECOVERBULL_BACKUP.md).
 

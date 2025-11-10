@@ -27,7 +27,6 @@ public class MainActivity extends BridgeActivity {
         Log.i(TAG, "onCreate: Registering BluetoothEcash plugin");
         try {
             registerPlugin(BluetoothEcashPlugin.class);
-            registerPlugin(GoogleDrivePlugin.class);
             Log.i(TAG, "onCreate: Custom plugins registered successfully");
         } catch (Exception e) {
             Log.e(TAG, "onCreate: Failed to register custom plugins", e);

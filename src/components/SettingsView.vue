@@ -84,133 +84,163 @@
       </q-list>
     </div>
 
-    <!-- GOOGLE DRIVE BACKUP SECTION -->
+    <!-- RECOVERBULL BACKUP SECTION -->
     <div class="section-divider q-my-md">
       <div class="divider-line"></div>
-      <div class="divider-text">Google Drive Backup</div>
+      <div class="divider-text">RecoverBull Backup</div>
       <div class="divider-line"></div>
     </div>
 
     <div class="q-py-sm q-px-xs text-left" on-left>
-      <q-list padding>
-        <!-- Google Drive not available in PWA mode -->
-        <q-item v-if="!googleDriveStore.isPluginAvailable">
+      <q-list padding class="recoverbull-backup-list">
+        <q-item>
           <q-item-section>
-            <q-item-label overline class="text-weight-bold"
-              >Google Drive Backup</q-item-label
-            >
-            <q-item-label caption
-              >Google Drive backup is only available on mobile devices
-              (Android/iOS apps)</q-item-label
-            >
-          </q-item-section>
-        </q-item>
-
-        <!-- Google Drive authentication status (mobile only) -->
-        <q-item v-else-if="!googleDriveStore.isAuthenticated">
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold"
-              >Google Drive</q-item-label
-            >
-            <q-item-label caption
-              >Backup your seed phrase securely to Google Drive</q-item-label
-            >
-          </q-item-section>
-          <q-item-section side>
-            <q-btn outline color="primary" @click="authenticateGoogleDrive">
-              Sign in with Google
-            </q-btn>
-          </q-item-section>
-        </q-item>
-
-        <!-- Google Drive backup settings (when authenticated) -->
-        <q-item v-else>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold"
-              >Google Drive Backup</q-item-label
-            >
+            <q-item-label overline class="text-weight-bold">
+              RecoverBull Backup
+            </q-item-label>
             <q-item-label caption>
-              {{ googleDriveStatusLabel }}
+              Secure your seed phrase using the RecoverBull protocol. Your password unlocks the encrypted backup key stored on {{ recoverbullKeyServerStore.baseUrl }}.
             </q-item-label>
           </q-item-section>
-          <q-item-section side>
-            <q-toggle
-              v-model="googleDriveBackupEnabled"
-              @update:model-value="onGoogleDriveBackupToggle"
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullPassword"
+              type="password"
+              label="Backup password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="new-password"
+              :disable="recoverbullBackupStore.backupInProgress"
             />
-          </q-item-section>
-        </q-item>
-
-        <q-item
-          v-if="googleDriveStore.isAuthenticated && googleDriveStore.backupCount"
-        >
-          <q-item-section>
-            <q-item-label caption>
-              Latest backup: {{ googleDriveStore.latestBackupLabel }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-
-        <q-item
-          v-if="googleDriveStore.isAuthenticated && googleDriveStore.hasVaultKey"
-        >
-          <q-item-section>
-            <q-item-label caption>
-              Vault key saved locally: {{ vaultKeyPreview }}
-            </q-item-label>
-            <q-item-label caption>
-              Store this key securely; it is required to decrypt Google Drive backups.
-            </q-item-label>
           </q-item-section>
           <q-item-section side>
             <q-btn
-              flat
-              dense
-              icon="content_copy"
-              @click="copyVaultKey"
+              outline
+              color="primary"
+              :loading="recoverbullBackupStore.backupInProgress"
+              :disable="
+                recoverbullBackupStore.backupInProgress ||
+                !recoverbullPassword
+              "
+              @click="createRecoverbullBackup"
             >
-              <q-tooltip>Copy vault key</q-tooltip>
+              Create Backup
             </q-btn>
           </q-item-section>
         </q-item>
 
-        <q-item v-if="googleDriveStore.lastError">
+        <q-item v-if="recoverbullBackupStore.lastError">
           <q-item-section>
             <q-banner class="bg-negative text-white" dense>
-              {{ googleDriveStore.lastError }}
+              {{ recoverbullBackupStore.lastError }}
             </q-banner>
           </q-item-section>
         </q-item>
 
-        <!-- Backup now button (when authenticated) -->
-        <q-item v-if="googleDriveStore.isAuthenticated">
+        <q-item v-if="recoverbullRateLimit">
           <q-item-section>
+            <q-banner class="bg-warning text-dark" dense>
+              Key server rate limit is active. Please wait before retrying.
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullLastBackup">
+          <q-item-section>
+            <q-item-label caption>
+              Backup ID: {{ recoverbullLastBackup.identifierHex }}
+            </q-item-label>
+            <q-item-label caption>
+              Created {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side class="row items-center no-wrap">
             <q-btn
-              outline
-              color="primary"
-              @click="backupSeedPhraseToDrive"
-              :loading="googleDriveStore.backupInProgress"
-              :disable="!googleDriveBackupEnabled || googleDriveStore.backupInProgress"
+              round
+              dense
+              flat
+              icon="content_copy"
+              @click="copyRecoverbullBackupJson"
             >
-              Backup Seed Phrase Now
+              <q-tooltip>Copy backup JSON</q-tooltip>
+            </q-btn>
+            <q-btn flat color="primary" @click="downloadRecoverbullBackup">
+              Download JSON
             </q-btn>
           </q-item-section>
         </q-item>
 
-        <!-- Restore from Google Drive button (when authenticated) -->
-        <q-item v-if="googleDriveStore.isAuthenticated">
+        <q-separator class="q-my-md" />
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore from RecoverBull Backup
+            </q-item-label>
+            <q-item-label caption>
+              Provide the backup file (or paste its content) and password to recover your mnemonic.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullRestorePassword"
+              type="password"
+              label="Restore password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="current-password"
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+            <q-file
+              v-model="recoverbullBackupFile"
+              accept="application/json"
+              color="primary"
+              outlined
+              dense
+              label="Select RecoverBull backup file"
+              :disable="recoverbullBackupStore.restoreInProgress"
+              @update:model-value="onRecoverbullBackupFileSelected"
+            >
+              <template v-slot:after>
+                <span class="text-caption text-grey-7">{{
+                  recoverbullBackupFileName || "No file selected"
+                }}</span>
+              </template>
+            </q-file>
+            <q-input
+              v-model="recoverbullBackupText"
+              type="textarea"
+              label="Or paste backup JSON"
+              autogrow
+              outlined
+              dense
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+          </q-item-section>
+        </q-item>
+
+        <q-item>
           <q-item-section>
             <q-btn
               outline
               color="warning"
-              @click="restoreSeedPhraseFromDrive"
-              :loading="googleDriveStore.restoreInProgress"
+              :loading="recoverbullBackupStore.restoreInProgress"
               :disable="
-                !googleDriveStore.backupCount ||
-                googleDriveStore.restoreInProgress
+                recoverbullBackupStore.restoreInProgress ||
+                (!recoverbullBackupFileContent && !recoverbullBackupText) ||
+                !recoverbullRestorePassword
               "
+              @click="restoreRecoverbullBackup"
             >
-              Restore from Google Drive
+              Restore Backup
             </q-btn>
           </q-item-section>
         </q-item>
@@ -2350,9 +2380,10 @@ import { useWelcomeStore } from "src/stores/welcome";
 import { useStorageStore } from "src/stores/storage";
 import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrMintBackupStore } from "src/stores/nostrMintBackup";
-import { useGoogleDriveBackupStore } from "src/stores/googleDriveBackup";
 import { usePriceStore } from "src/stores/price";
 import { useI18n } from "vue-i18n";
+import { useRecoverbullBackupStore } from "src/stores/recoverbullBackup";
+import { useRecoverbullKeyServerStore } from "src/stores/recoverbullKeyServer";
 
 export default defineComponent({
   name: "SettingsView",
@@ -2447,6 +2478,12 @@ export default defineComponent({
       restoreFileName: "",
       restoreInProgress: false,
       restoreMessage: null,
+      recoverbullPassword: "",
+      recoverbullRestorePassword: "",
+      recoverbullBackupFile: null as File | null,
+      recoverbullBackupFileName: "",
+      recoverbullBackupFileContent: "",
+      recoverbullBackupText: "",
     };
   },
   computed: {
@@ -2472,9 +2509,9 @@ export default defineComponent({
       "showPoints",
       "multinutEnabled",
       "nostrMintBackupEnabled",
-      "googleDriveBackupEnabled",
     ]),
-    googleDriveStore: () => useGoogleDriveBackupStore(),
+    recoverbullBackupStore: () => useRecoverbullBackupStore(),
+    recoverbullKeyServerStore: () => useRecoverbullKeyServerStore(),
     ...mapState(useP2PKStore, ["p2pkKeys"]),
     ...mapWritableState(useP2PKStore, [
       "showP2PKDialog",
@@ -2552,36 +2589,11 @@ export default defineComponent({
         this.nwcEnabled = value;
       },
     },
-    googleDriveStatusLabel() {
-      if (!this.googleDriveStore.isAuthenticated) {
-        return "Not connected";
-      }
-
-      const segments: string[] = [];
-      if (this.googleDriveStore.backupCount > 0) {
-        const count = this.googleDriveStore.backupCount;
-        segments.push(`${count} backup${count === 1 ? "" : "s"} found`);
-      } else {
-        segments.push("No backups yet");
-      }
-
-      if (this.googleDriveStore.lastBackupDate) {
-        segments.push(
-          `Last backup ${this.formatDateTime(this.googleDriveStore.lastBackupDate)}`
-        );
-      }
-
-      return segments.join(" • ");
+    recoverbullLastBackup() {
+      return this.recoverbullBackupStore.lastBackup;
     },
-    vaultKeyPreview() {
-      const key = this.googleDriveStore.vaultKeyHex;
-      if (!key) {
-        return "";
-      }
-      if (key.length <= 12) {
-        return key;
-      }
-      return `${key.slice(0, 8)}…${key.slice(-4)}`;
+    recoverbullRateLimit() {
+      return this.recoverbullKeyServerStore.rateLimit;
     },
   },
   watch: {
@@ -2838,7 +2850,6 @@ export default defineComponent({
       }
     },
 
-    // Google Drive Backup Methods
     formatDateTime(date: Date) {
       return new Intl.DateTimeFormat(undefined, {
         dateStyle: "medium",
@@ -2846,182 +2857,169 @@ export default defineComponent({
       }).format(date);
     },
 
-    authenticateGoogleDrive: async function () {
-      if (!this.googleDriveStore.isPluginAvailable) {
+    async createRecoverbullBackup() {
+      if (!this.recoverbullPassword) {
         this.$q.notify({
-          type: "info",
-          message:
-            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
-        });
-        return;
-      }
-
-      try {
-        await this.googleDriveStore.connect();
-        this.$q.notify({
-          type: "positive",
-          message: "Successfully connected to Google Drive",
-        });
-      } catch (error) {
-        console.error("Google Drive authentication failed:", error);
-        this.$q.notify({
-          type: "negative",
-          message: "Failed to connect to Google Drive: " + error.message,
-        });
-      }
-    },
-
-    backupSeedPhraseToDrive: async function () {
-      if (!this.googleDriveStore.isPluginAvailable) {
-        this.$q.notify({
-          type: "info",
-          message:
-            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
-        });
-        return;
-      }
-
-      if (!this.googleDriveBackupEnabled) {
-        this.$q.notify({
-          type: "info",
-          message: "Enable Google Drive backup to create a secure copy.",
+          type: "warning",
+          message: "Enter a password to create a RecoverBull backup.",
         });
         return;
       }
 
       try {
         const mnemonicString = this.walletStore.initializeMnemonic();
-        const mnemonic = mnemonicString.trim().split(/\s+/);
+        const mnemonicWords = mnemonicString.trim().split(/\s+/);
 
-        const vaultKey = await this.googleDriveStore.backupSeedPhrase(mnemonic);
+        const summary = await this.recoverbullBackupStore.createBackup({
+          mnemonic: mnemonicWords,
+          password: this.recoverbullPassword,
+        });
+
         this.$q.notify({
           type: "positive",
-          message: "Seed phrase backed up to Google Drive successfully",
+          message: "RecoverBull backup created. Download the backup file now.",
         });
-        this.$q
-          .dialog({
-            title: "Vault Key Generated",
-            message:
-              "Store this vault key securely. You will need it to restore your backup:<br><code>" +
-              vaultKey +
-              "</code>",
-            html: true,
-            ok: true,
-          })
-          .onOk(() => void 0);
-      } catch (error) {
-        console.error("Google Drive backup failed:", error);
+
+        // Auto-download for convenience
+        this.downloadRecoverbullBackup();
+      } catch (error: any) {
+        console.error("RecoverBull backup failed:", error);
         this.$q.notify({
           type: "negative",
-          message: "Failed to backup to Google Drive: " + error.message,
+          message: error?.message ?? "Failed to create RecoverBull backup.",
         });
       }
     },
 
-    restoreSeedPhraseFromDrive: async function () {
-      if (!this.googleDriveStore.isPluginAvailable) {
+    downloadRecoverbullBackup() {
+      const summary = this.recoverbullBackupStore.lastBackup;
+      if (!summary) {
+        return;
+      }
+      if (typeof document === "undefined") {
+        console.warn("Cannot download backup: document is unavailable.");
+        return;
+      }
+      try {
+        const blob = new Blob([summary.backupJson], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = summary.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Failed to trigger backup download:", error);
         this.$q.notify({
-          type: "info",
-          message:
-            "Google Drive backup is only available on mobile devices (Android/iOS apps)",
+          type: "negative",
+          message: "Unable to download backup file.",
+        });
+      }
+    },
+
+    async copyRecoverbullBackupJson() {
+      const summary = this.recoverbullBackupStore.lastBackup;
+      if (!summary) {
+        return;
+      }
+
+      try {
+        if (
+          typeof navigator === "undefined" ||
+          !navigator.clipboard ||
+          !navigator.clipboard.writeText
+        ) {
+          throw new Error("Clipboard API not available");
+        }
+        await navigator.clipboard.writeText(summary.backupJson);
+        this.$q.notify({
+          type: "positive",
+          message: "Backup JSON copied to clipboard.",
+        });
+      } catch (error) {
+        console.error("Failed to copy RecoverBull backup JSON:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Unable to copy backup JSON.",
+        });
+      }
+    },
+
+    onRecoverbullBackupFileSelected(file: File | File[] | null) {
+      if (!file) {
+        this.recoverbullBackupFileContent = "";
+        this.recoverbullBackupFileName = "";
+        return;
+      }
+
+      const selectedFile = Array.isArray(file) ? file[0] : file;
+      if (!selectedFile) {
+        this.recoverbullBackupFileContent = "";
+        this.recoverbullBackupFileName = "";
+        return;
+      }
+
+      this.recoverbullBackupFileName = selectedFile.name;
+      selectedFile
+        .text()
+        .then((content) => {
+          this.recoverbullBackupFileContent = content;
+        })
+        .catch((error) => {
+          console.error("Failed to read backup file:", error);
+          this.recoverbullBackupFileContent = "";
+          this.$q.notify({
+            type: "negative",
+            message: "Unable to read backup file.",
+          });
+        });
+    },
+
+    async restoreRecoverbullBackup() {
+      const backupJson =
+        this.recoverbullBackupFileContent || this.recoverbullBackupText;
+      if (!backupJson) {
+        this.$q.notify({
+          type: "warning",
+          message: "Provide a RecoverBull backup file or JSON payload.",
+        });
+        return;
+      }
+      if (!this.recoverbullRestorePassword) {
+        this.$q.notify({
+          type: "warning",
+          message: "Enter the password used when creating the backup.",
         });
         return;
       }
 
       try {
-        if (!this.googleDriveStore.hasVaultKey) {
-          const provided = await this.promptForVaultKey();
-          if (!provided) {
-            this.$q.notify({
-              type: "warning",
-              message: "Vault key is required to restore from Google Drive.",
-            });
-            return;
-          }
-        }
+        const mnemonic = await this.recoverbullBackupStore.restoreBackup({
+          backupJson,
+          password: this.recoverbullRestorePassword,
+        });
 
-        const mnemonic = await this.googleDriveStore.restoreSeedPhrase();
         if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
-          throw new Error("Invalid mnemonic returned from backup");
+          throw new Error("Recovered mnemonic is invalid.");
         }
 
         this.walletStore.mnemonic = mnemonic.join(" ");
         this.hideMnemonic = true;
-
         this.$q.notify({
           type: "positive",
-          message: "Seed phrase restored from Google Drive successfully",
-        });
-      } catch (error) {
-        console.error("Google Drive restore failed:", error);
-        this.$q.notify({
-          type: "negative",
-          message: "Failed to restore from Google Drive: " + error.message,
-        });
-      }
-    },
-
-    onGoogleDriveBackupToggle: function (enabled) {
-      // Settings are automatically saved via v-model binding
-      this.$q.notify({
-        type: "positive",
-        message: enabled
-          ? "Google Drive backup enabled"
-          : "Google Drive backup disabled",
-      });
-    },
-    async copyVaultKey() {
-      try {
-        const key = this.googleDriveStore.vaultKeyHex;
-        if (!key) {
-          throw new Error("No vault key available");
-        }
-        if (
-          typeof navigator !== "undefined" &&
-          navigator.clipboard &&
-          navigator.clipboard.writeText
-        ) {
-          await navigator.clipboard.writeText(key);
-        } else {
-          throw new Error("Clipboard API not available");
-        }
-        this.$q.notify({
-          type: "positive",
-          message: "Vault key copied to clipboard",
+          message: "RecoverBull backup restored successfully.",
         });
       } catch (error: any) {
-        console.error("Failed to copy vault key:", error);
+        console.error("RecoverBull restore failed:", error);
         this.$q.notify({
           type: "negative",
-          message: "Unable to copy vault key: " + error.message,
+          message: error?.message ?? "Failed to restore RecoverBull backup.",
         });
       }
-    },
-    async promptForVaultKey() {
-      try {
-        const result = await this.$q.dialog({
-          title: "Enter Vault Key",
-          message:
-            "Paste the vault key that was shown after your last backup. This key is required to decrypt your Google Drive backup.",
-          prompt: {
-            model: "",
-            type: "text",
-            isValid: (val) => !!val && /^[0-9a-fA-F]+$/.test(val.trim()),
-            attrs: {
-              autocapitalize: "off",
-              autocomplete: "off",
-            },
-          },
-          cancel: true,
-        });
-        if (typeof result === "string" && result.trim().length > 0) {
-          this.googleDriveStore.setVaultKey(result.trim());
-          return true;
-        }
-      } catch {
-        // dialog cancelled
-      }
-      return false;
     },
     async downloadEncryptedSeed() {
       if (this.downloadInProgress) {
