@@ -1,6 +1,6 @@
 ## RecoverBull Backup
 
-The wallet now implements the full RecoverBull protocol for mnemonic backups. This replaces the former Google Drive backup feature and uses the RecoverBull key server hosted at `http://keys.bitpints.me`.
+The wallet now implements the full RecoverBull protocol for mnemonic backups. This replaces the former Google Drive backup feature and uses the RecoverBull key server hosted at `https://keys.bitpoints.me`.
 
 ### Backup Flow
 
@@ -31,7 +31,7 @@ The wallet now implements the full RecoverBull protocol for mnemonic backups. Th
 
 ### Key Server Integration
 
-- Base URL: `http://keys.bitpints.me`
+- Base URL: `https://keys.bitpoints.me`
 - Endpoints used:
   - `POST /store` – persist encrypted backup key (expects HTTP 201)
   - `POST /fetch` – retrieve encrypted backup key (expects HTTP 200)

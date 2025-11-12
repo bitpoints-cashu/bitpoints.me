@@ -34,7 +34,7 @@ Clone each repository you need into your development workspace. This wallet repo
 3. **Environment Variables**
    Create a `.env` file (or `.env.local` for Quasar) with at least:
    ```
-   VITE_RECOVERBULL_KEY_SERVER_URL=http://keys.bitpints.me
+   VITE_RECOVERBULL_KEY_SERVER_URL=https://keys.bitpoints.me
    ```
    Override the URL for staging/prod key server deployments as required.
 
