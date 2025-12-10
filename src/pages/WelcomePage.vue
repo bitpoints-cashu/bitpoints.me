@@ -1,26 +1,25 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-page class="welcome-page q-safe-area-top q-safe-area-bottom column no-wrap fit">
+  <q-page class="welcome-page column no-wrap fit">
     <q-card class="q-pa-none full-height column no-wrap">
-      <q-carousel
-        v-model="welcomeStore.currentSlide"
-        animated
-        control-color="primary"
-        class="flex-1"
-      >
-        <q-carousel-slide :name="0">
-          <WelcomeSlide1 />
-        </q-carousel-slide>
-        <!-- Only show second slide for PWA/web browsers -->
-        <q-carousel-slide v-if="!isNativeApp" :name="1">
-          <WelcomeSlide2 />
-        </q-carousel-slide>
-      </q-carousel>
+      <div class="content">
+        <q-carousel
+          v-model="welcomeStore.currentSlide"
+          animated
+          control-color="primary"
+          class="flex-1"
+        >
+          <q-carousel-slide :name="0">
+            <WelcomeSlide1 />
+          </q-carousel-slide>
+          <!-- Only show second slide for PWA/web browsers -->
+          <q-carousel-slide v-if="!isNativeApp" :name="1">
+            <WelcomeSlide2 />
+          </q-carousel-slide>
+        </q-carousel>
+      </div>
 
-      <!-- spacer so fixed footer does not cover content -->
-      <div class="footer-spacer"></div>
-
-      <div class="footer-bar q-safe-area-bottom q-pa-md row items-center">
+      <div class="footer-bar row items-center">
         <q-btn
           flat
           icon="arrow_left"
@@ -193,32 +192,37 @@ export default {
 
 <style scoped>
 .welcome-page {
+  --welcome-footer-height: 72px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  padding: 0 16px;
 }
 
 .full-height {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .q-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: transparent;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 40px) 0
+    calc(env(safe-area-inset-bottom, 0px) + var(--welcome-footer-height) + 16px);
 }
 
 .q-carousel {
   flex: 1;
-}
-
-.footer-spacer {
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
-  flex-shrink: 0;
 }
 
 .custom-navigation {
@@ -232,9 +236,10 @@ export default {
   bottom: env(safe-area-inset-bottom, 0px);
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(4px);
+  height: var(--welcome-footer-height);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
   z-index: 10;
-  padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px);
 }
 </style>
