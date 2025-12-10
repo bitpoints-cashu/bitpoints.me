@@ -74,5 +74,23 @@
   <!-- Local network to reach LAN relays if configured -->
   <key>NSLocalNetworkUsageDescription</key>
   <string>Local network access may be used to reach configured relays.</string>
+  <!-- Minimal scene manifest to satisfy UIScene requirement -->
+  <key>UIApplicationSceneManifest</key>
+  <dict>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+          <key>UISceneConfigurationName</key>
+          <string>Default Configuration</string>
+          <key>UISceneDelegateClassName</key>
+          <string>UIWindowSceneDelegate</string>
+        </dict>
+      </array>
+    </dict>
+  </dict>
 </dict>
 </plist>

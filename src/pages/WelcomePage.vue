@@ -1,7 +1,7 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-page class="welcome-page column no-wrap fit">
-    <q-card class="q-pa-none full-height column no-wrap">
+<q-page class="welcome-page column no-wrap fit">
+  <q-card class="q-pa-none full-height column no-wrap">
       <div class="content">
         <q-carousel
           v-model="welcomeStore.currentSlide"
@@ -193,18 +193,20 @@ export default {
 <style scoped>
 .welcome-page {
   --welcome-footer-height: 72px;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 0 16px;
+  padding: 0;
+  background: #0f241d;
 }
 
 .full-height {
-  min-height: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  background: #0f241d;
 }
 
 .q-card {
@@ -218,7 +220,8 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: calc(env(safe-area-inset-top, 0px) + 52px) 0
-    calc(env(safe-area-inset-bottom, 0px) + var(--welcome-footer-height) - 8px);
+    calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: #0f241d;
 }
 
 .q-carousel {

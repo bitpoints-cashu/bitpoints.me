@@ -46,13 +46,13 @@ body,
 
 // Quasar notify lists: push below notch/Dynamic Island
 .q-notifications__list--top {
-  margin-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  margin-top: calc(env(safe-area-inset-top, 0px) + 64px);
   padding-right: env(safe-area-inset-right, 0px);
   padding-left: env(safe-area-inset-left, 0px);
 }
 
 .q-notifications__list--top.q-notifications__list {
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
   right: env(safe-area-inset-right, 0px);
   left: env(safe-area-inset-left, 0px);
 }
