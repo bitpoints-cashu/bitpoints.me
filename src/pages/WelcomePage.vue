@@ -217,8 +217,8 @@ export default {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 40px) 0
-    calc(env(safe-area-inset-bottom, 0px) + var(--welcome-footer-height) + 16px);
+  padding: calc(env(safe-area-inset-top, 0px) + 52px) 0
+    calc(env(safe-area-inset-bottom, 0px) + var(--welcome-footer-height) + 4px);
 }
 
 .q-carousel {
