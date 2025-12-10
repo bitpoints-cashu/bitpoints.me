@@ -17,6 +17,9 @@
         </q-carousel-slide>
       </q-carousel>
 
+      <!-- spacer so fixed footer does not cover content -->
+      <div class="footer-spacer"></div>
+
       <div class="footer-bar q-safe-area-bottom q-pa-md row items-center">
         <q-btn
           flat
@@ -193,8 +196,8 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: 12px; /* q-safe-area-top already applies inset; keep light spacing */
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); /* space for fixed footer */
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
 }
 
 .full-height {
@@ -213,6 +216,11 @@ export default {
   flex: 1;
 }
 
+.footer-spacer {
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+}
+
 .custom-navigation {
   display: flex;
   justify-content: space-between;
@@ -227,6 +235,6 @@ export default {
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
   z-index: 10;
-  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px);
 }
 </style>
