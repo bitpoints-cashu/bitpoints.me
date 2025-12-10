@@ -260,17 +260,18 @@ window.windowMixin = {
       typeof SafeArea.getSafeAreaInsets === "function"
     ) {
       window.__safeAreaInitialized = true;
-      try {
-        const { insets } = await SafeArea.getSafeAreaInsets();
-        for (const [key, value] of Object.entries(insets || {})) {
-          document.documentElement.style.setProperty(
-            `--safe-area-inset-${key}`,
-            `${value}px`
-          );
-        }
-      } catch (e) {
-        console.warn("SafeArea getSafeAreaInsets failed", e);
-      }
+      SafeArea.getSafeAreaInsets()
+        .then(({ insets }) => {
+          for (const [key, value] of Object.entries(insets || {})) {
+            document.documentElement.style.setProperty(
+              `--safe-area-inset-${key}`,
+              `${value}px`
+            );
+          }
+        })
+        .catch((e) => {
+          console.warn("SafeArea getSafeAreaInsets failed", e);
+        });
     }
   },
 };
