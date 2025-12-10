@@ -1,6 +1,6 @@
 {
   "name": "bitpoints",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Bitcoin-backed rewards wallet merging Cashu ecash, Nostr identity, and Bluetooth mesh protocols for maximum interoperability and privacy",
   "productName": "Bitpoints",
   "author": "Bitpoints.me",
@@ -78,6 +78,7 @@
     "happy-dom": "^17.4.4",
     "prettier": "^2.8.8",
     "typescript": "^5.4.5",
+    "vite": "^2.9.18",
     "vite-jsconfig-paths": "^2.0.1",
     "vitest": "^3.1.1",
     "workbox-build": "^6.6.1",
