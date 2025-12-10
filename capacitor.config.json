@@ -1,5 +1,5 @@
 {
   "appId": "me.bitpoints.wallet",
   "appName": "Bitpoints",
-  "webDir": "www"
+  "webDir": "dist/spa"
 }
