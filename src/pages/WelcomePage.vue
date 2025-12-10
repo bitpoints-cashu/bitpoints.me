@@ -193,8 +193,8 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: var(--safe-area-inset-bottom);
-  padding-top: var(--safe-area-inset-top);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
 }
 
 .full-height {
@@ -224,8 +224,9 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
   z-index: 10;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
 }
 </style>
