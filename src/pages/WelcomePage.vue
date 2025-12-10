@@ -192,8 +192,7 @@ export default {
 
 <style scoped>
 .welcome-page {
-  --welcome-footer-height: 72px;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -213,15 +212,19 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: transparent;
+  background: #0f241d;
 }
 
 .content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   padding: calc(env(safe-area-inset-top, 0px) + 52px) 0
-    calc(env(safe-area-inset-bottom, 0px) + 16px);
+    env(safe-area-inset-bottom, 0px);
   background: #0f241d;
+  box-sizing: border-box;
 }
 
 .q-carousel {
