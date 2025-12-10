@@ -193,8 +193,8 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-top: 12px; /* q-safe-area-top already applies inset; keep light spacing */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); /* space for fixed footer */
 }
 
 .full-height {
@@ -220,13 +220,13 @@ export default {
 }
 
 .footer-bar {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 0px);
   left: 0;
   right: 0;
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
   z-index: 10;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
 </style>
