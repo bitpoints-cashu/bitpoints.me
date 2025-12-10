@@ -1,0 +1,46 @@
+PODS:
+  - Capacitor (6.2.1):
+    - CapacitorCordova
+  - CapacitorCamera (6.1.3):
+    - Capacitor
+  - CapacitorClipboard (6.0.3):
+    - Capacitor
+  - CapacitorCordova (6.2.1)
+  - CapacitorHaptics (6.0.3):
+    - Capacitor
+  - CapacitorPluginSafeArea (3.0.4):
+    - Capacitor
+
+DEPENDENCIES:
+  - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorCamera (from `../../node_modules/@capacitor/camera`)"
+  - "CapacitorClipboard (from `../../node_modules/@capacitor/clipboard`)"
+  - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
+  - CapacitorPluginSafeArea (from `../../node_modules/capacitor-plugin-safe-area`)
+
+EXTERNAL SOURCES:
+  Capacitor:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorCamera:
+    :path: "../../node_modules/@capacitor/camera"
+  CapacitorClipboard:
+    :path: "../../node_modules/@capacitor/clipboard"
+  CapacitorCordova:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorHaptics:
+    :path: "../../node_modules/@capacitor/haptics"
+  CapacitorPluginSafeArea:
+    :path: "../../node_modules/capacitor-plugin-safe-area"
+
+SPEC CHECKSUMS:
+  Capacitor: c95400d761e376be9da6be5a05f226c0e865cebf
+  CapacitorCamera: 5ba135b0cb55a788758139fa2404d726bf60f0f3
+  CapacitorClipboard: 6479f3d5c20e5f985cb72e620e11f20a351777e2
+  CapacitorCordova: 8d93e14982f440181be7304aa9559ca631d77fff
+  CapacitorHaptics: 40f83026feeee9cfe36e89e9c98a3baaaf20c450
+  CapacitorPluginSafeArea: f096bc36693251a7e55fc3571487dd337c0ddb6a
+
+PODFILE CHECKSUM: f3f2e825fddf082fb12367997758a30135608870
+
+COCOAPODS: 1.16.2
