@@ -63,6 +63,10 @@ export default {
       failed_to_decode_invoice: "无法解码发票",
       invalid_lnurl: "无效的LNURL",
       lnurl_error: "LNURL错误",
+      lnurl_withdraw_error: "LNURL-withdraw 错误",
+      no_lnurl_withdraw_data: "没有 LNURL-withdraw 数据",
+      lnurl_withdraw_amount_out_of_range: "提现金额超出允许范围",
+      lnurl_withdraw_requested: "已请求提现，等待支付 {amount}。",
       no_amount: "没有金额",
       no_lnurl_data: "没有LNURL数据",
       no_price_data: "没有价格数据。",
@@ -1176,6 +1180,24 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label: "{ payee } 允许你提取 { value } { ticker }",
+      amount_range_label:
+        "{ payee } 允许你提取{br}{ min } 到 { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "金额 ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

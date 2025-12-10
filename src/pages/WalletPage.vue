@@ -671,6 +671,7 @@ export default {
       this.payInvoiceData.show = true;
       this.payInvoiceData.invoice = null;
       this.payInvoiceData.lnurlpay = null;
+      this.payInvoiceData.lnurlwithdraw = null;
       this.payInvoiceData.domain = "";
       this.payInvoiceData.lnurlauth = null;
       this.payInvoiceData.input.request = "";
