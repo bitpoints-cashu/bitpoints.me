@@ -1,6 +1,6 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-page class="welcome-page">
+  <q-page class="welcome-page q-safe-area-top q-safe-area-bottom">
     <q-card class="q-pa-none full-height">
       <q-carousel
         v-model="welcomeStore.currentSlide"
@@ -17,7 +17,7 @@
         </q-carousel-slide>
       </q-carousel>
 
-      <div class="q-pa-md flex justify-between">
+      <div class="footer-bar q-safe-area-bottom q-pa-md row items-center">
         <q-btn
           flat
           icon="arrow_left"
@@ -26,11 +26,7 @@
           @click="welcomeStore.goToPrevSlide"
         />
         <!-- language selector -->
-        <div
-          class="q-ml-md"
-          v-if="!welcomeStore.canGoPrev"
-          style="position: relative; top: -5px"
-        >
+        <div class="q-ml-md" v-if="!welcomeStore.canGoPrev">
           <q-select
             v-model="selectedLanguage"
             :options="languageOptions"
@@ -194,13 +190,15 @@ export default {
 
 <style scoped>
 .welcome-page {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-top: var(--safe-area-inset-top);
 }
 
 .full-height {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -219,5 +217,15 @@ export default {
   display: flex;
   justify-content: space-between;
   padding: 16px;
+}
+
+.footer-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  z-index: 10;
 }
 </style>

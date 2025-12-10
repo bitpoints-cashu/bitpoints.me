@@ -251,8 +251,13 @@ window.windowMixin = {
       mintsStore.activeUnit = "sat";
     }
 
-    // only for iOS
-    if (window.Capacitor && Capacitor.getPlatform() === "ios") {
+    // only for iOS; guard to avoid duplicate listeners
+    if (
+      window.Capacitor &&
+      Capacitor.getPlatform() === "ios" &&
+      !window.__safeAreaInitialized
+    ) {
+      window.__safeAreaInitialized = true;
       SafeArea.getStatusBarHeight().then(({ statusBarHeight }) => {
         document.documentElement.style.setProperty(
           `--safe-area-inset-top`,
