@@ -1,7 +1,7 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-page class="welcome-page q-safe-area-top q-safe-area-bottom">
-    <q-card class="q-pa-none full-height">
+  <q-page class="welcome-page q-safe-area-top q-safe-area-bottom column no-wrap fit">
+    <q-card class="q-pa-none full-height column no-wrap">
       <q-carousel
         v-model="welcomeStore.currentSlide"
         animated
