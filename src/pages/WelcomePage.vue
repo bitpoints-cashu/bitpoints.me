@@ -1,55 +1,56 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
-<q-page class="welcome-page column no-wrap fit">
-  <q-card class="q-pa-none full-height column no-wrap">
-      <div class="content">
-        <q-carousel
-          v-model="welcomeStore.currentSlide"
-          animated
-          control-color="primary"
-          class="flex-1"
-        >
-          <q-carousel-slide :name="0">
-            <WelcomeSlide1 />
-          </q-carousel-slide>
-          <!-- Only show second slide for PWA/web browsers -->
-          <q-carousel-slide v-if="!isNativeApp" :name="1">
-            <WelcomeSlide2 />
-          </q-carousel-slide>
-        </q-carousel>
-      </div>
+<q-page class="welcome-page">
+  <q-card class="q-pa-none full-height">
+    <q-carousel
+      v-model="welcomeStore.currentSlide"
+      animated
+      control-color="primary"
+    >
+      <q-carousel-slide :name="0">
+        <WelcomeSlide1 />
+      </q-carousel-slide>
+      <!-- Only show second slide for PWA/web browsers -->
+      <q-carousel-slide v-if="!isNativeApp" :name="1">
+        <WelcomeSlide2 />
+      </q-carousel-slide>
+    </q-carousel>
 
-      <div class="footer-bar row items-center">
-        <q-btn
-          flat
-          icon="arrow_left"
-          :label="$t('WelcomePage.actions.previous.label')"
-          v-if="welcomeStore.canGoPrev"
-          @click="welcomeStore.goToPrevSlide"
-        />
-        <!-- language selector -->
-        <div class="q-ml-md" v-if="!welcomeStore.canGoPrev">
-          <q-select
-            v-model="selectedLanguage"
-            :options="languageOptions"
-            emit-value
-            dense
-            map-options
-            @update:model-value="changeLanguage"
-            style="max-width: 200px; max-height: 20px"
-          />
-        </div>
-        <q-space />
-        <q-btn
-          flat
-          icon="arrow_right"
-          :label="$t('WelcomePage.actions.next.label')"
-          :disable="!welcomeStore.canProceed"
-          @click="welcomeStore.goToNextSlide"
+    <div class="q-pa-md flex justify-between footer-bar">
+      <q-btn
+        flat
+        icon="arrow_left"
+        :label="$t('WelcomePage.actions.previous.label')"
+        v-if="welcomeStore.canGoPrev"
+        @click="welcomeStore.goToPrevSlide"
+      />
+      <!-- language selector -->
+      <div
+        class="q-ml-md"
+        v-if="!welcomeStore.canGoPrev"
+        style="position: relative; top: -5px"
+      >
+        <q-select
+          v-model="selectedLanguage"
+          :options="languageOptions"
+          emit-value
+          dense
+          map-options
+          @update:model-value="changeLanguage"
+          style="max-width: 200px; max-height: 20px"
         />
       </div>
-    </q-card>
-  </q-page>
+      <q-space />
+      <q-btn
+        flat
+        icon="arrow_right"
+        :label="$t('WelcomePage.actions.next.label')"
+        :disable="!welcomeStore.canProceed"
+        @click="welcomeStore.goToNextSlide"
+      />
+    </div>
+  </q-card>
+</q-page>
 </template>
 
 <script lang="ts">
@@ -192,60 +193,38 @@ export default {
 
 <style scoped>
 .welcome-page {
-  height: 100dvh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  background: #0f241d;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
 }
 
 .full-height {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  background: #0f241d;
 }
 
 .q-card {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0f241d;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100dvh - env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 52px) 0
-    env(safe-area-inset-bottom, 0px);
-  background: #0f241d;
-  box-sizing: border-box;
+  background: transparent;
+  box-shadow: none;
 }
 
 .q-carousel {
   flex: 1;
-}
-
-.custom-navigation {
-  display: flex;
-  justify-content: space-between;
-  padding: 16px;
+  width: 100%;
 }
 
 .footer-bar {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: 0;
-  right: 0;
-  height: var(--welcome-footer-height);
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   z-index: 10;
-  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px);
 }
 </style>
