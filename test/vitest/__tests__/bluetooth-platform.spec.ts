@@ -67,8 +67,8 @@ const resetEnv = () => {
 
 const mockPlatform = (platform: string) => {
   vi.spyOn(Capacitor, "getPlatform").mockImplementation(() => platform);
-  vi.spyOn(Capacitor, "isNativePlatform").mockImplementation(() =>
-    platform === "android" || platform === "ios"
+  vi.spyOn(Capacitor, "isNativePlatform").mockImplementation(
+    () => platform === "android" || platform === "ios"
   );
 };
 
@@ -91,7 +91,9 @@ describe("Bluetooth platform defaults", () => {
     resetEnv();
     setActivePinia(createPinia());
     mockPlatform("ios");
-    const { useSettingsStore: useSettingsStoreIos } = await import("src/stores/settings");
+    const { useSettingsStore: useSettingsStoreIos } = await import(
+      "src/stores/settings"
+    );
     const iosStore = useSettingsStoreIos();
     iosStore.bluetoothEnabled = false;
     expect(iosStore.bluetoothEnabled).toBe(false);

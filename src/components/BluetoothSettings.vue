@@ -12,7 +12,7 @@
 
     <q-separator />
 
-  <q-card-section v-if="meshEnabled">
+    <q-card-section v-if="meshEnabled">
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
