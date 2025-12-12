@@ -51,7 +51,8 @@
             <template v-slot:avatar>
               <q-icon name="qr_code" />
             </template>
-            Use QR codes to add contacts without Bluetooth.
+            Bluetooth mesh is disabled. Use QR codes and Nostr/BitChat to add
+            contacts.
           </q-banner>
 
           <!-- Username Section -->
@@ -559,6 +560,7 @@ import { useMintsStore } from "src/stores/mints";
 import { useProofsStore } from "src/stores/proofs";
 import { useTokensStore } from "src/stores/tokens";
 import { useNostrStore } from "src/stores/nostr";
+import { useSettingsStore } from "src/stores/settings";
 import { notifySuccess, notifyError } from "src/js/notify";
 import { Peer } from "src/plugins/bluetooth-ecash";
 import BluetoothEcash from "src/plugins/bluetooth-ecash";
@@ -628,7 +630,7 @@ export default defineComponent({
 
     // Check if BluetoothEcash plugin is available (native only, not web)
     const isBluetoothEcashAvailable = computed(() => {
-      return Capacitor.isNativePlatform();
+      return Capacitor.isNativePlatform() && settingsStore.bluetoothEnabled;
     });
 
     // Fetch connected peers with Nostr capability
@@ -1053,6 +1055,12 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
+      if (!settingsStore.bluetoothEnabled) {
+        notifyError(
+          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
+        );
+        return;
+      }
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;

@@ -64,11 +64,13 @@
     "@electron/packager": "^18.4.4",
     "@quasar/app-vite": "^1.11.0",
     "@quasar/icongenie": "^4.0.0",
+    "@quasar/vite-plugin": "^1.10.0",
     "@types/node": "^20.12.11",
     "@types/underscore": "^1.11.15",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+    "@vitejs/plugin-vue": "^2.3.4",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.19",
     "electron": "^38.1.0",
@@ -87,7 +89,8 @@
     "workbox-expiration": "^6.6.1",
     "workbox-precaching": "^6.6.1",
     "workbox-routing": "^6.6.1",
-    "workbox-strategies": "^6.6.1"
+    "workbox-strategies": "^6.6.1",
+    "ws": "^8.18.3"
   },
   "engines": {
     "node": ">=16.11.0",

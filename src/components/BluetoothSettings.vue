@@ -12,7 +12,7 @@
 
     <q-separator />
 
-    <q-card-section>
+    <q-card-section v-if="meshEnabled">
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
@@ -112,10 +112,10 @@
       </q-list>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
     <!-- Always-On Mode Section (Android only) -->
-    <q-card-section v-if="!isDesktop">
+    <q-card-section v-if="meshEnabled && !isDesktop">
       <div class="text-subtitle2 q-mb-sm">Always-On Mode</div>
       <div class="text-caption text-grey-6 q-mb-sm">
         For kids' devices without consistent internet - keeps Bluetooth mesh
@@ -192,9 +192,9 @@
       </q-banner>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
-    <q-card-section>
+    <q-card-section v-if="meshEnabled">
       <div class="row q-gutter-sm">
         <q-btn
           outline
@@ -231,9 +231,9 @@
       </div>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
-    <q-card-section class="q-pt-sm">
+    <q-card-section v-if="meshEnabled" class="q-pt-sm">
       <div class="text-caption text-grey-6">
         <q-icon name="info" size="xs" class="q-mr-xs" />
         <span v-if="isDesktop && !isWebBluetoothSupported">
@@ -247,6 +247,15 @@
         <span v-else> Bluetooth mesh enables offline token transfers </span>
       </div>
     </q-card-section>
+    <q-card-section v-else>
+      <q-banner dense class="bg-grey-3 text-dark" rounded>
+        <template v-slot:avatar>
+          <q-icon name="info" />
+        </template>
+        Bluetooth mesh is disabled. Nostr/BitChat is active for contacts. Enable
+        Bluetooth mesh in Advanced Features if you need nearby peer discovery.
+      </q-banner>
+    </q-card-section>
   </q-card>
 </template>
 
@@ -254,6 +263,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useBluetoothStore } from "src/stores/bluetooth";
 import { useFavoritesStore } from "src/stores/favorites";
+import { useSettingsStore } from "src/stores/settings";
 import { Capacitor } from "@capacitor/core";
 import { notifySuccess } from "src/js/notify";
 
@@ -265,8 +275,10 @@ const emit = defineEmits<{
 
 const bluetoothStore = useBluetoothStore();
 const favoritesStore = useFavoritesStore();
+const settingsStore = useSettingsStore();
 
 const isDesktop = computed(() => !Capacitor.isNativePlatform());
+const meshEnabled = computed(() => settingsStore.bluetoothEnabled);
 
 const isWebBluetoothSupported = computed(() => {
   try {
@@ -278,6 +290,7 @@ const isWebBluetoothSupported = computed(() => {
 });
 
 async function toggleBluetooth(enabled: boolean) {
+  if (!meshEnabled.value) return;
   if (enabled) {
     await bluetoothStore.startService();
   } else {
@@ -287,6 +300,7 @@ async function toggleBluetooth(enabled: boolean) {
 
 async function connectDesktopDevice() {
   try {
+    if (!meshEnabled.value) return;
     // For desktop, this will show the browser's device picker
     await bluetoothStore.startService();
   } catch (error) {

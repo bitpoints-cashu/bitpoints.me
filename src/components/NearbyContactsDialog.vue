@@ -198,6 +198,7 @@ import { useMintsStore } from "src/stores/mints";
 import { useProofsStore } from "src/stores/proofs";
 import { useTokensStore } from "src/stores/tokens";
 import { useNostrStore } from "src/stores/nostr";
+import { useSettingsStore } from "src/stores/settings";
 import { notifySuccess, notifyError } from "src/js/notify";
 import { Peer } from "src/plugins/bluetooth-ecash";
 import { nip19 } from "nostr-tools";
@@ -222,6 +223,7 @@ export default defineComponent({
     const proofsStore = useProofsStore();
     const tokensStore = useTokensStore();
     const nostrStore = useNostrStore();
+    const settingsStore = useSettingsStore();
 
     const selectedPeers = ref(new Set<string>());
     const amount = ref<number | null>(null);
@@ -242,6 +244,12 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
+      if (!settingsStore.bluetoothEnabled) {
+        notifyError(
+          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
+        );
+        return;
+      }
       await bluetoothStore.startService();
     };
 

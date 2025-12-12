@@ -81,6 +81,35 @@
             <q-toggle v-model="multinutEnabled" color="primary" />
           </q-item-section>
         </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              Enable Bluetooth mesh (beta)
+            </q-item-label>
+            <q-item-label caption>
+              Default is off. When disabled, only Nostr/BitChat will be used for
+              contact delivery.
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-toggle v-model="bluetoothEnabled" color="primary" />
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label class="text-weight-medium">
+              Enable BitChat Nostr interop
+            </q-item-label>
+            <q-item-label caption>
+              Use BitChat TLV payloads over NIP-17 giftwrap for mutual contacts
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side>
+            <q-toggle v-model="bitchatInteropEnabled" color="primary" />
+          </q-item-section>
+        </q-item>
       </q-list>
       <q-dialog v-model="showDiscoverDialog" position="bottom">
         <q-card style="width: 100%; max-width: 700px">
@@ -131,12 +160,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent, ref, watch } from "vue";
 import { mapState, mapWritableState } from "pinia";
 import { useMintsStore } from "src/stores/mints";
 import { useSettingsStore } from "src/stores/settings";
 import { useRouter } from "vue-router";
 import { useNostrStore } from "src/stores/nostr";
+import { useBluetoothStore } from "src/stores/bluetooth";
 
 export default defineComponent({
   name: "AdvancedFeatures",
@@ -145,12 +175,16 @@ export default defineComponent({
     ...mapWritableState(useSettingsStore, [
       "enableReceiveSwaps",
       "multinutEnabled",
+      "bluetoothEnabled",
+      "bitchatInteropEnabled",
     ]),
     ...mapState(useNostrStore, ["mintRecommendations"]),
   },
   setup() {
     const router = useRouter();
     const nostrStore = useNostrStore();
+    const settingsStore = useSettingsStore();
+    const bluetoothStore = useBluetoothStore();
     const openActiveMintDetails = function () {
       const mintsStore = useMintsStore();
       if (!mintsStore.activeMintUrl) return;
@@ -180,6 +214,15 @@ export default defineComponent({
       await mintsStore.activateMintUrl(url, false, true);
       showDiscoverDialog.value = false;
     };
+
+    watch(
+      () => settingsStore.bluetoothEnabled,
+      async (enabled) => {
+        if (!enabled) {
+          await bluetoothStore.stopService();
+        }
+      }
+    );
     return {
       openActiveMintDetails,
       openAddMintDialog,

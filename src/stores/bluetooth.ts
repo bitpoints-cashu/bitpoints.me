@@ -12,6 +12,7 @@ import { useWalletStore } from "./wallet";
 import { useNostrStore } from "./nostr";
 import { useReceiveTokensStore } from "./receiveTokensStore";
 import { useFavoritesStore } from "./favorites";
+import { useSettingsStore } from "./settings";
 import { useLocalStorage } from "@vueuse/core";
 import { notifySuccess, notifyError, notifyWarning } from "src/js/notify";
 import { Capacitor } from "@capacitor/core";
@@ -66,7 +67,12 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Check if any Bluetooth is available (native or web)
      */
     isBluetoothAvailable(): boolean {
-      return Capacitor.isNativePlatform() || this.isWebBluetoothAvailable;
+      const settings = useSettingsStore();
+      if (!settings.bluetoothEnabled) return false;
+      return (
+        Capacitor.isNativePlatform() ||
+        (this.isDesktop && this.isWebBluetoothAvailable)
+      );
     },
 
     /**
@@ -114,6 +120,11 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Initialize the Bluetooth service and event listeners
      */
     async initialize() {
+      const settings = useSettingsStore();
+      if (!settings.bluetoothEnabled) {
+        console.log("Bluetooth disabled via settings; skipping init.");
+        return;
+      }
       if (this.isInitialized) return;
 
       try {
@@ -272,6 +283,11 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Start Bluetooth mesh service
      */
     async startService() {
+      const settings = useSettingsStore();
+      if (!settings.bluetoothEnabled) {
+        console.log("Bluetooth disabled via settings; startService skipped.");
+        return false;
+      }
       try {
         // Desktop PWA with Web Bluetooth
         if (this.isDesktop) {
@@ -345,6 +361,12 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Stop Bluetooth mesh service
      */
     async stopService() {
+      const settings = useSettingsStore();
+      if (!settings.bluetoothEnabled) {
+        this.isActive = false;
+        this.nearbyPeers = [];
+        return;
+      }
       try {
         if (this.isDesktop) {
           webBluetoothService.disconnectAll();

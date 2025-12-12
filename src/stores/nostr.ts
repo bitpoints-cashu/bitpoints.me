@@ -21,6 +21,7 @@ import { useLocalStorage } from "@vueuse/core";
 import { generateDefaultUsername } from "src/utils/username";
 import { useSettingsStore } from "./settings";
 import { useReceiveTokensStore } from "./receiveTokensStore";
+import { useFavoritesStore } from "./favorites";
 import {
   getEncodedTokenV4,
   PaymentRequestPayload,
@@ -38,6 +39,15 @@ import { useSendTokensStore } from "./sendTokensStore";
 import { usePRStore } from "./payment-request";
 import token from "../js/token";
 import { HistoryToken } from "./tokens";
+import { useFavoritesStore } from "./favorites";
+import {
+  base64UrlDecode,
+  base64UrlEncode,
+  buildBitChatPacket,
+  decodePrivateMessageTLV,
+  encodePrivateMessageTLV,
+  parseBitChatPacket,
+} from "./nostr-bitchat-helpers";
 
 type MintRecommendation = {
   url: string;
@@ -123,6 +133,59 @@ export const useNostrStore = defineStore("nostr", {
     },
   },
   actions: {
+    normalizePeerId(peerId: string): string {
+      const hex = peerId.toLowerCase().replace(/[^0-9a-f]/g, "");
+      if (hex.length >= 16) {
+        return hex.substring(0, 16);
+      }
+      return hex.padEnd(16, "0");
+    },
+
+    /**
+     * Base64url helpers (no padding)
+     */
+    base64UrlEncode(bytes: Uint8Array): string {
+      return base64UrlEncode(bytes);
+    },
+    base64UrlDecode(input: string): Uint8Array | null {
+      return base64UrlDecode(input);
+    },
+
+    /**
+     * BitChat TLV encode/decode for PrivateMessagePacket
+     * Type 0x00 = messageID, 0x01 = content; 1-byte length fields (max 255)
+     */
+    encodePrivateMessageTLV(
+      messageID: string,
+      content: string
+    ): Uint8Array | null {
+      return encodePrivateMessageTLV(messageID, content);
+    },
+    decodePrivateMessageTLV(
+      data: Uint8Array
+    ): { messageID: string; content: string } | null {
+      return decodePrivateMessageTLV(data);
+    },
+
+    /**
+     * Build a minimal BitChat packet (v1) for Nostr transport.
+     * Implements MessageType.NOISE_ENCRYPTED (0x11) carrying NoisePayloadType + TLV.
+     */
+    buildBitChatPacket(
+      payload: Uint8Array,
+      senderPeerIdHex: string,
+      recipientPeerIdHex?: string
+    ): string | null {
+      return buildBitChatPacket(payload, senderPeerIdHex, recipientPeerIdHex);
+    },
+
+    /**
+     * Parse BitChat `bitchat1:` payload back to message content (if PM).
+     */
+    parseBitChatPacket(encoded: string): string | null {
+      return parseBitChatPacket(encoded);
+    },
+
     initNdkReadOnly: function () {
       this.ndk = new NDK({ explicitRelayUrls: this.relays });
       this.ndk.connect();
@@ -536,6 +599,11 @@ export const useNostrStore = defineStore("nostr", {
             );
             dmEvent = JSON.parse(dmEventString) as NDKEvent;
             content = dmEvent.content;
+            const parsed = this.parseBitChatPacket(content);
+            if (parsed) {
+              console.log("📥 Received BitChat payload via NIP-17 gift-wrap");
+              content = parsed;
+            }
             console.log("### NIP-17 DM from", dmEvent.pubkey);
             console.log("Content:", content);
           } catch (e) {
@@ -705,54 +773,49 @@ export const useNostrStore = defineStore("nostr", {
       senderNickname: string = generateDefaultUsername()
     ) {
       try {
-        if (!this.ndk || !this.connected) {
-          throw new Error("Nostr not connected");
+        const settings = useSettingsStore();
+        const favorites = useFavoritesStore();
+        await this.walletSeedGenerateKeyPair();
+
+        // If BitChat interop is enabled, send as gift-wrapped BitChat packet
+        if (settings.bitchatInteropEnabled) {
+          console.log(
+            "📡 BitChat Nostr interop enabled; sending via gift-wrap."
+          );
+          const recipientHex = nip19.decode(recipientNpub).data as string;
+          const recipientPeerId =
+            favorites.findPeerIDForNostrPubkey(recipientNpub) ?? "";
+          // Use a stable local mesh ID if available; fall back to seed pubkey prefix
+          const senderPeerId =
+            favorites.findPeerIDForNostrPubkey(this.pubkey) ??
+            this.seedSignerPublicKey.substring(0, 16);
+          const tlv = this.encodePrivateMessageTLV(crypto.randomUUID(), token);
+          if (!tlv) {
+            throw new Error("Failed to encode BitChat TLV");
+          }
+          const payload = new Uint8Array(1 + tlv.length);
+          payload[0] = 0x01; // NoisePayloadType.PRIVATE_MESSAGE
+          payload.set(tlv, 1);
+          const bitchat = this.buildBitChatPacket(
+            payload,
+            senderPeerId,
+            recipientPeerId
+          );
+          if (!bitchat) {
+            throw new Error("Failed to build BitChat packet");
+          }
+          await this.sendNip17DirectMessage(recipientHex, bitchat, this.relays);
+          console.log(
+            `📨 Sent BitChat TLV via NIP-17 to ${recipientNpub.substring(
+              0,
+              16
+            )}...`
+          );
+          return;
         }
 
-        // Generate unique message ID
-        const messageID = crypto.randomUUID();
-
-        // Create PrivateMessagePacket with cashu token as content
-        // This will use the 2-byte TLV encoding for large messages
-        const privateMessagePacket = {
-          messageID: messageID,
-          content: token, // The cashu token is the content
-        };
-
-        // Note: The actual TLV encoding will be done by the Android layer
-        // when the packet is processed through the BitChat protocol stack.
-        // For now, we'll send the token as JSON for compatibility.
-        const content = JSON.stringify({
-          type: "BITPOINTS_TOKEN_TLV",
-          messageID: messageID,
-          token: token,
-          timestamp: Date.now(),
-          senderNpub: this.npub,
-          senderNickname,
-        });
-
-        // Encrypt and send as DM (NIP-04)
-        const recipientHex = nip19.decode(recipientNpub).data as string;
-        const encrypted = await nip04.encrypt(
-          this.privateKey,
-          recipientHex,
-          content
-        );
-
-        // Create DM event (kind 4)
-        const dmEvent = new NDKEvent(this.ndk);
-        dmEvent.kind = 4; // Encrypted Direct Message
-        dmEvent.content = encrypted;
-        dmEvent.tags = [["p", recipientHex]];
-
-        await dmEvent.publish();
-
-        console.log(
-          `📨 Sent token via Nostr to ${recipientNpub.substring(
-            0,
-            16
-          )}... (TLV format)`
-        );
+        // Fallback: legacy NIP-04 plaintext token
+        await this.sendNip04DirectMessage(recipientNpub, token);
       } catch (error) {
         console.error("Failed to send token via Nostr:", error);
         throw error;

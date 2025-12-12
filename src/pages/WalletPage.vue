@@ -384,6 +384,7 @@ import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrStore } from "src/stores/nostr";
 import { usePRStore } from "src/stores/payment-request";
 import { useDexieStore } from "src/stores/dexie";
+import { useSettingsStore } from "src/stores/settings";
 
 import { useStorageStore } from "src/stores/storage";
 import ReceiveTokenDialog from "src/components/ReceiveTokenDialog.vue";
@@ -788,6 +789,11 @@ export default {
     initializeBluetooth: async function () {
       try {
         const bluetoothStore = useBluetoothStore();
+        const settingsStore = useSettingsStore();
+        if (!settingsStore.bluetoothEnabled) {
+          console.log("Bluetooth disabled via settings; skipping init/start.");
+          return;
+        }
         // Only initialize the store (setup event listeners, etc)
         await bluetoothStore.initialize();
 

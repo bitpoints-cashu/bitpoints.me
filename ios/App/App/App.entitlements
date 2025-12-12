@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+		Empty entitlements placeholder.
+		Bluetooth on iOS does not require an entitlement key, but Xcode needs an entitlements
+		file when capabilities are added. If you use app groups or other capabilities, add
+		them here. Make sure CODE_SIGN_ENTITLEMENTS in the target build settings points to this file.
+	-->
+</dict>
+</plist>

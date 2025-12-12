@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { nextTick } from "vue";
 import { currentDateStr } from "src/js/utils";
 import { useMintsStore, WalletProof, MintClass, Mint } from "./mints";
 import { useLocalStorage } from "@vueuse/core";
@@ -1447,7 +1448,7 @@ export const useWalletStore = defineStore("wallet", {
       receiveStore.showReceiveTokens = true;
 
       // Auto-receive if token is valid and not P2PK locked
-      this.$nextTick(async () => {
+      nextTick(async () => {
         if (receiveStore.receiveData.tokensBase64) {
           const p2pkStore = useP2PKStore();
           const isP2PKLocked =
