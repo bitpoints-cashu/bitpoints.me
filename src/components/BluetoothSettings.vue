@@ -12,7 +12,7 @@
 
     <q-separator />
 
-    <q-card-section v-if="meshEnabled">
+  <q-card-section v-if="meshEnabled">
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
@@ -252,8 +252,13 @@
         <template v-slot:avatar>
           <q-icon name="info" />
         </template>
-        Bluetooth mesh is disabled. Nostr/BitChat is active for contacts. Enable
-        Bluetooth mesh in Advanced Features if you need nearby peer discovery.
+        <span v-if="isDesktop">
+          Bluetooth mesh is disabled in this browser. Nostr/BitChat is active
+          for contacts. Enable mesh in Advanced Features to try Web Bluetooth.
+        </span>
+        <span v-else>
+          Bluetooth mesh is disabled. Nostr/BitChat is active for contacts.
+        </span>
       </q-banner>
     </q-card-section>
   </q-card>

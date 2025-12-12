@@ -88,8 +88,8 @@
               Enable Bluetooth mesh (beta)
             </q-item-label>
             <q-item-label caption>
-              Default is off. When disabled, only Nostr/BitChat will be used for
-              contact delivery.
+              Default is on for Android, off elsewhere. When off, only
+              Nostr/BitChat will be used for contact delivery.
             </q-item-label>
           </q-item-section>
           <q-item-section side>

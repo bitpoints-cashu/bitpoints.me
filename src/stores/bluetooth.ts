@@ -68,7 +68,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
      */
     isBluetoothAvailable(): boolean {
       const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled) return false;
+      if (!settings.bluetoothEnabled && Capacitor.getPlatform() !== "android")
+        return false;
       return (
         Capacitor.isNativePlatform() ||
         (this.isDesktop && this.isWebBluetoothAvailable)
@@ -121,7 +122,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
      */
     async initialize() {
       const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled) {
+      if (!settings.bluetoothEnabled && Capacitor.getPlatform() !== "android") {
         console.log("Bluetooth disabled via settings; skipping init.");
         return;
       }
@@ -284,7 +285,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
      */
     async startService() {
       const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled) {
+      const isAndroid = Capacitor.getPlatform() === "android";
+      if (!settings.bluetoothEnabled && !isAndroid) {
         console.log("Bluetooth disabled via settings; startService skipped.");
         return false;
       }
@@ -362,7 +364,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
      */
     async stopService() {
       const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled) {
+      const isAndroid = Capacitor.getPlatform() === "android";
+      if (!settings.bluetoothEnabled && !isAndroid) {
         this.isActive = false;
         this.nearbyPeers = [];
         return;
