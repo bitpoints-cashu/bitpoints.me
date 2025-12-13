@@ -2,7 +2,7 @@
 <template>
   <div class="q-pa-md flex flex-center">
     <div class="text-center">
-      <h2 class="q-mt-md">Welcome to Bitpoints</h2>
+      <h2 class="q-mt-md">Welcome to {{ brandName }}</h2>
       <div class="text-left">
         <p class="q-mt-sm">Your personal Bitcoin-backed rewards wallet.</p>
 
@@ -16,7 +16,7 @@
         >
           <div class="q-pa-md text-left">
             <p class="q-mb-sm">
-              By using Bitpoints, you agree to our terms of service. Please
+              By using {{ brandName }}, you agree to our terms of service. Please
               review the full terms before continuing.
             </p>
             <p class="q-mb-sm text-caption">
@@ -49,16 +49,19 @@
 <script lang="ts">
 import { useWelcomeStore } from "src/stores/welcome";
 import { ref } from "vue";
+import { getBrandName } from "src/utils/branding";
 
 export default {
   name: "WelcomeSlide1",
   setup() {
     const welcomeStore = useWelcomeStore();
     const termsOpen = ref(false);
+    const brandName = getBrandName();
 
     return {
       welcomeStore,
       termsOpen,
+      brandName,
     };
   },
 };

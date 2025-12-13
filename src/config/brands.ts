@@ -73,8 +73,8 @@ const brands: Record<string, BrandConfig> = {
   },
   trails: {
     id: "trails",
-    name: "Trails Coffee Points",
-    shortName: "Trails Points",
+    name: "Trails Coffee Rewards",
+    shortName: "Trails Rewards",
     domain: "points.trailscoffee.com",
     logoPath: "trails-logo.png",
     logoAlt: "Trails Coffee",
