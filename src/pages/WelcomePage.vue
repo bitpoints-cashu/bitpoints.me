@@ -1,7 +1,7 @@
 <!-- src/pages/WelcomePage.vue -->
 <template>
   <q-page class="welcome-page">
-    <q-card class="q-pa-none full-height">
+    <q-card class="q-pa-none partial-height">
       <q-carousel
         v-model="welcomeStore.currentSlide"
         animated
@@ -199,10 +199,13 @@ export default {
   flex-direction: column;
 }
 
-.full-height {
-  height: 100%;
+.partial-height {
+  height: 75vh;
+  max-height: 75vh;
   display: flex;
   flex-direction: column;
+  margin: 16px auto 0 auto;
+  overflow: hidden;
 }
 
 .q-card {
