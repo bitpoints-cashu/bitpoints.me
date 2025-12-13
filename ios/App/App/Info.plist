@@ -29,7 +29,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<string>3</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>lightning</string>
@@ -45,13 +45,15 @@
 	<string>Camera access is used to scan QR codes for payments and tokens.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Local network access may be used to reach configured relays.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Photo library access is used to save QR images for payments and tokens.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photo library access is used to select or save QR images for payments and tokens.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
 		<string>bluetooth-peripheral</string>
 	</array>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Photo library access is used to save QR images for payments and tokens.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

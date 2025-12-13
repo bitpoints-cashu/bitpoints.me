@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,10 +19,6 @@
 		BCEA10032024121200000002 /* BluetoothEcashPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCEA10022024121200000002 /* BluetoothEcashPlugin.swift */; };
 		BCEA10052024121200000003 /* BluetoothEcashPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = BCEA10042024121200000003 /* BluetoothEcashPlugin.m */; };
 		E83B6CA22EEDC50F00FB65C5 /* Bitpoints.me Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = E83B6CA12EEDC50F00FB65C5 /* Bitpoints.me Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		E8CA27342EEC9C2500749294 /* P256K in Frameworks */ = {isa = PBXBuildFile; productRef = E8CA27332EEC9C2500749294 /* P256K */; };
-		E8CA27362EEC9C2500749294 /* ZKP in Frameworks */ = {isa = PBXBuildFile; productRef = E8CA27352EEC9C2500749294 /* ZKP */; };
-		E8CA27382EEC9C2500749294 /* libsecp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = E8CA27372EEC9C2500749294 /* libsecp256k1 */; };
-		E8CA273A2EEC9C2500749294 /* libsecp256k1_zkp in Frameworks */ = {isa = PBXBuildFile; productRef = E8CA27392EEC9C2500749294 /* libsecp256k1_zkp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -106,11 +102,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E8CA27362EEC9C2500749294 /* ZKP in Frameworks */,
-				E8CA273A2EEC9C2500749294 /* libsecp256k1_zkp in Frameworks */,
 				A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */,
-				E8CA27342EEC9C2500749294 /* P256K in Frameworks */,
-				E8CA27382EEC9C2500749294 /* libsecp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +215,8 @@
 			dependencies = (
 			);
 			name = App;
+			packageProductDependencies = (
+			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
@@ -633,7 +627,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -660,7 +654,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -691,7 +685,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -739,7 +733,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -782,7 +776,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -813,7 +807,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -841,7 +835,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -876,7 +870,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -908,7 +902,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -942,7 +936,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -1022,40 +1016,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		E8CA27322EEC9C2500749294 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/GigaBitcoin/secp256k1.swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.21.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		E8CA27332EEC9C2500749294 /* P256K */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E8CA27322EEC9C2500749294 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = P256K;
-		};
-		E8CA27352EEC9C2500749294 /* ZKP */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E8CA27322EEC9C2500749294 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = ZKP;
-		};
-		E8CA27372EEC9C2500749294 /* libsecp256k1 */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E8CA27322EEC9C2500749294 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = libsecp256k1;
-		};
-		E8CA27392EEC9C2500749294 /* libsecp256k1_zkp */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E8CA27322EEC9C2500749294 /* XCRemoteSwiftPackageReference "secp256k1" */;
-			productName = libsecp256k1_zkp;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 504EC2FC1FED79650016851F /* Project object */;
 }
