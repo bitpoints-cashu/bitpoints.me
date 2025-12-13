@@ -627,7 +627,8 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 6;
 				APP_NAME = "Bitpoints.me";
 				APP_BUNDLE_ID = "me.bitpoints.wallet";
 				DEVELOPMENT_TEAM = BZ32L9M6QB;
