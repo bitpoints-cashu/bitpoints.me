@@ -69,10 +69,14 @@ export const useRecoverbullBackupStore = defineStore("recoverbullBackup", {
 
     async createBackup({ mnemonic, password }: CreateBackupPayload) {
       if (!password || password.trim().length === 0) {
-        throw new Error("A password is required to create a RecoverBull backup");
+        throw new Error(
+          "A password is required to create a RecoverBull backup"
+        );
       }
 
-      const sanitizedMnemonic = mnemonic.map((word) => word.trim()).filter(Boolean);
+      const sanitizedMnemonic = mnemonic
+        .map((word) => word.trim())
+        .filter(Boolean);
       if (sanitizedMnemonic.length === 0) {
         throw new Error("Mnemonic cannot be empty");
       }
@@ -101,8 +105,7 @@ export const useRecoverbullBackupStore = defineStore("recoverbullBackup", {
         this.lastError = null;
         return this.lastBackup;
       } catch (error: any) {
-        const message =
-          error?.message ?? "Failed to create RecoverBull backup";
+        const message = error?.message ?? "Failed to create RecoverBull backup";
         this.lastError = message;
         throw error;
       } finally {
@@ -112,7 +115,9 @@ export const useRecoverbullBackupStore = defineStore("recoverbullBackup", {
 
     async restoreBackup({ backupJson, password }: RestoreBackupPayload) {
       if (!password || password.trim().length === 0) {
-        throw new Error("A password is required to restore a RecoverBull backup");
+        throw new Error(
+          "A password is required to restore a RecoverBull backup"
+        );
       }
       if (!backupJson || backupJson.trim().length === 0) {
         throw new Error("Backup file content is required");
@@ -152,5 +157,3 @@ export const useRecoverbullBackupStore = defineStore("recoverbullBackup", {
     },
   },
 });
-
-

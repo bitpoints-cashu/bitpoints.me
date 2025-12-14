@@ -75,25 +75,25 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
   web: () => ({
     async isBluetoothEnabled() {
       return { enabled: false };
-  },
+    },
     async requestBluetoothEnable() {
       return { requested: false };
-  },
+    },
     async startService() {
       console.warn("[BluetoothEcash] startService is not available on web.");
-  },
+    },
     async stopService() {
       console.warn("[BluetoothEcash] stopService is not available on web.");
-  },
+    },
     async setNickname(options: { nickname: string }) {
       return { nickname: options.nickname };
-  },
+    },
     async getNickname() {
       return { nickname: "" };
-  },
+    },
     async sendToken() {
       return { messageId: "" };
-  },
+    },
     async sendTextMessage() {
       /* no-op */
     },
@@ -102,7 +102,7 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
     },
     async getUnclaimedTokens() {
       return { tokens: [] };
-  },
+    },
     async markTokenClaimed() {
       /* no-op */
     },
@@ -112,7 +112,7 @@ const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
     async addListener() {
       return { remove: () => {} };
     },
-      }),
-    });
+  }),
+});
 
 export default BluetoothEcash;

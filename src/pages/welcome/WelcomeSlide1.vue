@@ -16,8 +16,8 @@
         >
           <div class="q-pa-md text-left">
             <p class="q-mb-sm">
-              By using {{ brandName }}, you agree to our terms of service. Please
-              review the full terms before continuing.
+              By using {{ brandName }}, you agree to our terms of service.
+              Please review the full terms before continuing.
             </p>
             <p class="q-mb-sm text-caption">
               • Use this app at your own risk<br />

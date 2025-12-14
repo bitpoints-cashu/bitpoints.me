@@ -99,7 +99,9 @@
               RecoverBull Backup
             </q-item-label>
             <q-item-label caption>
-              Secure your seed phrase using the RecoverBull protocol. Your password unlocks the encrypted backup key stored on {{ recoverbullKeyServerStore.baseUrl }}.
+              Secure your seed phrase using the RecoverBull protocol. Your
+              password unlocks the encrypted backup key stored on
+              {{ recoverbullKeyServerStore.baseUrl }}.
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -123,8 +125,7 @@
               color="primary"
               :loading="recoverbullBackupStore.backupInProgress"
               :disable="
-                recoverbullBackupStore.backupInProgress ||
-                !recoverbullPassword
+                recoverbullBackupStore.backupInProgress || !recoverbullPassword
               "
               @click="createRecoverbullBackup"
             >
@@ -155,7 +156,8 @@
               Backup ID: {{ recoverbullLastBackup.identifierHex }}
             </q-item-label>
             <q-item-label caption>
-              Created {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
+              Created
+              {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
             </q-item-label>
           </q-item-section>
           <q-item-section side class="row items-center no-wrap">
@@ -182,7 +184,8 @@
               Restore from RecoverBull Backup
             </q-item-label>
             <q-item-label caption>
-              Provide the backup file (or paste its content) and password to recover your mnemonic.
+              Provide the backup file (or paste its content) and password to
+              recover your mnemonic.
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -269,7 +272,8 @@
               Create Encrypted Backup
             </q-item-label>
             <q-item-label caption>
-              Choose a passphrase (min 6 characters). The mnemonic will be encrypted client-side and offered as a downloadable JSON file.
+              Choose a passphrase (min 6 characters). The mnemonic will be
+              encrypted client-side and offered as a downloadable JSON file.
             </q-item-label>
             <q-input
               v-model="downloadPassphrase"
@@ -317,7 +321,8 @@
               Restore From Encrypted Backup
             </q-item-label>
             <q-item-label caption>
-              Upload a previously downloaded encrypted seed file or paste the JSON payload below, then enter the passphrase to restore.
+              Upload a previously downloaded encrypted seed file or paste the
+              JSON payload below, then enter the passphrase to restore.
             </q-item-label>
             <div class="q-mt-sm row items-center">
               <q-btn
@@ -361,7 +366,14 @@
 
         <q-item v-if="downloadMessage">
           <q-item-section>
-            <q-banner dense :class="downloadMessage.type === 'error' ? 'bg-negative text-white' : 'bg-positive text-white'">
+            <q-banner
+              dense
+              :class="
+                downloadMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
               {{ downloadMessage.text }}
             </q-banner>
           </q-item-section>
@@ -369,7 +381,14 @@
 
         <q-item v-if="restoreMessage">
           <q-item-section>
-            <q-banner dense :class="restoreMessage.type === 'error' ? 'bg-negative text-white' : 'bg-positive text-white'">
+            <q-banner
+              dense
+              :class="
+                restoreMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
               {{ restoreMessage.text }}
             </q-banner>
           </q-item-section>
@@ -3056,8 +3075,7 @@ export default defineComponent({
         downloadEncryptedVault(vault);
         this.downloadMessage = {
           type: "success",
-          text:
-            "Encrypted seed downloaded. Store the JSON file and passphrase securely—both are required to recover your wallet.",
+          text: "Encrypted seed downloaded. Store the JSON file and passphrase securely—both are required to recover your wallet.",
         };
         this.$q.notify({
           type: "positive",
@@ -3068,7 +3086,8 @@ export default defineComponent({
         this.downloadNote = "";
       } catch (error) {
         const message =
-          (error as Error).message || "Failed to generate encrypted seed backup.";
+          (error as Error).message ||
+          "Failed to generate encrypted seed backup.";
         this.downloadMessage = {
           type: "error",
           text: message,
@@ -3082,7 +3101,9 @@ export default defineComponent({
       }
     },
     triggerEncryptedSeedFileDialog() {
-      const input = this.$refs.encryptedSeedFileInput as HTMLInputElement | undefined;
+      const input = this.$refs.encryptedSeedFileInput as
+        | HTMLInputElement
+        | undefined;
       if (input) {
         input.value = "";
         input.click();
@@ -3140,7 +3161,10 @@ export default defineComponent({
       this.restoreInProgress = true;
       try {
         const vault = parseEncryptedVaultPayload(payload);
-        const { mnemonic } = await decryptMnemonicWithPassphrase(vault, passphrase);
+        const { mnemonic } = await decryptMnemonicWithPassphrase(
+          vault,
+          passphrase
+        );
         if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
           throw new Error("Encrypted backup did not contain a valid mnemonic.");
         }
@@ -3149,8 +3173,7 @@ export default defineComponent({
         this.hideMnemonic = true;
         this.restoreMessage = {
           type: "success",
-          text:
-            "Seed phrase restored from encrypted backup. Remember to clear any sensitive data when you are done.",
+          text: "Seed phrase restored from encrypted backup. Remember to clear any sensitive data when you are done.",
         };
         this.$q.notify({
           type: "positive",

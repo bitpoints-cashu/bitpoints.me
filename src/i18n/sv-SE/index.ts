@@ -1196,8 +1196,7 @@ export default {
       },
     },
     lnurlwithdraw: {
-      amount_exact_label:
-        "{ payee } låter dig ta ut { value } { ticker }",
+      amount_exact_label: "{ payee } låter dig ta ut { value } { ticker }",
       amount_range_label:
         "{ payee } låter dig ta ut{br}mellan { min } och { max } { ticker }",
       inputs: {

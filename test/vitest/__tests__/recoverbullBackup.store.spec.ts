@@ -49,7 +49,9 @@ describe("RecoverBull backup store", () => {
         expect(Array.from(identifier)).toEqual(
           Array.from(captures.storedPayload!.identifier)
         );
-        expect(Array.from(salt)).toEqual(Array.from(captures.storedPayload!.salt));
+        expect(Array.from(salt)).toEqual(
+          Array.from(captures.storedPayload!.salt)
+        );
         return captures.storedPayload!.backupKey;
       })
       .mockName("fetchBackupKey") as any;
@@ -73,5 +75,3 @@ describe("RecoverBull backup store", () => {
     expect(keyServerStore.fetchBackupKey).toHaveBeenCalledTimes(1);
   });
 });
-
-

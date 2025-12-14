@@ -274,7 +274,10 @@
             </i18n-t>
           </p>
           <q-separator class="q-my-sm"></q-separator>
-          <div class="row" v-if="payInvoiceData.lnurlwithdraw.defaultDescription">
+          <div
+            class="row"
+            v-if="payInvoiceData.lnurlwithdraw.defaultDescription"
+          >
             <p class="col text-justify text-italic">
               {{ payInvoiceData.lnurlwithdraw.defaultDescription }}
             </p>

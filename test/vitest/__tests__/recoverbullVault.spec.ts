@@ -63,7 +63,9 @@ describe("recoverbullVault cryptography", () => {
     expect(derivationPath).toBe("1608'/0'/50462976'");
 
     const parsed = parseBullBackup(backup);
-    expect(Array.from(parsed.id.slice(0, 8))).toEqual([20, 21, 22, 23, 24, 25, 26, 27]);
+    expect(Array.from(parsed.id.slice(0, 8))).toEqual([
+      20, 21, 22, 23, 24, 25, 26, 27,
+    ]);
     expect(parsed.salt).toEqual(fixedSalt);
 
     const envelope = decodeEnvelope(parsed.ciphertext);
@@ -92,5 +94,3 @@ describe("recoverbullVault cryptography", () => {
     );
   });
 });
-
-
