@@ -343,9 +343,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
         await BluetoothEcash.setNickname({ nickname: this.nickname });
 
         await BluetoothEcash.startService();
-        this.isActive = true;
+        // Ensure reactivity with proper state update
+        this.$patch({ isActive: true });
         console.log(
-          `Bluetooth mesh service started with nickname: ${this.nickname}`
+          `Bluetooth mesh service started with nickname: ${this.nickname}, isActive: ${this.isActive}`
         );
 
         // Start polling for peers
