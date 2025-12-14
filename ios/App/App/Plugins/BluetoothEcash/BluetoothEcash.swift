@@ -34,6 +34,7 @@ final class BLEMeshService: NSObject {
     private var myNickname: String = "anon"
     private var peers: [String: PeerSnapshot] = [:]
     private var connectedPeripherals: [String: CBPeripheral] = [:]
+    private var pendingConnections: Set<CBPeripheral> = []
     private let peersQueue = DispatchQueue(label: "mesh.peers", attributes: .concurrent)
     private var pruneTimer: DispatchSourceTimer?
     private let peerTTL: TimeInterval = 25
@@ -79,13 +80,11 @@ final class BLEMeshService: NSObject {
 
         #if os(iOS)
         let centralOptions: [String: Any] = [
-            CBCentralManagerOptionRestoreIdentifierKey: Self.centralRestorationID,
             CBCentralManagerOptionShowPowerAlertKey: true
         ]
         centralManager = CBCentralManager(delegate: self, queue: bleQueue, options: centralOptions)
 
         let peripheralOptions: [String: Any] = [
-            CBPeripheralManagerOptionRestoreIdentifierKey: Self.peripheralRestorationID,
             CBPeripheralManagerOptionShowPowerAlertKey: true
         ]
         peripheralManager = CBPeripheralManager(delegate: self, queue: bleQueue, options: peripheralOptions)
@@ -178,12 +177,15 @@ final class BLEMeshService: NSObject {
     private func connectToPeer(_ peripheral: CBPeripheral) {
         guard let centralManager = centralManager,
               centralManager.state == .poweredOn,
-              connectedPeripherals[peripheral.identifier.uuidString] == nil else {
+              connectedPeripherals[peripheral.identifier.uuidString] == nil,
+              !pendingConnections.contains(peripheral) else {
             return
         }
 
         os_log("Connecting to peer: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
+        // Keep strong references to prevent premature deallocation
         connectedPeripherals[peripheral.identifier.uuidString] = peripheral
+        pendingConnections.insert(peripheral)
         centralManager.connect(peripheral, options: nil)
     }
 
@@ -207,12 +209,22 @@ final class BLEMeshService: NSObject {
         // Check if we already have a name for this peer from previous GATT reads
         var name = peers[id]?.name ?? "peer"
 
-        // If we don't have a proper name yet, try to connect and read the characteristic
-        if name == "peer" && connectedPeripherals[id] == nil {
+        // For discovered peripherals, try to connect and read the name via GATT
+        if advertisementData != nil && name == "peer" && connectedPeripherals[id] == nil {
             connectToPeer(peripheral)
         }
 
-        let peer = PeerSnapshot(id: id, name: name, lastSeen: Date(), isConnected: peripheral.state == .connected)
+        // Safely get connection state - restored peripherals might not have valid state
+        let isConnected: Bool
+        do {
+            isConnected = peripheral.state == .connected
+        } catch {
+            // If we can't access the state safely, assume not connected
+            os_log("Could not access peripheral state safely, assuming not connected", log: log, type: .info)
+            isConnected = false
+        }
+
+        let peer = PeerSnapshot(id: id, name: name, lastSeen: Date(), isConnected: isConnected)
         peersQueue.async(flags: .barrier) {
             self.peers[id] = peer
         }
@@ -222,6 +234,7 @@ final class BLEMeshService: NSObject {
     private func ensureAdvertising() {
         guard let peripheralManager, peripheralManager.state == .poweredOn else { return }
         if !serviceAdded {
+            os_log("Adding GATT service: %{public}@ with characteristic: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, Self.characteristicUUID.uuidString)
             let characteristic = CBMutableCharacteristic(
                 type: Self.characteristicUUID,
                 properties: [.read, .write, .notify],
@@ -263,48 +276,51 @@ extension BLEMeshService: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-        // Safely extract restored peripherals
-        let restoredPeripherals: [CBPeripheral]
-        if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] {
-            restoredPeripherals = peripherals
-        } else {
-            restoredPeripherals = []
+        // Debug: Log all restoration dictionary contents safely
+        os_log("Restoration dict contains %{public}d entries", log: log, type: .info, dict.count)
+        for (key, value) in dict {
+            let valueType = type(of: value)
+            let valueDesc: String
+            if let array = value as? [Any] {
+                valueDesc = "Array with \(array.count) items"
+            } else if let dict = value as? [String: Any] {
+                valueDesc = "Dict with \(dict.count) entries"
+            } else {
+                valueDesc = "\(value)"
+            }
+            os_log("Restore key '%{public}@' (%{public}@): %{public}@", log: log, type: .info, key, String(describing: valueType), valueDesc)
         }
 
-        // Safely extract restored services
-        let restoredServices: [CBUUID]
-        if let services = dict[CBCentralManagerRestoredStateScanServicesKey] as? [CBUUID] {
-            restoredServices = services
-        } else {
-            restoredServices = []
-        }
-
-        os_log("Central restore: peripherals=%d services=%d", log: log, type: .info, restoredPeripherals.count, restoredServices.count)
-
-        // Handle restored peripherals if needed (no advertisement data available for restored peripherals)
-        for peripheral in restoredPeripherals {
-            updatePeer(peripheral: peripheral, advertisementData: nil, rssi: nil)
-        }
+        // Restoration disabled - no restoration data to handle
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        updatePeer(peripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
+        // Safely handle advertisement data to prevent crashes
+        let safeAdvertisementData: [String: Any] = advertisementData.filter { key, value in
+            // Only include entries where key is a string and value is not causing issues
+            return key is String
+        }
+        updatePeer(peripheral: peripheral, advertisementData: safeAdvertisementData, rssi: RSSI)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         os_log("Connected to peripheral: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
         peripheral.delegate = self
         peripheral.discoverServices([Self.serviceUUID])
+        // Remove from pending connections since we're now connected
+        pendingConnections.remove(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         os_log("Failed to connect to peripheral: %{public}@, error: %{public}@", log: log, type: .error, peripheral.identifier.uuidString, error?.localizedDescription ?? "unknown")
         connectedPeripherals.removeValue(forKey: peripheral.identifier.uuidString)
+        pendingConnections.remove(peripheral)
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         os_log("Disconnected from peripheral: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
         connectedPeripherals.removeValue(forKey: peripheral.identifier.uuidString)
+        pendingConnections.remove(peripheral)
     }
 }
 
@@ -315,8 +331,10 @@ extension BLEMeshService: CBPeripheralDelegate {
             return
         }
 
+        os_log("Discovered services: %{public}@", log: log, type: .info, peripheral.services?.map { $0.uuid.uuidString } ?? [])
         guard let services = peripheral.services else { return }
         for service in services where service.uuid == Self.serviceUUID {
+            os_log("Found bitchat service, discovering characteristics", log: log, type: .info)
             peripheral.discoverCharacteristics([Self.characteristicUUID], for: service)
         }
     }
@@ -327,8 +345,10 @@ extension BLEMeshService: CBPeripheralDelegate {
             return
         }
 
+        os_log("Discovered characteristics: %{public}@", log: log, type: .info, service.characteristics?.map { $0.uuid.uuidString } ?? [])
         guard let characteristics = service.characteristics else { return }
         for characteristic in characteristics where characteristic.uuid == Self.characteristicUUID {
+            os_log("Found bitchat characteristic, reading value", log: log, type: .info)
             peripheral.readValue(for: characteristic)
         }
     }
@@ -373,33 +393,28 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
         }
     }
 
+    func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
+        os_log("Received read request for characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
+        if request.characteristic.uuid == Self.characteristicUUID {
+            // Return our nickname when requested
+            request.value = myNickname.data(using: .utf8)
+            peripheral.respond(to: request, withResult: .success)
+            os_log("Responded to read request with nickname: %{public}@", log: log, type: .info, myNickname)
+        } else {
+            peripheral.respond(to: request, withResult: .attributeNotFound)
+        }
+    }
+
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
         if let error {
             os_log("Failed to add service: %{public}@", log: log, type: .error, error.localizedDescription)
             return
         }
+        os_log("Successfully added GATT service: %{public}@", log: log, type: .info, service.uuid.uuidString)
         ensureAdvertising()
     }
 
-    func peripheralManager(_ peripheral: CBPeripheralManager, willRestoreState dict: [String: Any]) {
-        let restoredServices = (dict[CBPeripheralManagerRestoredStateServicesKey] as? [CBMutableService]) ?? []
-        let restoredAdvertisement = (dict[CBPeripheralManagerRestoredStateAdvertisementDataKey] as? [String: Any]) ?? [:]
-
-        os_log("Peripheral restore: services=%d advertisingDataKeys=%d", log: log, type: .info, restoredServices.count, restoredAdvertisement.count)
-
-        // Attempt to recover characteristic from restored services
-        if self.characteristic == nil {
-            if let service = restoredServices.first(where: { $0.uuid == Self.serviceUUID }),
-               let restoredCharacteristic = service.characteristics?.first(where: { $0.uuid == Self.characteristicUUID }) as? CBMutableCharacteristic {
-                self.characteristic = restoredCharacteristic
-            }
-        }
-
-        // Resume advertising if we were advertising before
-        if peripheral.state == .poweredOn && !peripheral.isAdvertising {
-            ensureAdvertising()
-        }
-    }
+    // Peripheral restoration disabled
 }
 
 @objc public protocol BluetoothEcashDelegate: AnyObject {
