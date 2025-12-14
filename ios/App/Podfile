@@ -15,6 +15,7 @@ def capacitor_pods
   pod 'CapacitorClipboard', :path => '../../node_modules/@capacitor/clipboard'
   pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
   pod 'CapacitorPluginSafeArea', :path => '../../node_modules/capacitor-plugin-safe-area'
+  pod 'CapacitorBluetoothEcash', :path => 'App/Plugins/BluetoothEcash'
 end
 
 target 'App' do

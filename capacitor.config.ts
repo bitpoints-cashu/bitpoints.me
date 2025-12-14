@@ -4,6 +4,13 @@ const config: CapacitorConfig = {
   appId: "me.bitpoints.wallet",
   appName: "Bitpoints.me",
   webDir: "dist/spa/",
+  packageClassList: [
+    "CAPCameraPlugin",
+    "ClipboardPlugin",
+    "HapticsPlugin",
+    "SafeAreaPlugin",
+    "BluetoothEcashPlugin",
+  ],
 };
 
 // Wear OS configuration

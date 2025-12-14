@@ -1,5 +1,12 @@
 {
   "appId": "me.bitpoints.wallet",
   "appName": "Bitpoints",
-  "webDir": "dist/spa"
+  "webDir": "dist/spa",
+  "packageClassList": [
+    "CAPCameraPlugin",
+    "ClipboardPlugin",
+    "HapticsPlugin",
+    "SafeAreaPlugin",
+    "BluetoothEcashPlugin"
+  ]
 }
