@@ -98,25 +98,15 @@ export const useSettingsStore = defineStore("settings", {
       showBitcoin: useLocalStorage<boolean>("cashu.settings.showBitcoin", true),
       showPoints: useLocalStorage<boolean>("cashu.settings.showPoints", false),
       // Toggle native/Web Bluetooth mesh.
-      // Default: true on Android (native mesh flow), false elsewhere (iOS/PWA stay off until explicitly enabled).
+      // Force enabled for all builds (native + PWA)
       bluetoothEnabled: (() => {
-        const refVal = useLocalStorage<boolean>(
+        const bluetoothRef = useLocalStorage<boolean>(
           "cashu.settings.bluetoothEnabled",
-          false
+          true
         );
-        try {
-          const platform = Capacitor.getPlatform?.();
-          const isNative =
-            (Capacitor as any)?.isNativePlatform?.() ||
-            platform === "android" ||
-            platform === "ios";
-          if (isNative) {
-            refVal.value = true; // force-enable mesh on native builds
-          }
-        } catch {
-          // ignore and keep stored value
-        }
-        return refVal;
+        // Force it to be true
+        bluetoothRef.value = true;
+        return bluetoothRef;
       })(),
     };
   },

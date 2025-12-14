@@ -244,12 +244,6 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
-      if (!settingsStore.bluetoothEnabled) {
-        notifyError(
-          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
-        );
-        return;
-      }
       await bluetoothStore.startService();
     };
 

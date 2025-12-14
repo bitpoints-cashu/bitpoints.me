@@ -65,15 +65,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
     /**
      * Check if any Bluetooth is available (native or web)
+     * Always return true to force Bluetooth availability
      */
     isBluetoothAvailable(): boolean {
-      const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled && Capacitor.getPlatform() !== "android")
-        return false;
-      return (
-        Capacitor.isNativePlatform() ||
-        (this.isDesktop && this.isWebBluetoothAvailable)
-      );
+      return true; // Force Bluetooth to always be available
     },
 
     /**
@@ -119,13 +114,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
   actions: {
     /**
      * Initialize the Bluetooth service and event listeners
+     * Always initialize regardless of settings
      */
     async initialize() {
-      const settings = useSettingsStore();
-      if (!settings.bluetoothEnabled && Capacitor.getPlatform() !== "android") {
-        console.log("Bluetooth disabled via settings; skipping init.");
-        return;
-      }
+      console.log("🔧 Bluetooth initialize called - forcing enable");
       if (this.isInitialized) return;
 
       try {
@@ -284,12 +276,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Start Bluetooth mesh service
      */
     async startService() {
-      const settings = useSettingsStore();
-      const isAndroid = Capacitor.getPlatform() === "android";
-      if (!settings.bluetoothEnabled && !isAndroid) {
-        console.log("Bluetooth disabled via settings; startService skipped.");
-        return false;
-      }
+      console.log("🔧 Bluetooth startService called - forcing start");
       try {
         // Desktop PWA with Web Bluetooth
         if (this.isDesktop) {
@@ -364,13 +351,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Stop Bluetooth mesh service
      */
     async stopService() {
-      const settings = useSettingsStore();
-      const isAndroid = Capacitor.getPlatform() === "android";
-      if (!settings.bluetoothEnabled && !isAndroid) {
-        this.isActive = false;
-        this.nearbyPeers = [];
-        return;
-      }
+      console.log("🔧 Bluetooth stopService called");
       try {
         if (this.isDesktop) {
           webBluetoothService.disconnectAll();

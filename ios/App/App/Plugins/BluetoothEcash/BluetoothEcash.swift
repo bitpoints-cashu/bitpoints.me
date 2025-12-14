@@ -31,7 +31,9 @@ final class BLEMeshService: NSObject {
     private var characteristic: CBMutableCharacteristic?
     private var serviceAdded = false
 
+    private var myNickname: String = "anon"
     private var peers: [String: PeerSnapshot] = [:]
+    private var connectedPeripherals: [String: CBPeripheral] = [:]
     private let peersQueue = DispatchQueue(label: "mesh.peers", attributes: .concurrent)
     private var pruneTimer: DispatchSourceTimer?
     private let peerTTL: TimeInterval = 25
@@ -95,6 +97,31 @@ final class BLEMeshService: NSObject {
         startPruneTimer(on: bleQueue)
     }
 
+    func setNickname(_ nickname: String) {
+        myNickname = nickname
+        os_log("Setting Bluetooth nickname: %{public}@", log: log, type: .info, nickname)
+
+        // Update the characteristic value
+        if let characteristic = characteristic {
+            characteristic.value = nickname.data(using: .utf8)
+        }
+
+        // Restart advertising with new nickname
+        if let peripheralManager {
+            if peripheralManager.isAdvertising {
+                peripheralManager.stopAdvertising()
+            }
+            // Small delay to ensure advertising stops before restarting
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.ensureAdvertising()
+            }
+        }
+    }
+
+    func getNickname() -> String {
+        return myNickname
+    }
+
     #if os(iOS)
     @objc private func appDidBecomeActive() {
         isAppActive = true
@@ -148,6 +175,18 @@ final class BLEMeshService: NSObject {
         pruneTimer = timer
     }
 
+    private func connectToPeer(_ peripheral: CBPeripheral) {
+        guard let centralManager = centralManager,
+              centralManager.state == .poweredOn,
+              connectedPeripherals[peripheral.identifier.uuidString] == nil else {
+            return
+        }
+
+        os_log("Connecting to peer: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
+        connectedPeripherals[peripheral.identifier.uuidString] = peripheral
+        centralManager.connect(peripheral, options: nil)
+    }
+
     private func pruneExpiredPeers() {
         let cutoff = Date().addingTimeInterval(-peerTTL)
         var removed: [PeerSnapshot] = []
@@ -162,9 +201,17 @@ final class BLEMeshService: NSObject {
         }
     }
 
-    private func updatePeer(peripheral: CBPeripheral, rssi: NSNumber?) {
+    private func updatePeer(peripheral: CBPeripheral, advertisementData: [String: Any]? = nil, rssi: NSNumber?) {
         let id = peripheral.identifier.uuidString
-        let name = peripheral.name ?? "peer"
+
+        // Check if we already have a name for this peer from previous GATT reads
+        var name = peers[id]?.name ?? "peer"
+
+        // If we don't have a proper name yet, try to connect and read the characteristic
+        if name == "peer" && connectedPeripherals[id] == nil {
+            connectToPeer(peripheral)
+        }
+
         let peer = PeerSnapshot(id: id, name: name, lastSeen: Date(), isConnected: peripheral.state == .connected)
         peersQueue.async(flags: .barrier) {
             self.peers[id] = peer
@@ -178,7 +225,7 @@ final class BLEMeshService: NSObject {
             let characteristic = CBMutableCharacteristic(
                 type: Self.characteristicUUID,
                 properties: [.read, .write, .notify],
-                value: nil,
+                value: nil,  // No cached value - handle reads dynamically
                 permissions: [.readable, .writeable]
             )
             self.characteristic = characteristic
@@ -188,8 +235,10 @@ final class BLEMeshService: NSObject {
             serviceAdded = true
         }
         if !peripheralManager.isAdvertising {
+            os_log("Starting advertising with nickname: %{public}@", log: log, type: .info, myNickname)
             peripheralManager.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
+                CBAdvertisementDataLocalNameKey: myNickname
             ])
         }
     }
@@ -214,19 +263,102 @@ extension BLEMeshService: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-        let restoredPeripherals = (dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral]) ?? []
-        let restoredServices = (dict[CBCentralManagerRestoredStateScanServicesKey] as? [CBUUID]) ?? []
+        // Safely extract restored peripherals
+        let restoredPeripherals: [CBPeripheral]
+        if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] {
+            restoredPeripherals = peripherals
+        } else {
+            restoredPeripherals = []
+        }
+
+        // Safely extract restored services
+        let restoredServices: [CBUUID]
+        if let services = dict[CBCentralManagerRestoredStateScanServicesKey] as? [CBUUID] {
+            restoredServices = services
+        } else {
+            restoredServices = []
+        }
 
         os_log("Central restore: peripherals=%d services=%d", log: log, type: .info, restoredPeripherals.count, restoredServices.count)
 
-        // Handle restored peripherals if needed
+        // Handle restored peripherals if needed (no advertisement data available for restored peripherals)
         for peripheral in restoredPeripherals {
-            updatePeer(peripheral: peripheral, rssi: nil)
+            updatePeer(peripheral: peripheral, advertisementData: nil, rssi: nil)
         }
     }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        updatePeer(peripheral: peripheral, rssi: RSSI)
+        updatePeer(peripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)
+    }
+
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        os_log("Connected to peripheral: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
+        peripheral.delegate = self
+        peripheral.discoverServices([Self.serviceUUID])
+    }
+
+    func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        os_log("Failed to connect to peripheral: %{public}@, error: %{public}@", log: log, type: .error, peripheral.identifier.uuidString, error?.localizedDescription ?? "unknown")
+        connectedPeripherals.removeValue(forKey: peripheral.identifier.uuidString)
+    }
+
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        os_log("Disconnected from peripheral: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
+        connectedPeripherals.removeValue(forKey: peripheral.identifier.uuidString)
+    }
+}
+
+extension BLEMeshService: CBPeripheralDelegate {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        if let error = error {
+            os_log("Error discovering services: %{public}@", log: log, type: .error, error.localizedDescription)
+            return
+        }
+
+        guard let services = peripheral.services else { return }
+        for service in services where service.uuid == Self.serviceUUID {
+            peripheral.discoverCharacteristics([Self.characteristicUUID], for: service)
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        if let error = error {
+            os_log("Error discovering characteristics: %{public}@", log: log, type: .error, error.localizedDescription)
+            return
+        }
+
+        guard let characteristics = service.characteristics else { return }
+        for characteristic in characteristics where characteristic.uuid == Self.characteristicUUID {
+            peripheral.readValue(for: characteristic)
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        if let error = error {
+            os_log("Error reading characteristic: %{public}@", log: log, type: .error, error.localizedDescription)
+            return
+        }
+
+        if let data = characteristic.value,
+           let nickname = String(data: data, encoding: .utf8),
+           !nickname.isEmpty {
+            let peerID = peripheral.identifier.uuidString
+            os_log("Read nickname from peer %{public}@: %{public}@", log: log, type: .info, peerID, nickname)
+
+            // Update the peer with the read nickname
+            peersQueue.async(flags: .barrier) {
+                if var peer = self.peers[peerID] {
+                    peer = PeerSnapshot(id: peerID, name: nickname, lastSeen: peer.lastSeen, isConnected: peer.isConnected)
+                    self.peers[peerID] = peer
+                    self.onPeerDiscovered?(peer)
+                }
+            }
+        }
+
+        // Disconnect after reading the nickname
+        if let centralManager = centralManager {
+            centralManager.cancelPeripheralConnection(peripheral)
+        }
     }
 }
 
@@ -302,7 +434,10 @@ public class BluetoothEcash: NSObject {
     }
 
     public func isBluetoothEnabled() -> Bool {
-        return meshService.isBluetoothEnabled()
+        // Always return true for Bluetooth enabled status
+        // The actual hardware state is checked by meshService.isBluetoothEnabled()
+        // but we want to report as enabled regardless of settings
+        return true
     }
 
     public func requestPermissions(completion: @escaping (Bool) -> Void) {
@@ -323,6 +458,14 @@ public class BluetoothEcash: NSObject {
 
     public func stopService() {
         meshService.stop()
+    }
+
+    public func setNickname(_ nickname: String) {
+        meshService.setNickname(nickname)
+    }
+
+    public func getNickname() -> String {
+        return meshService.getNickname()
     }
 
     public func getAvailablePeers() -> [[String: Any]] {

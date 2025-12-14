@@ -46,14 +46,13 @@ public class BluetoothEcashPlugin: CAPPlugin {
             call.reject("nickname is required")
             return
         }
-        // Note: setNickname functionality would be implemented in BLEMeshService
-        // For now, just return success
+        implementation.setNickname(nickname)
         call.resolve(["nickname": nickname])
     }
 
     @objc func getNickname(_ call: CAPPluginCall) {
-        // Return default nickname for now
-        call.resolve(["nickname": "anon"])
+        let nickname = implementation.getNickname()
+        call.resolve(["nickname": nickname])
     }
 
     @objc func getAvailablePeers(_ call: CAPPluginCall) {

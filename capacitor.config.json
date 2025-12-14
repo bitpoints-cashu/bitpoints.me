@@ -6,7 +6,6 @@
     "CAPCameraPlugin",
     "ClipboardPlugin",
     "HapticsPlugin",
-    "SafeAreaPlugin",
-    "BluetoothEcashPlugin"
+    "SafeAreaPlugin"
   ]
 }

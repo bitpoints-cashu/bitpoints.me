@@ -31,7 +31,6 @@ const config: CapacitorConfig = {
     "ClipboardPlugin",
     "HapticsPlugin",
     "SafeAreaPlugin",
-    "BluetoothEcashPlugin",
   ],
 };
 

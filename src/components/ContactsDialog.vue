@@ -39,7 +39,13 @@
             Bluetooth is off. Turn it on to discover nearby contacts.
             <template v-slot:action>
               <q-btn flat label="Enable" @click="enableBluetooth" />
-              <q-btn flat label="Send to Nearby" @click="enableBluetoothAndSend" color="primary" class="q-ml-sm" />
+              <q-btn
+                flat
+                label="Send to Nearby"
+                @click="enableBluetoothAndSend"
+                color="primary"
+                class="q-ml-sm"
+              />
             </template>
           </q-banner>
 
@@ -649,7 +655,7 @@ export default defineComponent({
 
     // Check if BluetoothEcash plugin is available (native only, not web)
     const isBluetoothEcashAvailable = computed(() => {
-      return Capacitor.isNativePlatform() && settingsStore.bluetoothEnabled;
+      return Capacitor.isNativePlatform();
     });
 
     // Fetch connected peers with Nostr capability
@@ -1074,12 +1080,6 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
-      if (!settingsStore.bluetoothEnabled) {
-        notifyError(
-          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
-        );
-        return;
-      }
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;
@@ -1095,12 +1095,6 @@ export default defineComponent({
 
     const enableBluetoothAndSend = async () => {
       console.log("🔥 ENABLE BLUETOOTH AND SEND clicked");
-      if (!settingsStore.bluetoothEnabled) {
-        notifyError(
-          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
-        );
-        return;
-      }
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;
@@ -1112,7 +1106,9 @@ export default defineComponent({
         startPolling();
         await fetchConnectedPeers();
         await fetchOfflineFavorites();
-        notifySuccess("Bluetooth mesh enabled! Ready to send to nearby contacts.");
+        notifySuccess(
+          "Bluetooth mesh enabled! Ready to send to nearby contacts."
+        );
 
         // If we have nearby peers, show them or prepare for sending
         if (connectedPeers.value.length > 0) {
@@ -1124,7 +1120,9 @@ export default defineComponent({
             // openSendDialog(connectedPeers.value[0]);
           }
         } else {
-          notifyInfo("Bluetooth enabled! Waiting for nearby contacts to appear...");
+          notifyInfo(
+            "Bluetooth enabled! Waiting for nearby contacts to appear..."
+          );
         }
       }
     };

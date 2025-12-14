@@ -283,7 +283,7 @@ const favoritesStore = useFavoritesStore();
 const settingsStore = useSettingsStore();
 
 const isDesktop = computed(() => !Capacitor.isNativePlatform());
-const meshEnabled = computed(() => settingsStore.bluetoothEnabled);
+const meshEnabled = computed(() => true); // Force Bluetooth to always appear enabled
 
 const isWebBluetoothSupported = computed(() => {
   try {
