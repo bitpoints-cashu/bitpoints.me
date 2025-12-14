@@ -37,10 +37,18 @@
               <q-icon name="bluetooth_disabled" />
             </template>
             Bluetooth is off. Turn it on to discover nearby contacts.
-            <div class="text-caption q-mt-xs">Debug: isActive={{ bluetoothStore.isActive }}, available={{ isBluetoothEcashAvailable }}</div>
+            <div class="text-caption q-mt-xs">🔍 DEBUG: isActive={{ bluetoothStore.isActive }}, available={{ isBluetoothEcashAvailable }}, banner showing: {{ isBluetoothEcashAvailable && !bluetoothStore.isActive }}</div>
             <template v-slot:action>
               <q-btn flat label="Enable" @click="enableBluetooth" />
             </template>
+          </q-banner>
+
+          <!-- Debug banner - remove this after fixing -->
+          <q-banner
+            class="bg-info text-white q-mb-md"
+            rounded
+          >
+            🔍 DEBUG INFO: Bluetooth active={{ bluetoothStore.isActive }}, available={{ isBluetoothEcashAvailable }}, peers={{ bluetoothStore.nearbyPeers.length }}
           </q-banner>
             <template v-slot:avatar>
               <q-icon name="bluetooth_disabled" />
