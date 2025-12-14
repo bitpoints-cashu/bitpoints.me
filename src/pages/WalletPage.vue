@@ -47,9 +47,11 @@
               </div>
             </q-btn>
           </div>
-          <ReceiveDialog v-model="showReceiveDialog" />
-          <SendDialog v-model="showSendDialog" />
         </div>
+
+        <!-- Dialogs -->
+        <ReceiveDialog v-model="showReceiveDialog" />
+        <SendDialog v-model="showSendDialog" />
 
         <!-- Contacts (Bluetooth + QR Code) -->
         <div class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
@@ -59,6 +61,7 @@
             color="primary"
             class="q-px-lg"
             @click="openContactsDialog"
+            style="z-index: 1000; position: relative;"
           >
             <q-icon name="contacts" size="1.2rem" class="q-mr-sm" />
             <span>Contacts</span>
@@ -787,8 +790,8 @@ export default {
       };
     },
     openContactsDialog: async function () {
-      alert("🔥 CONTACTS BUTTON CLICKED - method called!");
       console.log("🔥 CONTACTS BUTTON CLICKED - openContactsDialog called");
+      console.log("🔥 Method exists and was called!");
       const bluetoothStore = useBluetoothStore();
       const settingsStore = useSettingsStore();
 
