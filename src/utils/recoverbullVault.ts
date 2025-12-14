@@ -261,7 +261,10 @@ function ensureMnemonic(words: string[]): string[] {
   return normalized;
 }
 
-function toPayload(mnemonicWords: string[], createdAt: number): RecoverbullPayload {
+function toPayload(
+  mnemonicWords: string[],
+  createdAt: number
+): RecoverbullPayload {
   return {
     mnemonic: mnemonicWords,
     version: RECOVERBULL_PAYLOAD_VERSION,
@@ -287,7 +290,11 @@ export function decodeEnvelope(blob: Uint8Array): EncryptionEnvelope {
   const hmacOffset = blob.length - 32;
   const ciphertext = blob.slice(16, hmacOffset);
   const hmacBytes = blob.slice(hmacOffset);
-  if (nonce.length !== 16 || hmacBytes.length !== 32 || ciphertext.length === 0) {
+  if (
+    nonce.length !== 16 ||
+    hmacBytes.length !== 32 ||
+    ciphertext.length === 0
+  ) {
     throw new Error("Malformed encryption envelope");
   }
   return { nonce, ciphertext, hmac: hmacBytes };
@@ -413,11 +420,10 @@ export async function createRecoverbullBackup(
   const salt = options.salt ?? randomFn(16);
   const rawIndex =
     options.index ??
-    (randomFn(4).reduce((acc, byte, i) => acc + byte * 2 ** (8 * i), 0) &
-      0x7fffffff);
+    randomFn(4).reduce((acc, byte, i) => acc + byte * 2 ** (8 * i), 0) &
+      0x7fffffff;
 
-  const derivationPath =
-    options.derivationPath ?? getRecoverbullPath(rawIndex);
+  const derivationPath = options.derivationPath ?? getRecoverbullPath(rawIndex);
 
   const mnemonic = normalizedMnemonic.join(" ");
   const seed = mnemonicToSeedSync(mnemonic);
@@ -469,4 +475,3 @@ export async function restoreRecoverbullBackup(
 export function normalizeRecoverbullPath(path: string): string {
   return normalizePath(path);
 }
-

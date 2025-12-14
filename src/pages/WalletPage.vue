@@ -47,9 +47,11 @@
               </div>
             </q-btn>
           </div>
-          <ReceiveDialog v-model="showReceiveDialog" />
-          <SendDialog v-model="showSendDialog" />
         </div>
+
+        <!-- Dialogs -->
+        <ReceiveDialog v-model="showReceiveDialog" />
+        <SendDialog v-model="showSendDialog" />
 
         <!-- Contacts (Bluetooth + QR Code) -->
         <div class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
@@ -58,7 +60,8 @@
             outline
             color="primary"
             class="q-px-lg"
-            @click="showContactsDialog = true"
+            @click="openContactsDialog"
+            style="z-index: 1000; position: relative;"
           >
             <q-icon name="contacts" size="1.2rem" class="q-mr-sm" />
             <span>Contacts</span>
@@ -786,6 +789,50 @@ export default {
         }
       };
     },
+    openContactsDialog: async function () {
+      alert("🔥 CONTACTS BUTTON: Method called!");
+      console.log("🔥 CONTACTS BUTTON CLICKED - openContactsDialog called");
+      console.log("🔥 Method exists and was called!");
+      const bluetoothStore = useBluetoothStore();
+      const settingsStore = useSettingsStore();
+
+      console.log("🔥 Bluetooth enabled in settings:", settingsStore.bluetoothEnabled);
+      console.log("🔥 Bluetooth currently active:", bluetoothStore.isActive);
+      console.log("🔥 Is native app:", this.isNativeApp);
+
+      // If Bluetooth is disabled in settings, just open the dialog (it will show the enable prompt)
+      if (!settingsStore.bluetoothEnabled) {
+        console.log("🔥 Opening contacts dialog (Bluetooth disabled in settings)");
+        this.showContactsDialog = true;
+        return;
+      }
+
+      // If Bluetooth is not active, try to start it and wait for it to complete
+      if (!bluetoothStore.isActive && this.isNativeApp) {
+        try {
+          console.log("🔥 Contacts button clicked - starting Bluetooth service...");
+          const success = await bluetoothStore.startService();
+          console.log("🔥 Bluetooth startService result:", success);
+          if (!success) {
+            console.error("🔥 Failed to start Bluetooth service");
+            // Still open the dialog so user can manually enable
+            this.showContactsDialog = true;
+            return;
+          }
+          console.log("🔥 Bluetooth service started successfully from contacts button");
+        } catch (e) {
+          console.error("🔥 Failed to start Bluetooth from contacts button:", e);
+          // Still open the dialog so user can see the enable button
+          this.showContactsDialog = true;
+          return;
+        }
+      }
+
+      // Open the contacts dialog after ensuring Bluetooth is active
+      console.log("🔥 Opening contacts dialog (Bluetooth should be active)");
+      this.showContactsDialog = true;
+    },
+
     initializeBluetooth: async function () {
       try {
         const bluetoothStore = useBluetoothStore();

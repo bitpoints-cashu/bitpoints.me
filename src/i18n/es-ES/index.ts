@@ -1214,8 +1214,7 @@ export default {
       },
     },
     lnurlwithdraw: {
-      amount_exact_label:
-        "{ payee } te permite retirar { value } { ticker }",
+      amount_exact_label: "{ payee } te permite retirar { value } { ticker }",
       amount_range_label:
         "{ payee } te permite retirar{br}entre { min } y { max } { ticker }",
       inputs: {

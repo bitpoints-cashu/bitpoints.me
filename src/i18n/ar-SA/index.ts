@@ -66,8 +66,7 @@ export default {
       lnurl_withdraw_error: "خطأ في سحب LNURL",
       no_lnurl_withdraw_data: "لا توجد بيانات سحب LNURL",
       lnurl_withdraw_amount_out_of_range: "المبلغ خارج نطاق السحب المسموح",
-      lnurl_withdraw_requested:
-        "تم طلب السحب. بانتظار الدفع {amount}.",
+      lnurl_withdraw_requested: "تم طلب السحب. بانتظار الدفع {amount}.",
       no_amount: "لا يوجد مبلغ",
       no_lnurl_data: "لا توجد بيانات LNURL",
       no_price_data: "لا توجد بيانات سعرية.",
