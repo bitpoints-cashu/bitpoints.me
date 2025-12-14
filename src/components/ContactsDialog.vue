@@ -42,14 +42,6 @@
               <q-btn flat label="Send to Nearby" @click="enableBluetoothAndSend" color="primary" class="q-ml-sm" />
             </template>
           </q-banner>
-            <template v-slot:avatar>
-              <q-icon name="bluetooth_disabled" />
-            </template>
-            Bluetooth is off. Turn it on to discover nearby contacts.
-            <template v-slot:action>
-              <q-btn flat label="Enable" @click="enableBluetooth" />
-            </template>
-          </q-banner>
 
           <!-- PWA info banner (when Bluetooth not available but QR code works) -->
           <q-banner
