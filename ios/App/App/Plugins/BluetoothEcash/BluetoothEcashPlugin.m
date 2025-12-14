@@ -6,6 +6,8 @@ CAP_PLUGIN(BluetoothEcashPlugin, "BluetoothEcash",
            CAP_PLUGIN_METHOD(requestPermissions, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(startService, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(stopService, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(setNickname, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(getNickname, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getAvailablePeers, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getUnclaimedTokens, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(markTokenClaimed, CAPPluginReturnPromise);

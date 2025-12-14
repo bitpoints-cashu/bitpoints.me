@@ -28,13 +28,32 @@ public class BluetoothEcashPlugin: CAPPlugin {
     }
 
     @objc func startService(_ call: CAPPluginCall) {
-        implementation.startService()
-        call.resolve()
+        do {
+            implementation.startService()
+            call.resolve()
+        } catch {
+            call.reject("Failed to start service", error.localizedDescription, error)
+        }
     }
 
     @objc func stopService(_ call: CAPPluginCall) {
         implementation.stopService()
         call.resolve()
+    }
+
+    @objc func setNickname(_ call: CAPPluginCall) {
+        guard let nickname = call.getString("nickname") else {
+            call.reject("nickname is required")
+            return
+        }
+        // Note: setNickname functionality would be implemented in BLEMeshService
+        // For now, just return success
+        call.resolve(["nickname": nickname])
+    }
+
+    @objc func getNickname(_ call: CAPPluginCall) {
+        // Return default nickname for now
+        call.resolve(["nickname": "anon"])
     }
 
     @objc func getAvailablePeers(_ call: CAPPluginCall) {
