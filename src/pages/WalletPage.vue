@@ -790,6 +790,7 @@ export default {
       };
     },
     openContactsDialog: async function () {
+      alert("🔥 CONTACTS BUTTON: Method called!");
       console.log("🔥 CONTACTS BUTTON CLICKED - openContactsDialog called");
       console.log("🔥 Method exists and was called!");
       const bluetoothStore = useBluetoothStore();

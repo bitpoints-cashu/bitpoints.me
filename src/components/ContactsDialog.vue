@@ -37,18 +37,10 @@
               <q-icon name="bluetooth_disabled" />
             </template>
             Bluetooth is off. Turn it on to discover nearby contacts.
-            <div class="text-caption q-mt-xs">🔍 DEBUG: isActive={{ bluetoothStore.isActive }}, available={{ isBluetoothEcashAvailable }}, banner showing: {{ isBluetoothEcashAvailable && !bluetoothStore.isActive }}</div>
             <template v-slot:action>
               <q-btn flat label="Enable" @click="enableBluetooth" />
+              <q-btn flat label="Send to Nearby" @click="enableBluetoothAndSend" color="primary" class="q-ml-sm" />
             </template>
-          </q-banner>
-
-          <!-- Debug banner - remove this after fixing -->
-          <q-banner
-            class="bg-info text-white q-mb-md"
-            rounded
-          >
-            🔍 DEBUG INFO: Bluetooth active={{ bluetoothStore.isActive }}, available={{ isBluetoothEcashAvailable }}, peers={{ bluetoothStore.nearbyPeers.length }}
           </q-banner>
             <template v-slot:avatar>
               <q-icon name="bluetooth_disabled" />
@@ -221,12 +213,30 @@
           >
             <!-- Connected peers section -->
             <template v-if="connectedPeers.length > 0">
-              <q-item-label
-                header
-                class="text-grey-6 q-pa-sm text-uppercase text-caption"
-              >
-                Nearby ({{ connectedPeers.length }})
-              </q-item-label>
+              <div class="row items-center q-pa-sm">
+                <div class="col">
+                  <q-item-label
+                    header
+                    class="text-grey-6 text-uppercase text-caption"
+                  >
+                    Nearby ({{ connectedPeers.length }})
+                  </q-item-label>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    v-if="bluetoothStore.isActive && connectedPeers.length > 0"
+                    flat
+                    dense
+                    round
+                    color="primary"
+                    icon="send"
+                    size="sm"
+                    @click="openSendToNearbyDialog"
+                  >
+                    <q-tooltip>Send to nearby contacts</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
               <q-item
                 v-for="peer in connectedPeers"
                 :key="peer.peerID"
@@ -1087,7 +1097,57 @@ export default defineComponent({
         startPolling();
         await fetchConnectedPeers();
         await fetchOfflineFavorites();
+        notifySuccess("Bluetooth mesh enabled! Discovering nearby contacts...");
       }
+    };
+
+    const enableBluetoothAndSend = async () => {
+      console.log("🔥 ENABLE BLUETOOTH AND SEND clicked");
+      if (!settingsStore.bluetoothEnabled) {
+        notifyError(
+          "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
+        );
+        return;
+      }
+      if (!isBluetoothEcashAvailable.value) {
+        notifyError("Bluetooth is not available in this environment");
+        return;
+      }
+
+      // Start Bluetooth service
+      await bluetoothStore.startService();
+      if (bluetoothStore.isActive) {
+        startPolling();
+        await fetchConnectedPeers();
+        await fetchOfflineFavorites();
+        notifySuccess("Bluetooth mesh enabled! Ready to send to nearby contacts.");
+
+        // If we have nearby peers, show them or prepare for sending
+        if (connectedPeers.value.length > 0) {
+          console.log("🔥 Found nearby peers:", connectedPeers.value.length);
+          // Auto-select the first peer for convenience
+          if (connectedPeers.value[0]) {
+            selectedPeerID.value = connectedPeers.value[0].peerID;
+            // Optionally open send dialog automatically
+            // openSendDialog(connectedPeers.value[0]);
+          }
+        } else {
+          notifyInfo("Bluetooth enabled! Waiting for nearby contacts to appear...");
+        }
+      }
+    };
+
+    const openSendToNearbyDialog = () => {
+      console.log("🔥 SEND TO NEARBY clicked");
+      if (connectedPeers.value.length === 0) {
+        notifyInfo("No nearby contacts found");
+        return;
+      }
+
+      // For now, open send dialog for the first nearby peer
+      // In the future, this could open a multi-select dialog
+      const firstPeer = connectedPeers.value[0];
+      openSendDialog(firstPeer);
     };
 
     // Username editing functions
@@ -1309,6 +1369,8 @@ export default defineComponent({
       closeSendDialog,
       sendToken,
       enableBluetooth,
+      enableBluetoothAndSend,
+      openSendToNearbyDialog,
       formatLastSeen,
       formatNpub,
       formatCurrency,
