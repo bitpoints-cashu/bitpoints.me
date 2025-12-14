@@ -796,18 +796,27 @@ export default {
         return;
       }
 
-      // If Bluetooth is not active, try to start it
+      // If Bluetooth is not active, try to start it and wait for it to complete
       if (!bluetoothStore.isActive && this.isNativeApp) {
         try {
           console.log("Contacts button clicked - starting Bluetooth service...");
-          await bluetoothStore.startService();
+          const success = await bluetoothStore.startService();
+          if (!success) {
+            console.error("Failed to start Bluetooth service");
+            // Still open the dialog so user can manually enable
+            this.showContactsDialog = true;
+            return;
+          }
+          console.log("Bluetooth service started successfully from contacts button");
         } catch (e) {
           console.error("Failed to start Bluetooth from contacts button:", e);
           // Still open the dialog so user can see the enable button
+          this.showContactsDialog = true;
+          return;
         }
       }
 
-      // Open the contacts dialog
+      // Open the contacts dialog after ensuring Bluetooth is active
       this.showContactsDialog = true;
     },
 
