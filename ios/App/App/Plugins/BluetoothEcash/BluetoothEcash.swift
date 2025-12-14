@@ -203,13 +203,13 @@ final class BLEMeshService: NSObject {
         }
     }
 
-    private func updatePeer(peripheral: CBPeripheral, advertisementData: [String: Any]? = nil, rssi: NSNumber?) {
+    private func updatePeer(peripheral: CBPeripheral, advertisementData: [String: Any]? = nil, advertisedName: String? = nil, rssi: NSNumber?) {
         let id = peripheral.identifier.uuidString
 
-        // Check if we already have a name for this peer from previous GATT reads
-        var name = peers[id]?.name ?? "peer"
+        // Use advertised name if available, otherwise check if we already have a name from GATT reads
+        var name = advertisedName ?? peers[id]?.name ?? "peer"
 
-        // For discovered peripherals, try to connect and read the name via GATT
+        // For discovered peripherals, try to connect and read the name via GATT if we don't have a name
         if advertisementData != nil && name == "peer" && connectedPeripherals[id] == nil {
             connectToPeer(peripheral)
         }
@@ -246,8 +246,9 @@ final class BLEMeshService: NSObject {
             service.characteristics = [characteristic]
             peripheralManager.add(service)
             serviceAdded = true
-        }
-        if !peripheralManager.isAdvertising {
+            // Don't start advertising here - wait for didAdd callback
+        } else if !peripheralManager.isAdvertising {
+            // Service already added, start advertising
             os_log("Starting advertising with nickname: %{public}@", log: log, type: .info, myNickname)
             peripheralManager.startAdvertising([
                 CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
@@ -275,32 +276,35 @@ extension BLEMeshService: CBCentralManagerDelegate {
         }
     }
 
-    func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-        // Debug: Log all restoration dictionary contents safely
-        os_log("Restoration dict contains %{public}d entries", log: log, type: .info, dict.count)
-        for (key, value) in dict {
-            let valueType = type(of: value)
-            let valueDesc: String
-            if let array = value as? [Any] {
-                valueDesc = "Array with \(array.count) items"
-            } else if let dict = value as? [String: Any] {
-                valueDesc = "Dict with \(dict.count) entries"
-            } else {
-                valueDesc = "\(value)"
-            }
-            os_log("Restore key '%{public}@' (%{public}@): %{public}@", log: log, type: .info, key, String(describing: valueType), valueDesc)
-        }
-
-        // Restoration disabled - no restoration data to handle
-    }
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        // Safely handle advertisement data to prevent crashes
+        // Safely extract device name from advertisement data
+        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+
+        // Filter advertisement data to only include safe, serializable values
+        // This prevents crashes from malformed advertisement data
         let safeAdvertisementData: [String: Any] = advertisementData.filter { key, value in
-            // Only include entries where key is a string and value is not causing issues
-            return key is String
+            // Only include values that are safe to work with
+            switch value {
+            case is String, is Int, is Double, is Bool, is NSNumber:
+                return true
+            case let array as [Any]:
+                // Only include arrays of safe types
+                return array.allSatisfy { item in
+                    item is String || item is Int || item is Double || item is Bool || item is NSNumber
+                }
+            case let dict as [String: Any]:
+                // Only include dictionaries with safe key/value types
+                return dict.allSatisfy { dictKey, dictValue in
+                    dictKey is String && (dictValue is String || dictValue is Int || dictValue is Double || dictValue is Bool || dictValue is NSNumber)
+                }
+            default:
+                // Skip complex objects, CBUUID instances, Data objects, etc.
+                return false
+            }
         }
-        updatePeer(peripheral: peripheral, advertisementData: safeAdvertisementData, rssi: RSSI)
+
+        updatePeer(peripheral: peripheral, advertisementData: safeAdvertisementData, advertisedName: advertisedName, rssi: RSSI)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -345,39 +349,65 @@ extension BLEMeshService: CBPeripheralDelegate {
             return
         }
 
-        os_log("Discovered characteristics: %{public}@", log: log, type: .info, service.characteristics?.map { $0.uuid.uuidString } ?? [])
-        guard let characteristics = service.characteristics else { return }
-        for characteristic in characteristics where characteristic.uuid == Self.characteristicUUID {
-            os_log("Found bitchat characteristic, reading value", log: log, type: .info)
-            peripheral.readValue(for: characteristic)
+        let characteristicUUIDs = service.characteristics?.map { $0.uuid.uuidString } ?? []
+        os_log("Discovered characteristics: %{public}@", log: log, type: .info, characteristicUUIDs)
+
+        guard let characteristics = service.characteristics else {
+            os_log("No characteristics found in service", log: log, type: .info)
+            return
+        }
+
+        let targetCharacteristic = characteristics.first(where: { $0.uuid == Self.characteristicUUID })
+        if let characteristic = targetCharacteristic {
+            os_log("Found bitchat characteristic, subscribing to notifications", log: log, type: .info)
+            // Subscribe to notifications instead of reading value directly
+            peripheral.setNotifyValue(true, for: characteristic)
+
+            // Store the characteristic for later use
+            // We'll disconnect after receiving the nickname notification
+        } else {
+            os_log("Bitchat characteristic not found in discovered characteristics", log: log, type: .info)
+            // Disconnect if we can't find the characteristic
+            if let centralManager = centralManager {
+                centralManager.cancelPeripheralConnection(peripheral)
+            }
         }
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
-            os_log("Error reading characteristic: %{public}@", log: log, type: .error, error.localizedDescription)
+            os_log("Error receiving characteristic notification: %{public}@", log: log, type: .error, error.localizedDescription)
             return
         }
 
-        if let data = characteristic.value,
-           let nickname = String(data: data, encoding: .utf8),
-           !nickname.isEmpty {
-            let peerID = peripheral.identifier.uuidString
-            os_log("Read nickname from peer %{public}@: %{public}@", log: log, type: .info, peerID, nickname)
+        guard let data = characteristic.value else {
+            os_log("Received empty characteristic notification", log: log, type: .info)
+            return
+        }
 
-            // Update the peer with the read nickname
+        let peerID = peripheral.identifier.uuidString
+        os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
+
+        // For now, treat the data as a simple nickname string
+        // In the future, this should decode proper Bitchat announce messages
+        if let nickname = String(data: data, encoding: .utf8), !nickname.isEmpty {
+            os_log("Received nickname from peer %{public}@: %{public}@", log: log, type: .info, peerID, nickname)
+
+            // Update the peer with the received nickname
             peersQueue.async(flags: .barrier) {
                 if var peer = self.peers[peerID] {
-                    peer = PeerSnapshot(id: peerID, name: nickname, lastSeen: peer.lastSeen, isConnected: peer.isConnected)
+                    peer = PeerSnapshot(id: peerID, name: nickname, lastSeen: Date(), isConnected: peer.isConnected)
                     self.peers[peerID] = peer
                     self.onPeerDiscovered?(peer)
                 }
             }
-        }
 
-        // Disconnect after reading the nickname
-        if let centralManager = centralManager {
-            centralManager.cancelPeripheralConnection(peripheral)
+            // Disconnect after receiving the nickname
+            if let centralManager = centralManager {
+                centralManager.cancelPeripheralConnection(peripheral)
+            }
+        } else {
+            os_log("Received non-string data from peer %{public}@", log: log, type: .info, peerID)
         }
     }
 }
@@ -397,21 +427,45 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
         os_log("Received read request for characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
         if request.characteristic.uuid == Self.characteristicUUID {
             // Return our nickname when requested
-            request.value = myNickname.data(using: .utf8)
+            let nicknameData = myNickname.data(using: .utf8)
+            request.value = nicknameData
             peripheral.respond(to: request, withResult: .success)
-            os_log("Responded to read request with nickname: %{public}@", log: log, type: .info, myNickname)
+            os_log("Responded to read request with nickname: %{public}@ (length: %d)", log: log, type: .info, myNickname, nicknameData?.count ?? 0)
         } else {
+            os_log("Read request for unknown characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
             peripheral.respond(to: request, withResult: .attributeNotFound)
         }
+    }
+
+    func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
+        os_log("Central %{public}@ subscribed to characteristic", log: log, type: .info, central.identifier.uuidString)
+        if characteristic.uuid == Self.characteristicUUID {
+            // Send our nickname to the newly subscribed central
+            let nicknameData = myNickname.data(using: .utf8)
+            let success = peripheral.updateValue(nicknameData!, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
+            os_log("Sent nickname to subscriber: %{public}@ (success: %d)", log: log, type: .info, myNickname, success)
+        }
+    }
+
+    func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
+        os_log("Central %{public}@ unsubscribed from characteristic", log: log, type: .info, central.identifier.uuidString)
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
         if let error {
             os_log("Failed to add service: %{public}@", log: log, type: .error, error.localizedDescription)
+            serviceAdded = false // Reset flag so we can retry
             return
         }
         os_log("Successfully added GATT service: %{public}@", log: log, type: .info, service.uuid.uuidString)
-        ensureAdvertising()
+        // Start advertising now that service is confirmed added
+        if !peripheral.isAdvertising {
+            os_log("Starting advertising after service added with nickname: %{public}@", log: log, type: .info, myNickname)
+            peripheral.startAdvertising([
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
+                CBAdvertisementDataLocalNameKey: myNickname
+            ])
+        }
     }
 
     // Peripheral restoration disabled
