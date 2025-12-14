@@ -58,7 +58,7 @@
             outline
             color="primary"
             class="q-px-lg"
-            @click="showContactsDialog = true"
+            @click="openContactsDialog"
           >
             <q-icon name="contacts" size="1.2rem" class="q-mr-sm" />
             <span>Contacts</span>
@@ -786,6 +786,31 @@ export default {
         }
       };
     },
+    openContactsDialog: async function () {
+      const bluetoothStore = useBluetoothStore();
+      const settingsStore = useSettingsStore();
+
+      // If Bluetooth is disabled in settings, just open the dialog (it will show the enable prompt)
+      if (!settingsStore.bluetoothEnabled) {
+        this.showContactsDialog = true;
+        return;
+      }
+
+      // If Bluetooth is not active, try to start it
+      if (!bluetoothStore.isActive && this.isNativeApp) {
+        try {
+          console.log("Contacts button clicked - starting Bluetooth service...");
+          await bluetoothStore.startService();
+        } catch (e) {
+          console.error("Failed to start Bluetooth from contacts button:", e);
+          // Still open the dialog so user can see the enable button
+        }
+      }
+
+      // Open the contacts dialog
+      this.showContactsDialog = true;
+    },
+
     initializeBluetooth: async function () {
       try {
         const bluetoothStore = useBluetoothStore();
