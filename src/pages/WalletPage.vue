@@ -817,7 +817,6 @@ export default {
       }
 
       // Open the contacts dialog after ensuring Bluetooth is active
-      console.log("🔥 Opening contacts dialog (Bluetooth should be active)");
       this.showContactsDialog = true;
     },
 
