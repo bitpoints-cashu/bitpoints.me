@@ -45,6 +45,278 @@ enum MessageType: UInt8 {
     }
 }
 
+/// Core packet structure for BitChat messages (from reference implementation)
+struct BitchatPacket: Codable {
+    let version: UInt8
+    let type: UInt8
+    let senderID: Data
+    let recipientID: Data?
+    let timestamp: UInt64
+    let payload: Data
+    var signature: Data?
+    var ttl: UInt8
+    var route: [Data]?
+
+    init(type: UInt8, senderID: Data, recipientID: Data?, timestamp: UInt64, payload: Data, signature: Data?, ttl: UInt8, version: UInt8 = 1, route: [Data]? = nil) {
+        self.version = version
+        self.type = type
+        self.senderID = senderID
+        self.recipientID = recipientID
+        self.timestamp = timestamp
+        self.payload = payload
+        self.signature = signature
+        self.ttl = ttl
+        self.route = route
+    }
+
+    // Convenience initializer for new binary format
+    init(type: UInt8, ttl: UInt8, senderID: PeerID, payload: Data) {
+        self.version = 1
+        self.type = type
+        // Convert hex string peer ID to binary data (8 bytes)
+        var senderData = Data()
+        var tempID = senderID.id
+        while tempID.count >= 2 {
+            let hexByte = String(tempID.prefix(2))
+            if let byte = UInt8(hexByte, radix: 16) {
+                senderData.append(byte)
+            }
+            tempID = String(tempID.dropFirst(2))
+        }
+        self.senderID = senderData
+        self.recipientID = nil
+        self.timestamp = UInt64(Date().timeIntervalSince1970 * 1000) // milliseconds
+        self.payload = payload
+        self.signature = nil
+        self.ttl = ttl
+        self.route = nil
+    }
+
+    var data: Data? {
+        BinaryProtocol.encode(self)
+    }
+
+    func toBinaryData(padding: Bool = true) -> Data? {
+        BinaryProtocol.encode(self, padding: padding)
+    }
+
+    // Backward-compatible helper (defaults to padded encoding)
+    func toBinaryData() -> Data? {
+        toBinaryData(padding: true)
+    }
+
+    /// Create binary representation for signing (without signature and TTL fields)
+    /// TTL is excluded because it changes during packet relay operations
+    func toBinaryDataForSigning() -> Data? {
+        // Create a copy without signature and with fixed TTL for signing
+        // TTL must be excluded because it changes during relay
+        let unsignedPacket = BitchatPacket(
+            type: type,
+            senderID: senderID,
+            recipientID: recipientID,
+            timestamp: timestamp,
+            payload: payload,
+            signature: nil, // Remove signature for signing
+            ttl: 0, // Use fixed TTL=0 for signing to ensure relay compatibility
+            version: version,
+            route: route
+        )
+        return BinaryProtocol.encode(unsignedPacket)
+    }
+
+    static func from(_ data: Data) -> BitchatPacket? {
+        BinaryProtocol.decode(data)
+    }
+}
+
+/// Peer ID structure (from reference implementation)
+struct PeerID: Hashable, Codable, Equatable {
+    let id: String
+
+    init(id: String) {
+        self.id = id
+    }
+
+    init(publicKey: Data) {
+        // Create peer ID from public key (simplified)
+        let hash = publicKey.sha256()
+        let hexString = hash.map { String(format: "%02x", $0) }.joined()
+        self.id = String(hexString.prefix(16))
+    }
+
+    var routingData: Data? {
+        // Convert hex string to binary data
+        var data = Data()
+        var tempID = id
+        while tempID.count >= 2 {
+            let hexByte = String(tempID.prefix(2))
+            if let byte = UInt8(hexByte, radix: 16) {
+                data.append(byte)
+            }
+            tempID = String(tempID.dropFirst(2))
+        }
+        return data.count == 8 ? data : nil
+    }
+}
+
+// MARK: - Binary Protocol (from BitChat reference)
+
+/// Implements binary encoding and decoding for BitChat protocol messages.
+/// Provides static methods for converting between BitchatPacket objects and
+/// their binary wire format representation.
+/// - Note: All multi-byte values use network byte order (big-endian)
+struct BinaryProtocol {
+    static let v1HeaderSize = 14
+    static let v2HeaderSize = 16
+    static let senderIDSize = 8
+    static let recipientIDSize = 8
+    static let signatureSize = 64
+
+    // Field offsets within packet header
+    struct Offsets {
+        static let version = 0
+        static let type = 1
+        static let ttl = 2
+        static let timestamp = 3
+        static let flags = 11  // After version(1) + type(1) + ttl(1) + timestamp(8)
+    }
+
+    static func headerSize(for version: UInt8) -> Int? {
+        switch version {
+        case 1: return v1HeaderSize
+        case 2: return v2HeaderSize
+        default: return nil
+        }
+    }
+
+    private static func lengthFieldSize(for version: UInt8) -> Int {
+        return version == 2 ? 4 : 2
+    }
+
+    struct Flags {
+        static let hasRecipient: UInt8 = 0x01
+        static let hasSignature: UInt8 = 0x02
+        static let isCompressed: UInt8 = 0x04
+        static let hasRoute: UInt8 = 0x08
+    }
+
+    // Encode BitchatPacket to binary format
+    static func encode(_ packet: BitchatPacket, padding: Bool = true) -> Data? {
+        let version = packet.version
+        guard version == 1 || version == 2 else { return nil }
+
+        // Try to compress payload when beneficial, keeping original size for later decoding
+        var payload = packet.payload
+        var flags: UInt8 = 0
+
+        // Set flags based on packet properties
+        if packet.recipientID != nil {
+            flags |= Flags.hasRecipient
+        }
+        if packet.signature != nil {
+            flags |= Flags.hasSignature
+        }
+        if packet.route != nil {
+            flags |= Flags.hasRoute
+        }
+
+        // Calculate sizes
+        let payloadLength = UInt16(payload.count)
+        let lengthFieldSize = lengthFieldSize(for: version)
+
+        // Build the packet
+        var data = Data()
+        data.reserveCapacity(256) // Reasonable initial capacity
+
+        // Header
+        data.append(version)
+        data.append(packet.type)
+        data.append(packet.ttl)
+
+        // Timestamp (big-endian)
+        var timestamp = packet.timestamp.bigEndian
+        withUnsafeBytes(of: &timestamp) { data.append(contentsOf: $0) }
+
+        // Flags
+        data.append(flags)
+
+        // Payload length (big-endian)
+        var length = payloadLength.bigEndian
+        withUnsafeBytes(of: &length) { data.append(contentsOf: $0) }
+
+        // Sender ID
+        data.append(packet.senderID)
+
+        // Recipient ID (if present)
+        if let recipientID = packet.recipientID {
+            data.append(recipientID)
+        }
+
+        // Payload
+        data.append(payload)
+
+        // Signature (if present)
+        if let signature = packet.signature {
+            data.append(signature)
+        }
+
+        return data
+    }
+
+    // Decode binary data to BitchatPacket
+    static func decode(_ data: Data) -> BitchatPacket? {
+        guard data.count >= v1HeaderSize else { return nil }
+
+        let version = data[Offsets.version]
+        guard let headerSize = headerSize(for: version) else { return nil }
+        guard data.count >= headerSize else { return nil }
+
+        let type = data[Offsets.type]
+        let ttl = data[Offsets.ttl]
+
+        // Timestamp (big-endian)
+        let timestamp = data.subdata(in: Offsets.timestamp..<Offsets.timestamp+8).withUnsafeBytes {
+            UInt64(bigEndian: $0.load(as: UInt64.self))
+        }
+
+        let flags = data[Offsets.flags]
+
+        // Payload length
+        let payloadLengthStart = Offsets.flags + 1
+        let payloadLength: UInt16 = data.subdata(in: payloadLengthStart..<payloadLengthStart+2).withUnsafeBytes {
+            UInt16(bigEndian: $0.load(as: UInt16.self))
+        }
+
+        var offset = headerSize
+
+        // Sender ID
+        guard offset + senderIDSize <= data.count else { return nil }
+        let senderID = data.subdata(in: offset..<offset+senderIDSize)
+        offset += senderIDSize
+
+        // Recipient ID (optional)
+        var recipientID: Data? = nil
+        if (flags & Flags.hasRecipient) != 0 {
+            guard offset + recipientIDSize <= data.count else { return nil }
+            recipientID = data.subdata(in: offset..<offset+recipientIDSize)
+            offset += recipientIDSize
+        }
+
+        // Payload
+        guard offset + Int(payloadLength) <= data.count else { return nil }
+        let payload = data.subdata(in: offset..<offset+Int(payloadLength))
+
+        return BitchatPacket(
+            type: type,
+            senderID: senderID,
+            recipientID: recipientID,
+            timestamp: timestamp,
+            payload: payload,
+            signature: nil, // Simplified - no signature validation
+            ttl: ttl
+        )
+    }
+}
 
 struct AnnouncementPacket {
     let nickname: String
@@ -556,7 +828,7 @@ extension BLEMeshService: CBPeripheralDelegate {
         os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
 
         // First try to decode as full BitchatPacket (following BitChat protocol)
-        if let packet = BitchatPacket.decode(from: data) {
+        if let packet = BinaryProtocol.decode(data) {
             os_log("📦 Received BitchatPacket type %{public}@ from %{public}@", log: log, type: .info, String(format: "0x%02x", packet.type), peerID)
 
             // Handle different packet types
@@ -709,11 +981,12 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
                 // Create full BitchatPacket (following BitChat reference)
                 let packet = BitchatPacket(
                     type: MessageType.announce.rawValue,
-                    senderID: Data(count: 8), // Placeholder sender ID
+                    senderID: Data(count: 8), // Placeholder sender ID - should be derived from peer ID
                     recipientID: nil,
                     timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
                     payload: announcePayload,
-                    signature: nil
+                    signature: nil, // No signature for simplified implementation
+                    ttl: 64 // Default TTL
                 )
 
                 // Encode the full packet
@@ -754,7 +1027,8 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
                     recipientID: nil,
                     timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
                     payload: announcePayload,
-                    signature: nil // No signature for simplified implementation
+                    signature: nil, // No signature for simplified implementation
+                    ttl: 64 // Default TTL
                 )
 
                 // Encode the full packet (following BitChat's BinaryProtocol.encode)
