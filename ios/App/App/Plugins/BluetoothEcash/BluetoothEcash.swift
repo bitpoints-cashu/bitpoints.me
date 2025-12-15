@@ -437,21 +437,21 @@ extension BLEMeshService: CBCentralManagerDelegate {
         let serviceUUIDs = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]
         let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
 
-        os_log("Peer %{public}@: advertisedName=%{public}@, hasService=%{public}@, connectable=%{public}@", log: log, type: .debug, peripheralID.prefix(8), advertisedName ?? "nil", serviceUUIDs?.contains(Self.serviceUUID) ?? false ? "yes" : "no", isConnectable)
+        os_log("Peer %{public}@: advertisedName=%{public}@, hasService=%{public}@, connectable=%{public}@", log: log, type: .debug, String(peripheralID.prefix(8)), advertisedName ?? "nil", serviceUUIDs?.contains(Self.serviceUUID) ?? false ? "yes" : "no", isConnectable)
 
         // Only process peers advertising our service
         guard serviceUUIDs?.contains(Self.serviceUUID) ?? false else {
-            os_log("Ignoring peer %{public}@ - not advertising our service", log: log, type: .debug, peripheralID.prefix(8))
+            os_log("Ignoring peer %{public}@ - not advertising our service", log: log, type: .debug, String(peripheralID.prefix(8)))
             return
         }
 
         if let advertisedName = advertisedName, !advertisedName.isEmpty {
             // We have the real nickname from advertisement data - use it directly
-            os_log("✅ Discovered peer %{public}@ with advertised nickname: %{public}@", log: log, type: .info, peripheralID.prefix(8), advertisedName)
+            os_log("✅ Discovered peer %{public}@ with advertised nickname: %{public}@", log: log, type: .info, String(peripheralID.prefix(8)), advertisedName)
             updatePeer(peripheral: peripheral, advertisedName: advertisedName, rssi: RSSI, isConnectable: isConnectable)
         } else {
             // No advertised name available - connect to get announce packet with nickname
-            os_log("📡 Discovered peer %{public}@ without advertised name, connecting to get announce packet", log: log, type: .info, peripheralID.prefix(8))
+            os_log("📡 Discovered peer %{public}@ without advertised name, connecting to get announce packet", log: log, type: .info, String(peripheralID.prefix(8)))
             updatePeer(peripheral: peripheral, advertisedName: "connecting...", rssi: RSSI, isConnectable: isConnectable)
             if isConnectable && connectedPeripherals[peripheralID] == nil {
                 connectToPeer(peripheral)
@@ -554,21 +554,21 @@ extension BLEMeshService: CBPeripheralDelegate {
 
         // Try to decode as announce packet (following BitChat whitepaper)
         if let announcement = AnnouncementPacket.decode(from: data) {
-            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@', noiseKey=%{public}@, signingKey=%{public}@", log: log, type: .info, peerID, announcement.nickname, announcement.noisePublicKey.base64EncodedString().prefix(8), announcement.signingPublicKey.base64EncodedString().prefix(8))
+            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@', noiseKey=%{public}@, signingKey=%{public}@", log: log, type: .info, peerID, announcement.nickname, String(announcement.noisePublicKey.base64EncodedString().prefix(8)), String(announcement.signingPublicKey.base64EncodedString().prefix(8)))
 
             // Update the peer with the received nickname from announce packet
-            peersQueue.async(flags: .barrier) {
+            peersQueue.async(flags: .barrier) { [self] in
                 if var peer = self.peers[peerID] {
                     let oldName = peer.name
                     peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                     self.peers[peerID] = peer
-                    os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@'", log: log, type: .info, peerID, oldName, announcement.nickname)
+                    os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@'", log: self.log, type: .info, peerID, oldName, announcement.nickname)
                     self.onPeerDiscovered?(peer)
                 } else {
                     // Create new peer entry if we don't have one
                     let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
                     self.peers[peerID] = peer
-                    os_log("Created new peer %{public}@ with announce nickname '%{public}@'", log: log, type: .info, peerID, announcement.nickname)
+                    os_log("Created new peer %{public}@ with announce nickname '%{public}@'", log: self.log, type: .info, peerID, announcement.nickname)
                     self.onPeerDiscovered?(peer)
                 }
             }
