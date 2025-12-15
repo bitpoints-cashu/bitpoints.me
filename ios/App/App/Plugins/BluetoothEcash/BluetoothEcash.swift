@@ -1153,7 +1153,7 @@ public class BluetoothEcash: NSObject {
             [
                 "peerID": peer.id,
                 "nickname": peer.name,
-                "lastSeen": Int(peer.lastSeen.timeIntervalSince1970 * 1000),
+                "lastSeen": String(Int(peer.lastSeen.timeIntervalSince1970 * 1000)),
                 "isDirect": true,
                 "nostrNpub": "",
                 "isConnected": peer.isConnected
