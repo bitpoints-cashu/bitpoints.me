@@ -442,12 +442,10 @@ final class BLEMeshService: NSObject {
             serviceAdded = true
             // Don't start advertising here - wait for didAdd callback
         } else if !peripheralManager.isAdvertising {
-            // Service already added, start advertising with our nickname (following BitChat whitepaper)
-            os_log("Starting advertising with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
+            // Service already added, start advertising (following BitChat reference - no local name for privacy)
+            os_log("Starting advertising with service %{public}@", log: log, type: .info, Self.serviceUUID.uuidString)
             peripheralManager.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
-                CBAdvertisementDataLocalNameKey: myNickname,
-                CBAdvertisementDataIsConnectable: true
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
             ])
         }
     }
@@ -796,6 +794,14 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         os_log("Central %{public}@ unsubscribed from characteristic", log: log, type: .info, central.identifier.uuidString)
+
+        // Restart advertising if not currently advertising (following BitChat reference)
+        if !peripheral.isAdvertising {
+            os_log("Restarting advertising after central unsubscribed", log: log, type: .info)
+            peripheral.startAdvertising([
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
+            ])
+        }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
@@ -805,13 +811,11 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             return
         }
         os_log("Successfully added GATT service: %{public}@", log: log, type: .info, service.uuid.uuidString)
-        // Start advertising now that service is confirmed added (following BitChat whitepaper)
+        // Start advertising now that service is confirmed added (following BitChat reference - no local name for privacy)
         if !peripheral.isAdvertising {
-            os_log("Starting advertising after service added with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
+            os_log("Starting advertising after service added with service %{public}@", log: log, type: .info, Self.serviceUUID.uuidString)
             peripheral.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
-                CBAdvertisementDataLocalNameKey: myNickname,
-                CBAdvertisementDataIsConnectable: true
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
             ])
         }
     }
