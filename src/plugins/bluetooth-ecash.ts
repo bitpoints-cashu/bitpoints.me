@@ -69,7 +69,7 @@ export interface BluetoothEcashPlugin {
 
 /**
  * Register Capacitor plugin.
- * Native implementation is used on iOS; web stub avoids UNIMPLEMENTED errors.
+ * Native implementations are used on iOS and Android; web stub avoids UNIMPLEMENTED errors.
  */
 const BluetoothEcash = registerPlugin<BluetoothEcashPlugin>("BluetoothEcash", {
   web: () => ({

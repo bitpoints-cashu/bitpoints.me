@@ -42,6 +42,11 @@ android {
             signingConfig signingConfigs.release
         }
     }
+    packaging {
+        resources {
+            excludes += ['META-INF/INDEX.LIST', 'META-INF/DEPENDENCIES']
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -92,15 +97,14 @@ dependencies {
     implementation "com.google.crypto.tink:tink-android:1.12.0"
 
     // Google Sign-In and Drive API for Google Drive backups
-    implementation "com.google.android.gms:play-services-auth:21.2.0"
-    implementation "com.google.api-client:google-api-client-android:2.5.0"
-    implementation "com.google.api-client:google-api-client-gson:2.5.0"
-    implementation("com.google.apis:google-api-services-drive:v3-rev20240205-2.0.0") {
-        exclude group: "org.apache.httpcomponents"
-    }
-    implementation("com.google.http-client:google-http-client-android:1.43.3") {
-        exclude group: "org.apache.httpcomponents"
-    }
+    // Temporarily disabled to fix lint issues - can be re-enabled later
+    // implementation "com.google.android.gms:play-services-auth:21.2.0"
+    // implementation "com.google.api-client:google-api-client-android:2.4.0"
+    // implementation "com.google.api-client:google-api-client-gson:2.4.0"
+    // implementation("com.google.http-client:google-http-client-android:1.43.3") {
+    //     exclude group: "org.apache.httpcomponents"
+    //     exclude module: "httpclient"
+    // }
 }
 
 apply from: 'capacitor.build.gradle'
