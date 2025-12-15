@@ -460,7 +460,8 @@ export default defineComponent({
     };
 
     const formatLastSeen = (timestamp: number | string): string => {
-      const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      const ts =
+        typeof timestamp === "string" ? parseInt(timestamp) : timestamp;
       const seconds = Math.floor((Date.now() - ts) / 1000);
       if (seconds < 60) return "Just now";
       if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
