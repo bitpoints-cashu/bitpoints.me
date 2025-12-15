@@ -5,6 +5,142 @@ import os.log
 import UIKit
 #endif
 
+// MARK: - BitChat Protocol Structures
+
+/// Simplified BitChat protocol message types.
+/// Reduced from 24 types to just 6 essential ones.
+/// All private communication metadata (receipts, status) is embedded in noiseEncrypted payloads.
+enum MessageType: UInt8 {
+    // Public messages (unencrypted)
+    case announce = 0x01        // "I'm here" with nickname
+    case message = 0x02         // Public chat message
+    case leave = 0x03           // "I'm leaving"
+    case requestSync = 0x21     // GCS filter-based sync request (local-only)
+
+    // Noise encryption
+    case noiseHandshake = 0x10  // Handshake (init or response determined by payload)
+    case noiseEncrypted = 0x11  // All encrypted payloads (messages, receipts, etc.)
+
+    // Fragmentation (simplified)
+    case fragment = 0x20        // Single fragment type for large messages
+    case fileTransfer = 0x22    // Binary file/audio/image payloads
+
+    var description: String {
+        switch self {
+        case .announce: return "announce"
+        case .message: return "message"
+        case .leave: return "leave"
+        case .requestSync: return "requestSync"
+        case .noiseHandshake: return "noiseHandshake"
+        case .noiseEncrypted: return "noiseEncrypted"
+        case .fragment: return "fragment"
+        case .fileTransfer: return "fileTransfer"
+        }
+    }
+}
+
+struct AnnouncementPacket {
+    let nickname: String
+    let noisePublicKey: Data            // Noise static public key (Curve25519.KeyAgreement)
+    let signingPublicKey: Data          // Ed25519 public key for signing
+    let directNeighbors: [Data]?        // 8-byte peer IDs
+
+    private enum TLVType: UInt8 {
+        case nickname = 0x01
+        case noisePublicKey = 0x02
+        case signingPublicKey = 0x03
+        case directNeighbors = 0x04
+    }
+
+    func encode() -> Data? {
+        var data = Data()
+        // Reserve: TLVs for nickname (2 + n), noise key (2 + 32), signing key (2 + 32)
+        data.reserveCapacity(2 + min(nickname.count, 255) + 2 + noisePublicKey.count + 2 + signingPublicKey.count)
+
+        // TLV for nickname
+        guard let nicknameData = nickname.data(using: .utf8), nicknameData.count <= 255 else { return nil }
+        data.append(TLVType.nickname.rawValue)
+        data.append(UInt8(nicknameData.count))
+        data.append(nicknameData)
+
+        // TLV for noise public key
+        guard noisePublicKey.count <= 255 else { return nil }
+        data.append(TLVType.noisePublicKey.rawValue)
+        data.append(UInt8(noisePublicKey.count))
+        data.append(noisePublicKey)
+
+        // TLV for signing public key
+        guard signingPublicKey.count <= 255 else { return nil }
+        data.append(TLVType.signingPublicKey.rawValue)
+        data.append(UInt8(signingPublicKey.count))
+        data.append(signingPublicKey)
+
+        // TLV for direct neighbors (optional)
+        if let neighbors = directNeighbors, !neighbors.isEmpty {
+            let neighborsData = neighbors.prefix(10).reduce(Data()) { $0 + $1 }
+            if !neighborsData.isEmpty && neighborsData.count % 8 == 0 {
+                data.append(TLVType.directNeighbors.rawValue)
+                data.append(UInt8(neighborsData.count))
+                data.append(neighborsData)
+            }
+        }
+
+        return data
+    }
+
+    static func decode(from data: Data) -> AnnouncementPacket? {
+        var offset = 0
+        var nickname: String?
+        var noisePublicKey: Data?
+        var signingPublicKey: Data?
+        var directNeighbors: [Data]?
+
+        while offset + 2 <= data.count {
+            let typeRaw = data[offset]
+            offset += 1
+            let length = Int(data[offset])
+            offset += 1
+
+            guard offset + length <= data.count else { return nil }
+            let value = data[offset..<offset + length]
+            offset += length
+
+            if let type = TLVType(rawValue: typeRaw) {
+                switch type {
+                case .nickname:
+                    nickname = String(data: value, encoding: .utf8)
+                case .noisePublicKey:
+                    noisePublicKey = Data(value)
+                case .signingPublicKey:
+                    signingPublicKey = Data(value)
+                case .directNeighbors:
+                    if length > 0 && length % 8 == 0 {
+                        var neighbors = [Data]()
+                        let count = length / 8
+                        for i in 0..<count {
+                            let start = value.startIndex + i * 8
+                            let end = start + 8
+                            neighbors.append(Data(value[start..<end]))
+                        }
+                        directNeighbors = neighbors
+                    }
+                }
+            } else {
+                // Unknown TLV; skip (tolerant decoder for forward compatibility)
+                continue
+            }
+        }
+
+        guard let nickname = nickname, let noisePublicKey = noisePublicKey, let signingPublicKey = signingPublicKey else { return nil }
+        return AnnouncementPacket(
+            nickname: nickname,
+            noisePublicKey: noisePublicKey,
+            signingPublicKey: signingPublicKey,
+            directNeighbors: directNeighbors
+        )
+    }
+}
+
 /// Lightweight BLE mesh service inspired by BitChat.
 /// - Advertises a single service/characteristic.
 /// - Scans and surfaces nearby peers with lastSeen timestamps.
@@ -388,26 +524,25 @@ extension BLEMeshService: CBPeripheralDelegate {
         let peerID = peripheral.identifier.uuidString
         os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
 
-        // For now, treat the data as a simple nickname string
-        // In the future, this should decode proper Bitchat announce messages
-        if let nickname = String(data: data, encoding: .utf8), !nickname.isEmpty {
-            os_log("Received nickname from peer %{public}@: %{public}@", log: log, type: .info, peerID, nickname)
+        // Decode the announce packet to extract the nickname
+        if let announcement = AnnouncementPacket.decode(from: data) {
+            os_log("Received announce from peer %{public}@: %{public}@", log: log, type: .info, peerID, announcement.nickname)
 
             // Update the peer with the received nickname
             peersQueue.async(flags: .barrier) {
                 if var peer = self.peers[peerID] {
-                    peer = PeerSnapshot(id: peerID, name: nickname, lastSeen: Date(), isConnected: peer.isConnected)
+                    peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                     self.peers[peerID] = peer
                     self.onPeerDiscovered?(peer)
                 }
             }
 
-            // Disconnect after receiving the nickname
+            // Disconnect after receiving the announce packet
             if let centralManager = centralManager {
                 centralManager.cancelPeripheralConnection(peripheral)
             }
         } else {
-            os_log("Received non-string data from peer %{public}@", log: log, type: .info, peerID)
+            os_log("Failed to decode announce packet from peer %{public}@ (received %{public}d bytes)", log: log, type: .info, peerID, data.count)
         }
     }
 }
@@ -426,11 +561,22 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
         os_log("Received read request for characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
         if request.characteristic.uuid == Self.characteristicUUID {
-            // Return our nickname when requested
-            let nicknameData = myNickname.data(using: .utf8)
-            request.value = nicknameData
-            peripheral.respond(to: request, withResult: .success)
-            os_log("Responded to read request with nickname: %{public}@ (length: %d)", log: log, type: .info, myNickname, nicknameData?.count ?? 0)
+            // Create announce packet with our identity information
+            let announcement = AnnouncementPacket(
+                nickname: myNickname,
+                noisePublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                signingPublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                directNeighbors: nil
+            )
+
+            if let announceData = announcement.encode() {
+                request.value = announceData
+                peripheral.respond(to: request, withResult: .success)
+                os_log("Responded to read request with announce packet: %{public}@ (length: %d)", log: log, type: .info, myNickname, announceData.count)
+            } else {
+                os_log("Failed to encode announce packet for read request", log: log, type: .error)
+                peripheral.respond(to: request, withResult: .unlikelyError)
+            }
         } else {
             os_log("Read request for unknown characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
             peripheral.respond(to: request, withResult: .attributeNotFound)
@@ -440,10 +586,20 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         os_log("Central %{public}@ subscribed to characteristic", log: log, type: .info, central.identifier.uuidString)
         if characteristic.uuid == Self.characteristicUUID {
-            // Send our nickname to the newly subscribed central
-            let nicknameData = myNickname.data(using: .utf8)
-            let success = peripheral.updateValue(nicknameData!, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
-            os_log("Sent nickname to subscriber: %{public}@ (success: %d)", log: log, type: .info, myNickname, success)
+            // Send announce packet to the newly subscribed central
+            let announcement = AnnouncementPacket(
+                nickname: myNickname,
+                noisePublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                signingPublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                directNeighbors: nil
+            )
+
+            if let announceData = announcement.encode() {
+                let success = peripheral.updateValue(announceData, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
+                os_log("Sent announce packet to subscriber: %{public}@ (success: %d, length: %d)", log: log, type: .info, myNickname, success, announceData.count)
+            } else {
+                os_log("Failed to encode announce packet for subscriber", log: log, type: .error)
+            }
         }
     }
 
