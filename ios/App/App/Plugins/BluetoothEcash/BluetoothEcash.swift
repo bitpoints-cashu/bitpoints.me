@@ -5,11 +5,9 @@ import os.log
 import UIKit
 #endif
 
-// MARK: - BitChat Protocol Structures
+// MARK: - BitChat Reference Implementation (Cloned from bitchat repository)
 
-/// Simplified BitChat protocol message types.
-/// Reduced from 24 types to just 6 essential ones.
-/// All private communication metadata (receipts, status) is embedded in noiseEncrypted payloads.
+// Simplified BitChat protocol message types (from reference)
 enum MessageType: UInt8 {
     // Public messages (unencrypted)
     case announce = 0x01        // "I'm here" with nickname
@@ -396,32 +394,34 @@ final class BLEMeshService: NSObject {
     private func updatePeer(peripheral: CBPeripheral, advertisedName: String? = nil, rssi: NSNumber?, isConnectable: Bool = true) {
         let id = peripheral.identifier.uuidString
 
-        // Determine the best name to use following BitChat protocol:
-        // 1. If we have a real nickname from announce packet (stored in peers dict), use that
-        // 2. If we have an advertised name from BLE discovery, use that
-        // 3. Otherwise use a placeholder and connect to get the real name
-        var name: String
-        if let existingPeer = peers[id], !existingPeer.name.hasSuffix("…") && existingPeer.name != "connecting..." {
-            // We already have a real nickname from a previous announce packet
+        // Simple name determination logic
+        var name = "connecting..."
+        var shouldConnect = false
+
+        // Check if we already have a real nickname
+        if let existingPeer = peers[id], existingPeer.name != "connecting..." && !existingPeer.name.hasSuffix("…") {
             name = existingPeer.name
-        } else if let advertisedName = advertisedName, !advertisedName.isEmpty && advertisedName != "connecting..." {
-            // We have a nickname from BLE advertisement
-            name = advertisedName
+        } else if let advName = advertisedName, !advName.isEmpty && advName != "connecting..." {
+            name = advName
         } else {
-            // No real name yet - use placeholder and connect to get announce packet
-            name = "connecting..."
-            if isConnectable && connectedPeripherals[id] == nil {
-                connectToPeer(peripheral)
-            }
+            shouldConnect = isConnectable && connectedPeripherals[id] == nil
         }
 
-        // Safely get connection state - restored peripherals might not have valid state
-        let isConnected = peripheral.state == .connected
+        // Connect if needed
+        if shouldConnect {
+            connectToPeer(peripheral)
+        }
 
+        // Create peer snapshot
+        let isConnected = peripheral.state == .connected
         let peer = PeerSnapshot(id: id, name: name, lastSeen: Date(), isConnected: isConnected)
+
+        // Update peers dictionary
         peersQueue.async(flags: .barrier) {
             self.peers[id] = peer
         }
+
+        // Notify listeners
         onPeerDiscovered?(peer)
     }
 
