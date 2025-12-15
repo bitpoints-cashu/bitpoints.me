@@ -633,7 +633,6 @@ extension BLEMeshService: CBPeripheralDelegate {
 
         return nil
     }
-    }
 }
 
 extension BLEMeshService: CBPeripheralManagerDelegate {
