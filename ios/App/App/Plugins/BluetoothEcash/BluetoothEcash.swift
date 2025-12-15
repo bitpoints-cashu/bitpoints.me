@@ -339,14 +339,14 @@ final class BLEMeshService: NSObject {
         }
     }
 
-    private func updatePeer(peripheral: CBPeripheral, advertisementData: [String: Any]? = nil, advertisedName: String? = nil, rssi: NSNumber?) {
+    private func updatePeer(peripheral: CBPeripheral, advertisedName: String? = nil, rssi: NSNumber?, isConnectable: Bool = true) {
         let id = peripheral.identifier.uuidString
 
-        // Use advertised name if available, otherwise check if we already have a name from GATT reads
-        var name = advertisedName ?? peers[id]?.name ?? "peer"
+        // Use advertised name if available, otherwise keep existing name or use fallback
+        var name = advertisedName ?? peers[id]?.name ?? (id.prefix(6) + "…")
 
-        // For discovered peripherals, try to connect and read the name via GATT if we don't have a name
-        if advertisementData != nil && name == "peer" && connectedPeripherals[id] == nil {
+        // If we only have a fallback name and the peer is connectable, try to connect to get real nickname
+        if name.hasSuffix("…") && isConnectable && connectedPeripherals[id] == nil {
             connectToPeer(peripheral)
         }
 
@@ -414,33 +414,18 @@ extension BLEMeshService: CBCentralManagerDelegate {
 
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        // Safely extract device name from advertisement data
-        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let peripheralID = peripheral.identifier.uuidString
 
-        // Filter advertisement data to only include safe, serializable values
-        // This prevents crashes from malformed advertisement data
-        let safeAdvertisementData: [String: Any] = advertisementData.filter { key, value in
-            // Only include values that are safe to work with
-            switch value {
-            case is String, is Int, is Double, is Bool, is NSNumber:
-                return true
-            case let array as [Any]:
-                // Only include arrays of safe types
-                return array.allSatisfy { item in
-                    item is String || item is Int || item is Double || item is Bool || item is NSNumber
-                }
-            case let dict as [String: Any]:
-                // Only include dictionaries with safe key/value types
-                return dict.allSatisfy { dictKey, dictValue in
-                    dictKey is String && (dictValue is String || dictValue is Int || dictValue is Double || dictValue is Bool || dictValue is NSNumber)
-                }
-            default:
-                // Skip complex objects, CBUUID instances, Data objects, etc.
-                return false
-            }
-        }
+        // Extract advertised name from advertisement data (following BitChat reference)
+        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? (peripheralID.prefix(6) + "…")
 
-        updatePeer(peripheral: peripheral, advertisementData: safeAdvertisementData, advertisedName: advertisedName, rssi: RSSI)
+        // Check if peripheral is connectable
+        let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
+
+        // Only update peer info - don't connect immediately like BitChat does
+        // BitChat uses a sophisticated connection candidate system, but for nickname exchange
+        // we can be simpler and connect when we need the real nickname
+        updatePeer(peripheral: peripheral, advertisedName: advertisedName, rssi: RSSI, isConnectable: isConnectable)
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -481,28 +466,40 @@ extension BLEMeshService: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let error = error {
-            os_log("Error discovering characteristics: %{public}@", log: log, type: .error, error.localizedDescription)
+            os_log("Error discovering characteristics for %{public}@: %{public}@", log: log, type: .error, peripheral.identifier.uuidString, error.localizedDescription)
+            // Disconnect on error
+            if let centralManager = centralManager {
+                centralManager.cancelPeripheralConnection(peripheral)
+            }
             return
         }
 
         let characteristicUUIDs = service.characteristics?.map { $0.uuid.uuidString } ?? []
-        os_log("Discovered characteristics: %{public}@", log: log, type: .info, characteristicUUIDs)
+        os_log("Discovered %{public}d characteristics for %{public}@: %{public}@", log: log, type: .info, characteristicUUIDs.count, peripheral.identifier.uuidString, characteristicUUIDs)
 
         guard let characteristics = service.characteristics else {
-            os_log("No characteristics found in service", log: log, type: .info)
+            os_log("No characteristics found in service for %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
+            if let centralManager = centralManager {
+                centralManager.cancelPeripheralConnection(peripheral)
+            }
             return
         }
 
         let targetCharacteristic = characteristics.first(where: { $0.uuid == Self.characteristicUUID })
         if let characteristic = targetCharacteristic {
-            os_log("Found bitchat characteristic, subscribing to notifications", log: log, type: .info)
-            // Subscribe to notifications instead of reading value directly
-            peripheral.setNotifyValue(true, for: characteristic)
-
-            // Store the characteristic for later use
-            // We'll disconnect after receiving the nickname notification
+            // Check if characteristic supports notifications (like BitChat reference)
+            if characteristic.properties.contains(.notify) {
+                os_log("Found bitchat characteristic for %{public}@, subscribing to notifications", log: log, type: .info, peripheral.identifier.uuidString)
+                // Subscribe to notifications to receive announce packets
+                peripheral.setNotifyValue(true, for: characteristic)
+            } else {
+                os_log("Bitchat characteristic for %{public}@ does not support notifications, disconnecting", log: log, type: .error, peripheral.identifier.uuidString)
+                if let centralManager = centralManager {
+                    centralManager.cancelPeripheralConnection(peripheral)
+                }
+            }
         } else {
-            os_log("Bitchat characteristic not found in discovered characteristics", log: log, type: .info)
+            os_log("Bitchat characteristic not found for %{public}@, disconnecting", log: log, type: .info, peripheral.identifier.uuidString)
             // Disconnect if we can't find the characteristic
             if let centralManager = centralManager {
                 centralManager.cancelPeripheralConnection(peripheral)
@@ -512,21 +509,21 @@ extension BLEMeshService: CBPeripheralDelegate {
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
-            os_log("Error receiving characteristic notification: %{public}@", log: log, type: .error, error.localizedDescription)
+            os_log("Error receiving characteristic notification from %{public}@: %{public}@", log: log, type: .error, peripheral.identifier.uuidString, error.localizedDescription)
             return
         }
 
         guard let data = characteristic.value else {
-            os_log("Received empty characteristic notification", log: log, type: .info)
+            os_log("Received empty characteristic notification from %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
             return
         }
 
         let peerID = peripheral.identifier.uuidString
         os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
 
-        // Decode the announce packet to extract the nickname
+        // Try to decode as announce packet
         if let announcement = AnnouncementPacket.decode(from: data) {
-            os_log("Received announce from peer %{public}@: %{public}@", log: log, type: .info, peerID, announcement.nickname)
+            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
 
             // Update the peer with the received nickname
             peersQueue.async(flags: .barrier) {
@@ -534,15 +531,24 @@ extension BLEMeshService: CBPeripheralDelegate {
                     peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                     self.peers[peerID] = peer
                     self.onPeerDiscovered?(peer)
+                } else {
+                    // Create new peer entry if we don't have one
+                    let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
+                    self.peers[peerID] = peer
+                    self.onPeerDiscovered?(peer)
                 }
             }
 
             // Disconnect after receiving the announce packet
             if let centralManager = centralManager {
+                os_log("Disconnecting from %{public}@ after receiving announce", log: log, type: .info, peerID)
                 centralManager.cancelPeripheralConnection(peripheral)
             }
         } else {
-            os_log("Failed to decode announce packet from peer %{public}@ (received %{public}d bytes)", log: log, type: .info, peerID, data.count)
+            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes, expected announce packet)", log: log, type: .error, peerID, data.count)
+            // Log first few bytes for debugging
+            let hexString = data.prefix(16).map { String(format: "%02x", $0) }.joined(separator: " ")
+            os_log("First 16 bytes: %{public}@", log: log, type: .debug, hexString)
         }
     }
 }
@@ -559,7 +565,7 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
-        os_log("Received read request for characteristic: %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString)
+        os_log("Received read request for characteristic %{public}@ from central %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString, request.central.identifier.uuidString)
         if request.characteristic.uuid == Self.characteristicUUID {
             // Create announce packet with our identity information
             let announcement = AnnouncementPacket(
@@ -572,9 +578,9 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             if let announceData = announcement.encode() {
                 request.value = announceData
                 peripheral.respond(to: request, withResult: .success)
-                os_log("Responded to read request with announce packet: %{public}@ (length: %d)", log: log, type: .info, myNickname, announceData.count)
+                os_log("✅ Responded to read request with announce packet: nickname='%{public}@' (length: %{public}d)", log: log, type: .info, myNickname, announceData.count)
             } else {
-                os_log("Failed to encode announce packet for read request", log: log, type: .error)
+                os_log("❌ Failed to encode announce packet for read request", log: log, type: .error)
                 peripheral.respond(to: request, withResult: .unlikelyError)
             }
         } else {
@@ -584,7 +590,7 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        os_log("Central %{public}@ subscribed to characteristic", log: log, type: .info, central.identifier.uuidString)
+        os_log("Central %{public}@ subscribed to characteristic %{public}@", log: log, type: .info, central.identifier.uuidString, characteristic.uuid.uuidString)
         if characteristic.uuid == Self.characteristicUUID {
             // Send announce packet to the newly subscribed central
             let announcement = AnnouncementPacket(
@@ -595,10 +601,15 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             )
 
             if let announceData = announcement.encode() {
+                os_log("Encoded announce packet: nickname='%{public}@', length=%{public}d", log: log, type: .info, myNickname, announceData.count)
                 let success = peripheral.updateValue(announceData, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
-                os_log("Sent announce packet to subscriber: %{public}@ (success: %d, length: %d)", log: log, type: .info, myNickname, success, announceData.count)
+                if success {
+                    os_log("✅ Sent announce packet to subscriber %{public}@ successfully", log: log, type: .info, central.identifier.uuidString)
+                } else {
+                    os_log("❌ Failed to send announce packet to subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
+                }
             } else {
-                os_log("Failed to encode announce packet for subscriber", log: log, type: .error)
+                os_log("❌ Failed to encode announce packet for subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
             }
         }
     }
