@@ -362,14 +362,7 @@ final class BLEMeshService: NSObject {
         }
 
         // Safely get connection state - restored peripherals might not have valid state
-        let isConnected: Bool
-        do {
-            isConnected = peripheral.state == .connected
-        } catch {
-            // If we can't access the state safely, assume not connected
-            os_log("Could not access peripheral state safely, assuming not connected", log: log, type: .info)
-            isConnected = false
-        }
+        let isConnected = peripheral.state == .connected
 
         let peer = PeerSnapshot(id: id, name: name, lastSeen: Date(), isConnected: isConnected)
         peersQueue.async(flags: .barrier) {
@@ -429,7 +422,7 @@ extension BLEMeshService: CBCentralManagerDelegate {
         let peripheralID = peripheral.identifier.uuidString
 
         // Log advertisement data for debugging (following BitChat discovery process)
-        os_log("Discovered peripheral %{public}@ with %{public}d advertisement keys: %{public}@", log: log, type: .debug, peripheralID.prefix(8), advertisementData.count, Array(advertisementData.keys))
+        os_log("Discovered peripheral %{public}@ with %{public}d advertisement keys: %{public}@", log: log, type: .debug, String(peripheralID.prefix(8)), advertisementData.count, Array(advertisementData.keys))
 
         // Extract advertised name from advertisement data (following BitChat whitepaper)
         // This is the nickname that devices advertise in their BLE local name
