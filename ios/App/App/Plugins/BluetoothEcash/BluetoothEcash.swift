@@ -101,7 +101,10 @@ struct AnnouncementPacket {
             let length = Int(data[offset])
             offset += 1
 
-            guard offset + length <= data.count else { return nil }
+            guard offset + length <= data.count else {
+                // Incomplete TLV, stop parsing
+                break
+            }
             let value = data[offset..<offset + length]
             offset += length
 
@@ -131,11 +134,14 @@ struct AnnouncementPacket {
             }
         }
 
-        guard let nickname = nickname, let noisePublicKey = noisePublicKey, let signingPublicKey = signingPublicKey else { return nil }
+        // For basic compatibility, we only require a nickname
+        // The cryptographic keys are optional for simple nickname exchange
+        guard let nickname = nickname, !nickname.isEmpty else { return nil }
+
         return AnnouncementPacket(
             nickname: nickname,
-            noisePublicKey: noisePublicKey,
-            signingPublicKey: signingPublicKey,
+            noisePublicKey: noisePublicKey ?? Data(),
+            signingPublicKey: signingPublicKey ?? Data(),
             directNeighbors: directNeighbors
         )
     }
@@ -507,14 +513,15 @@ extension BLEMeshService: CBPeripheralDelegate {
         if let characteristic = targetCharacteristic {
             // Check if characteristic supports notifications (like BitChat reference)
             if characteristic.properties.contains(.notify) {
-                os_log("Found bitchat characteristic for %{public}@, subscribing to notifications", log: log, type: .info, peripheral.identifier.uuidString)
                 // Subscribe to notifications to receive announce packets
                 peripheral.setNotifyValue(true, for: characteristic)
+
+                // Also try reading the characteristic value immediately (some implementations send announce data via read)
+                peripheral.readValue(for: characteristic)
             } else {
-                os_log("Bitchat characteristic for %{public}@ does not support notifications, disconnecting", log: log, type: .error, peripheral.identifier.uuidString)
-                if let centralManager = centralManager {
-                    centralManager.cancelPeripheralConnection(peripheral)
-                }
+                os_log("Bitchat characteristic for %{public}@ does not support notifications, trying read-only", log: log, type: .info, peripheral.identifier.uuidString)
+                // Try reading even without notifications
+                peripheral.readValue(for: characteristic)
             }
         } else {
             os_log("Bitchat characteristic not found for %{public}@, disconnecting", log: log, type: .info, peripheral.identifier.uuidString)
@@ -541,7 +548,7 @@ extension BLEMeshService: CBPeripheralDelegate {
 
         // Try to decode as announce packet (following BitChat whitepaper)
         if let announcement = AnnouncementPacket.decode(from: data) {
-            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@', noiseKey=%{public}@, signingKey=%{public}@", log: log, type: .info, peerID, announcement.nickname, String(announcement.noisePublicKey.base64EncodedString().prefix(8)), String(announcement.signingPublicKey.base64EncodedString().prefix(8)))
+            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
 
             // Update the peer with the received nickname from announce packet
             peersQueue.async(flags: .barrier) { [self] in
@@ -562,15 +569,70 @@ extension BLEMeshService: CBPeripheralDelegate {
 
             // Disconnect after receiving the announce packet (per BitChat protocol)
             if let centralManager = centralManager {
-                os_log("Disconnecting from %{public}@ after receiving announce packet", log: log, type: .info, peerID)
                 centralManager.cancelPeripheralConnection(peripheral)
             }
         } else {
-            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes, expected TLV-encoded announce packet)", log: log, type: .error, peerID, data.count)
+            // Try to extract nickname from raw data as fallback
+            if let fallbackNickname = tryExtractNickname(from: data) {
+                os_log("📝 Extracted fallback nickname '%{public}@' from %{public}@ raw data", log: log, type: .info, fallbackNickname, peerID)
+
+                peersQueue.async(flags: .barrier) { [self] in
+                    if var peer = self.peers[peerID] {
+                        let oldName = peer.name
+                        peer = PeerSnapshot(id: peerID, name: fallbackNickname, lastSeen: Date(), isConnected: peer.isConnected)
+                        self.peers[peerID] = peer
+                        os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@' (fallback)", log: self.log, type: .info, peerID, oldName, fallbackNickname)
+                        self.onPeerDiscovered?(peer)
+                    } else {
+                        let peer = PeerSnapshot(id: peerID, name: fallbackNickname, lastSeen: Date(), isConnected: true)
+                        self.peers[peerID] = peer
+                        os_log("Created peer %{public}@ with fallback nickname '%{public}@'", log: self.log, type: .info, peerID, fallbackNickname)
+                        self.onPeerDiscovered?(peer)
+                    }
+                }
+
+                // Disconnect after processing
+                if let centralManager = centralManager {
+                    centralManager.cancelPeripheralConnection(peripheral)
+                }
+                return
+            }
+
+            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes)", log: log, type: .error, peerID, data.count)
             // Log first few bytes for debugging
-            let hexString = data.prefix(16).map { String(format: "%02x", $0) }.joined(separator: " ")
-            os_log("First 16 bytes: %{public}@", log: log, type: .debug, hexString)
+            let hexString = data.prefix(min(32, data.count)).map { String(format: "%02x", $0) }.joined(separator: " ")
+            os_log("Data: %{public}@", log: log, type: .debug, hexString)
+
+            // If it's not a valid announce packet, still disconnect after a timeout
+            // to avoid hanging connections
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                guard let self = self, let centralManager = self.centralManager else { return }
+                // Only disconnect if we're still connected to this peer
+                if self.connectedPeripherals[peerID] != nil {
+                    os_log("Disconnecting from %{public}@ due to invalid announce data", log: self.log, type: .info, peerID)
+                    centralManager.cancelPeripheralConnection(peripheral)
+                }
+            }
         }
+    }
+
+    // Fallback method to try extracting a nickname from raw data
+    private func tryExtractNickname(from data: Data) -> String? {
+        // Try treating the entire data as a UTF-8 string
+        if let nickname = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !nickname.isEmpty {
+            return nickname
+        }
+
+        // Try extracting from the middle portion (skip headers/footers)
+        if data.count > 10 {
+            let middle = data.dropFirst(5).dropLast(5)
+            if let nickname = String(data: middle, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !nickname.isEmpty && nickname.count < 50 {
+                return nickname
+            }
+        }
+
+        return nil
+    }
     }
 }
 
