@@ -39,6 +39,53 @@ enum MessageType: UInt8 {
     }
 }
 
+/// Core packet structure for BitChat messages (simplified)
+struct BitchatPacket {
+    let version: UInt8 = 1
+    let type: UInt8
+    let senderID: Data
+    let recipientID: Data?
+    let timestamp: UInt64
+    let payload: Data
+    let signature: Data?
+
+    // Simple binary decoding (without full crypto verification)
+    static func decode(from data: Data) -> BitchatPacket? {
+        guard data.count >= 14 else { return nil } // Minimum header size
+
+        let version = data[0]
+        guard version == 1 else { return nil }
+
+        let type = data[1]
+        let ttl = data[2] // Not used in decode
+        let timestamp = data.subdata(in: 3..<11).withUnsafeBytes { $0.load(as: UInt64.self).bigEndian }
+        let flags = data[11]
+        let payloadLength = data.subdata(in: 12..<14).withUnsafeBytes { $0.load(as: UInt16.self).bigEndian }
+
+        var offset = 14
+        let senderID = data.subdata(in: offset..<offset+8)
+        offset += 8
+
+        var recipientID: Data? = nil
+        if (flags & 0x01) != 0 { // hasRecipient
+            recipientID = data.subdata(in: offset..<offset+8)
+            offset += 8
+        }
+
+        guard offset + Int(payloadLength) <= data.count else { return nil }
+        let payload = data.subdata(in: offset..<offset+Int(payloadLength))
+
+        return BitchatPacket(
+            type: type,
+            senderID: senderID,
+            recipientID: recipientID,
+            timestamp: timestamp,
+            payload: payload,
+            signature: nil // Simplified - no signature validation
+        )
+    }
+}
+
 struct AnnouncementPacket {
     let nickname: String
     let noisePublicKey: Data            // Noise static public key (Curve25519.KeyAgreement)
@@ -546,35 +593,79 @@ extension BLEMeshService: CBPeripheralDelegate {
         let peerID = peripheral.identifier.uuidString
         os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
 
-        // Try to decode as announce packet (following BitChat whitepaper)
-        if let announcement = AnnouncementPacket.decode(from: data) {
-            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
+        // First try to decode as full BitchatPacket (following BitChat protocol)
+        if let packet = BitchatPacket.decode(from: data) {
+            os_log("📦 Received BitchatPacket type %{public}@ from %{public}@", log: log, type: .info, String(format: "0x%02x", packet.type), peerID)
 
-            // Update the peer with the received nickname from announce packet
-            peersQueue.async(flags: .barrier) { [self] in
-                if var peer = self.peers[peerID] {
-                    let oldName = peer.name
-                    peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
-                    self.peers[peerID] = peer
-                    os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@'", log: self.log, type: .info, peerID, oldName, announcement.nickname)
-                    self.onPeerDiscovered?(peer)
+            // Handle different packet types
+            if packet.type == MessageType.announce.rawValue {
+                // This is an announce packet - decode the payload
+                if let announcement = AnnouncementPacket.decode(from: packet.payload) {
+                    os_log("✅ Decoded announce from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
+
+                    // Update the peer with the received nickname
+                    peersQueue.async(flags: .barrier) { [self] in
+                        if var peer = self.peers[peerID] {
+                            let oldName = peer.name
+                            peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
+                            self.peers[peerID] = peer
+                            os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@'", log: self.log, type: .info, peerID, oldName, announcement.nickname)
+                            self.onPeerDiscovered?(peer)
+                        } else {
+                            let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
+                            self.peers[peerID] = peer
+                            os_log("Created new peer %{public}@ with announce nickname '%{public}@'", log: self.log, type: .info, peerID, announcement.nickname)
+                            self.onPeerDiscovered?(peer)
+                        }
+                    }
+
+                    // Disconnect after receiving announce
+                    if let centralManager = centralManager {
+                        centralManager.cancelPeripheralConnection(peripheral)
+                    }
                 } else {
-                    // Create new peer entry if we don't have one
-                    let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
-                    self.peers[peerID] = peer
-                    os_log("Created new peer %{public}@ with announce nickname '%{public}@'", log: self.log, type: .info, peerID, announcement.nickname)
-                    self.onPeerDiscovered?(peer)
+                    os_log("❌ Failed to decode announce payload from %{public}@", log: log, type: .error, peerID)
+                }
+            } else if packet.type == MessageType.requestSync.rawValue {
+                // This is a sync request - we could respond with our announce, but for now just log
+                os_log("📡 Received sync request from %{public}@ - ignoring (no sync support)", log: log, type: .info, peerID)
+
+                // Disconnect after receiving sync request
+                if let centralManager = centralManager {
+                    centralManager.cancelPeripheralConnection(peripheral)
+                }
+            } else {
+                // Other packet types - log and disconnect
+                os_log("📭 Received unhandled packet type %{public}@ from %{public}@", log: log, type: .info, String(format: "0x%02x", packet.type), peerID)
+                if let centralManager = centralManager {
+                    centralManager.cancelPeripheralConnection(peripheral)
                 }
             }
-
-            // Disconnect after receiving the announce packet (per BitChat protocol)
-            if let centralManager = centralManager {
-                centralManager.cancelPeripheralConnection(peripheral)
-            }
         } else {
-            // Try to extract nickname from raw data as fallback
-            if let fallbackNickname = tryExtractNickname(from: data) {
-                os_log("📝 Extracted fallback nickname '%{public}@' from %{public}@ raw data", log: log, type: .info, fallbackNickname, peerID)
+            // Not a BitchatPacket - try fallback decoding
+            if let announcement = AnnouncementPacket.decode(from: data) {
+                os_log("📋 Received raw announce data from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
+
+                peersQueue.async(flags: .barrier) { [self] in
+                    if var peer = self.peers[peerID] {
+                        let oldName = peer.name
+                        peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
+                        self.peers[peerID] = peer
+                        os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@' (raw)", log: self.log, type: .info, peerID, oldName, announcement.nickname)
+                        self.onPeerDiscovered?(peer)
+                    } else {
+                        let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
+                        self.peers[peerID] = peer
+                        os_log("Created peer %{public}@ with raw announce nickname '%{public}@'", log: self.log, type: .info, peerID, announcement.nickname)
+                        self.onPeerDiscovered?(peer)
+                    }
+                }
+
+                if let centralManager = centralManager {
+                    centralManager.cancelPeripheralConnection(peripheral)
+                }
+            } else if let fallbackNickname = tryExtractNickname(from: data) {
+                os_log("📝 Extracted fallback nickname '%{public}@' from %{public}@ data", log: log, type: .info, fallbackNickname, peerID)
 
                 peersQueue.async(flags: .barrier) { [self] in
                     if var peer = self.peers[peerID] {
@@ -591,26 +682,21 @@ extension BLEMeshService: CBPeripheralDelegate {
                     }
                 }
 
-                // Disconnect after processing
                 if let centralManager = centralManager {
                     centralManager.cancelPeripheralConnection(peripheral)
                 }
-                return
-            }
+            } else {
+                os_log("❌ Received unrecognized data from %{public}@ (%{public}d bytes)", log: log, type: .error, peerID, data.count)
+                let hexString = data.prefix(min(32, data.count)).map { String(format: "%02x", $0) }.joined(separator: " ")
+                os_log("Data: %{public}@", log: log, type: .debug, hexString)
 
-            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes)", log: log, type: .error, peerID, data.count)
-            // Log first few bytes for debugging
-            let hexString = data.prefix(min(32, data.count)).map { String(format: "%02x", $0) }.joined(separator: " ")
-            os_log("Data: %{public}@", log: log, type: .debug, hexString)
-
-            // If it's not a valid announce packet, still disconnect after a timeout
-            // to avoid hanging connections
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-                guard let self = self, let centralManager = self.centralManager else { return }
-                // Only disconnect if we're still connected to this peer
-                if self.connectedPeripherals[peerID] != nil {
-                    os_log("Disconnecting from %{public}@ due to invalid announce data", log: self.log, type: .info, peerID)
-                    centralManager.cancelPeripheralConnection(peripheral)
+                // Disconnect after timeout for unrecognized data
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    guard let self = self, let centralManager = self.centralManager else { return }
+                    if self.connectedPeripherals[peerID] != nil {
+                        os_log("Disconnecting %{public}@ due to unrecognized data", log: self.log, type: .info, peerID)
+                        centralManager.cancelPeripheralConnection(peripheral)
+                    }
                 }
             }
         }
@@ -649,20 +735,20 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
         os_log("Received read request for characteristic %{public}@ from central %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString, request.central.identifier.uuidString)
         if request.characteristic.uuid == Self.characteristicUUID {
-            // Create announce packet with our identity information
+            // Send announce packet via read (simplified - no crypto for basic functionality)
             let announcement = AnnouncementPacket(
                 nickname: myNickname,
-                noisePublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
-                signingPublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                noisePublicKey: Data(count: 32), // Placeholder
+                signingPublicKey: Data(count: 32), // Placeholder
                 directNeighbors: nil
             )
 
             if let announceData = announcement.encode() {
                 request.value = announceData
                 peripheral.respond(to: request, withResult: .success)
-                os_log("✅ Responded to read request with announce packet: nickname='%{public}@' (length: %{public}d)", log: log, type: .info, myNickname, announceData.count)
+                os_log("✅ Responded to read request with announce data: nickname='%{public}@' (length: %{public}d)", log: log, type: .info, myNickname, announceData.count)
             } else {
-                os_log("❌ Failed to encode announce packet for read request", log: log, type: .error)
+                os_log("❌ Failed to encode announce data for read request", log: log, type: .error)
                 peripheral.respond(to: request, withResult: .unlikelyError)
             }
         } else {
@@ -674,24 +760,36 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         os_log("Central %{public}@ subscribed to characteristic %{public}@", log: log, type: .info, central.identifier.uuidString, characteristic.uuid.uuidString)
         if characteristic.uuid == Self.characteristicUUID {
-            // Send announce packet to the newly subscribed central
+            // Send announce packet in proper BitchatPacket format (simplified, no crypto)
             let announcement = AnnouncementPacket(
                 nickname: myNickname,
-                noisePublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
-                signingPublicKey: Data(count: 32), // Placeholder - would need actual key in full implementation
+                noisePublicKey: Data(count: 32), // Placeholder
+                signingPublicKey: Data(count: 32), // Placeholder
                 directNeighbors: nil
             )
 
-            if let announceData = announcement.encode() {
-                os_log("Encoded announce packet: nickname='%{public}@', length=%{public}d", log: log, type: .info, myNickname, announceData.count)
-                let success = peripheral.updateValue(announceData, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
+            if let announcePayload = announcement.encode() {
+                // Create simplified BitchatPacket (no signature)
+                let packet = BitchatPacket(
+                    type: MessageType.announce.rawValue,
+                    senderID: Data(count: 8), // Placeholder sender ID
+                    recipientID: nil,
+                    timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
+                    payload: announcePayload,
+                    signature: nil
+                )
+
+                // For simplified implementation, just send the payload (not full packet)
+                // Full implementation would encode the packet and send it
+                os_log("Sending announce payload to subscriber: nickname='%{public}@', length=%{public}d", log: log, type: .info, myNickname, announcePayload.count)
+                let success = peripheral.updateValue(announcePayload, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
                 if success {
-                    os_log("✅ Sent announce packet to subscriber %{public}@ successfully", log: log, type: .info, central.identifier.uuidString)
+                    os_log("✅ Sent announce payload to subscriber %{public}@ successfully", log: log, type: .info, central.identifier.uuidString)
                 } else {
-                    os_log("❌ Failed to send announce packet to subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
+                    os_log("❌ Failed to send announce payload to subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
                 }
             } else {
-                os_log("❌ Failed to encode announce packet for subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
+                os_log("❌ Failed to encode announce payload for subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
             }
         }
     }
