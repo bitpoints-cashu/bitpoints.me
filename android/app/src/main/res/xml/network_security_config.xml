@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">mint.minibits.cash</domain>
+        <domain includeSubdomains="true">legend.lnbits.com</domain>
+        <domain includeSubdomains="true">8333.space</domain>
+        <!-- Add other mint domains as needed -->
+    </domain-config>
+</network-security-config>
