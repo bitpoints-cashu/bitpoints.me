@@ -311,16 +311,17 @@ final class BLEMeshService: NSObject {
     }
 
     private func connectToPeer(_ peripheral: CBPeripheral) {
+        let peripheralID = peripheral.identifier.uuidString
+
         guard let centralManager = centralManager,
               centralManager.state == .poweredOn,
-              connectedPeripherals[peripheral.identifier.uuidString] == nil,
+              connectedPeripherals[peripheralID] == nil,
               !pendingConnections.contains(peripheral) else {
             return
         }
 
-        os_log("Connecting to peer: %{public}@", log: log, type: .info, peripheral.identifier.uuidString)
         // Keep strong references to prevent premature deallocation
-        connectedPeripherals[peripheral.identifier.uuidString] = peripheral
+        connectedPeripherals[peripheralID] = peripheral
         pendingConnections.insert(peripheral)
         centralManager.connect(peripheral, options: nil)
     }
@@ -421,32 +422,25 @@ extension BLEMeshService: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let peripheralID = peripheral.identifier.uuidString
 
-        // Log advertisement data for debugging (following BitChat discovery process)
-        os_log("Discovered peripheral %{public}@ with %{public}d advertisement keys: %{public}@", log: log, type: .debug, String(peripheralID.prefix(8)), advertisementData.count, Array(advertisementData.keys))
-
         // Extract advertised name from advertisement data (following BitChat whitepaper)
-        // This is the nickname that devices advertise in their BLE local name
         let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
         let serviceUUIDs = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]
         let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
 
-        os_log("Peer %{public}@: advertisedName=%{public}@, hasService=%{public}@, connectable=%{public}@", log: log, type: .debug, String(peripheralID.prefix(8)), advertisedName ?? "nil", serviceUUIDs?.contains(Self.serviceUUID) ?? false ? "yes" : "no", isConnectable)
-
         // Only process peers advertising our service
-        guard serviceUUIDs?.contains(Self.serviceUUID) ?? false else {
-            os_log("Ignoring peer %{public}@ - not advertising our service", log: log, type: .debug, String(peripheralID.prefix(8)))
+        guard let uuids = serviceUUIDs, uuids.contains(Self.serviceUUID) else {
+            // Silently ignore peers not advertising our service
             return
         }
 
         if let advertisedName = advertisedName, !advertisedName.isEmpty {
             // We have the real nickname from advertisement data - use it directly
-            os_log("✅ Discovered peer %{public}@ with advertised nickname: %{public}@", log: log, type: .info, String(peripheralID.prefix(8)), advertisedName)
             updatePeer(peripheral: peripheral, advertisedName: advertisedName, rssi: RSSI, isConnectable: isConnectable)
         } else {
             // No advertised name available - connect to get announce packet with nickname
-            os_log("📡 Discovered peer %{public}@ without advertised name, connecting to get announce packet", log: log, type: .info, String(peripheralID.prefix(8)))
             updatePeer(peripheral: peripheral, advertisedName: "connecting...", rssi: RSSI, isConnectable: isConnectable)
-            if isConnectable && connectedPeripherals[peripheralID] == nil {
+            // Only connect if we don't already have this peer and it's connectable
+            if isConnectable && connectedPeripherals[peripheralID] == nil && !pendingConnections.contains(peripheral) {
                 connectToPeer(peripheral)
             }
         }
