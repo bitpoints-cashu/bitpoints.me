@@ -834,11 +834,6 @@ export default defineComponent({
               peer.peerID,
               `[UNFAVORITED]:${npub}`
             );
-            console.log(
-              `📤 Sent unfavorite notification to ${
-                peer.nickname
-              } with npub: ${npub.substring(0, 16)}...`
-            );
           }
         } catch (error) {
           console.error("Failed to send unfavorite notification:", error);
@@ -867,11 +862,6 @@ export default defineComponent({
             await bluetoothStore.sendTextMessage(
               peer.peerID,
               `[FAVORITE_REQUEST]:${npub}`
-            );
-            console.log(
-              `📤 Sent favorite request to ${
-                peer.nickname
-              } with npub: ${npub.substring(0, 16)}...`
             );
           }
         } catch (error) {
@@ -1094,7 +1084,6 @@ export default defineComponent({
     };
 
     const enableBluetoothAndSend = async () => {
-      console.log("🔥 ENABLE BLUETOOTH AND SEND clicked");
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;
@@ -1112,7 +1101,6 @@ export default defineComponent({
 
         // If we have nearby peers, show them or prepare for sending
         if (connectedPeers.value.length > 0) {
-          console.log("🔥 Found nearby peers:", connectedPeers.value.length);
           // Auto-select the first peer for convenience
           if (connectedPeers.value[0]) {
             selectedPeerID.value = connectedPeers.value[0].peerID;
@@ -1128,7 +1116,6 @@ export default defineComponent({
     };
 
     const openSendToNearbyDialog = () => {
-      console.log("🔥 SEND TO NEARBY clicked");
       if (connectedPeers.value.length === 0) {
         notifyInfo("No nearby contacts found");
         return;
