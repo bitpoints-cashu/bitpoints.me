@@ -342,12 +342,23 @@ final class BLEMeshService: NSObject {
     private func updatePeer(peripheral: CBPeripheral, advertisedName: String? = nil, rssi: NSNumber?, isConnectable: Bool = true) {
         let id = peripheral.identifier.uuidString
 
-        // Use advertised name if available, otherwise keep existing name or use fallback
-        var name = advertisedName ?? peers[id]?.name ?? (id.prefix(6) + "…")
-
-        // If we only have a fallback name and the peer is connectable, try to connect to get real nickname
-        if name.hasSuffix("…") && isConnectable && connectedPeripherals[id] == nil {
-            connectToPeer(peripheral)
+        // Determine the best name to use following BitChat protocol:
+        // 1. If we have a real nickname from announce packet (stored in peers dict), use that
+        // 2. If we have an advertised name from BLE discovery, use that
+        // 3. Otherwise use a placeholder and connect to get the real name
+        var name: String
+        if let existingPeer = peers[id], !existingPeer.name.hasSuffix("…") && existingPeer.name != "connecting..." {
+            // We already have a real nickname from a previous announce packet
+            name = existingPeer.name
+        } else if let advertisedName = advertisedName, !advertisedName.isEmpty && advertisedName != "connecting..." {
+            // We have a nickname from BLE advertisement
+            name = advertisedName
+        } else {
+            // No real name yet - use placeholder and connect to get announce packet
+            name = "connecting..."
+            if isConnectable && connectedPeripherals[id] == nil {
+                connectToPeer(peripheral)
+            }
         }
 
         // Safely get connection state - restored peripherals might not have valid state
@@ -384,11 +395,12 @@ final class BLEMeshService: NSObject {
             serviceAdded = true
             // Don't start advertising here - wait for didAdd callback
         } else if !peripheralManager.isAdvertising {
-            // Service already added, start advertising
-            os_log("Starting advertising with nickname: %{public}@", log: log, type: .info, myNickname)
+            // Service already added, start advertising with our nickname (following BitChat whitepaper)
+            os_log("Starting advertising with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
             peripheralManager.startAdvertising([
                 CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
-                CBAdvertisementDataLocalNameKey: myNickname
+                CBAdvertisementDataLocalNameKey: myNickname,
+                CBAdvertisementDataIsConnectable: true
             ])
         }
     }
@@ -416,16 +428,35 @@ extension BLEMeshService: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let peripheralID = peripheral.identifier.uuidString
 
-        // Extract advertised name from advertisement data (following BitChat reference)
-        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? (peripheralID.prefix(6) + "…")
+        // Log advertisement data for debugging (following BitChat discovery process)
+        os_log("Discovered peripheral %{public}@ with %{public}d advertisement keys: %{public}@", log: log, type: .debug, peripheralID.prefix(8), advertisementData.count, Array(advertisementData.keys))
 
-        // Check if peripheral is connectable
+        // Extract advertised name from advertisement data (following BitChat whitepaper)
+        // This is the nickname that devices advertise in their BLE local name
+        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+        let serviceUUIDs = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]
         let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
 
-        // Only update peer info - don't connect immediately like BitChat does
-        // BitChat uses a sophisticated connection candidate system, but for nickname exchange
-        // we can be simpler and connect when we need the real nickname
-        updatePeer(peripheral: peripheral, advertisedName: advertisedName, rssi: RSSI, isConnectable: isConnectable)
+        os_log("Peer %{public}@: advertisedName=%{public}@, hasService=%{public}@, connectable=%{public}@", log: log, type: .debug, peripheralID.prefix(8), advertisedName ?? "nil", serviceUUIDs?.contains(Self.serviceUUID) ?? false ? "yes" : "no", isConnectable)
+
+        // Only process peers advertising our service
+        guard serviceUUIDs?.contains(Self.serviceUUID) ?? false else {
+            os_log("Ignoring peer %{public}@ - not advertising our service", log: log, type: .debug, peripheralID.prefix(8))
+            return
+        }
+
+        if let advertisedName = advertisedName, !advertisedName.isEmpty {
+            // We have the real nickname from advertisement data - use it directly
+            os_log("✅ Discovered peer %{public}@ with advertised nickname: %{public}@", log: log, type: .info, peripheralID.prefix(8), advertisedName)
+            updatePeer(peripheral: peripheral, advertisedName: advertisedName, rssi: RSSI, isConnectable: isConnectable)
+        } else {
+            // No advertised name available - connect to get announce packet with nickname
+            os_log("📡 Discovered peer %{public}@ without advertised name, connecting to get announce packet", log: log, type: .info, peripheralID.prefix(8))
+            updatePeer(peripheral: peripheral, advertisedName: "connecting...", rssi: RSSI, isConnectable: isConnectable)
+            if isConnectable && connectedPeripherals[peripheralID] == nil {
+                connectToPeer(peripheral)
+            }
+        }
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -521,31 +552,34 @@ extension BLEMeshService: CBPeripheralDelegate {
         let peerID = peripheral.identifier.uuidString
         os_log("Received %{public}d bytes from peer %{public}@", log: log, type: .info, data.count, peerID)
 
-        // Try to decode as announce packet
+        // Try to decode as announce packet (following BitChat whitepaper)
         if let announcement = AnnouncementPacket.decode(from: data) {
-            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
+            os_log("✅ Successfully decoded announce packet from %{public}@: nickname='%{public}@', noiseKey=%{public}@, signingKey=%{public}@", log: log, type: .info, peerID, announcement.nickname, announcement.noisePublicKey.base64EncodedString().prefix(8), announcement.signingPublicKey.base64EncodedString().prefix(8))
 
-            // Update the peer with the received nickname
+            // Update the peer with the received nickname from announce packet
             peersQueue.async(flags: .barrier) {
                 if var peer = self.peers[peerID] {
+                    let oldName = peer.name
                     peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                     self.peers[peerID] = peer
+                    os_log("Updated peer %{public}@ name from '%{public}@' to '%{public}@'", log: log, type: .info, peerID, oldName, announcement.nickname)
                     self.onPeerDiscovered?(peer)
                 } else {
                     // Create new peer entry if we don't have one
                     let peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: true)
                     self.peers[peerID] = peer
+                    os_log("Created new peer %{public}@ with announce nickname '%{public}@'", log: log, type: .info, peerID, announcement.nickname)
                     self.onPeerDiscovered?(peer)
                 }
             }
 
-            // Disconnect after receiving the announce packet
+            // Disconnect after receiving the announce packet (per BitChat protocol)
             if let centralManager = centralManager {
-                os_log("Disconnecting from %{public}@ after receiving announce", log: log, type: .info, peerID)
+                os_log("Disconnecting from %{public}@ after receiving announce packet", log: log, type: .info, peerID)
                 centralManager.cancelPeripheralConnection(peripheral)
             }
         } else {
-            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes, expected announce packet)", log: log, type: .error, peerID, data.count)
+            os_log("❌ Failed to decode announce packet from %{public}@ (received %{public}d bytes, expected TLV-encoded announce packet)", log: log, type: .error, peerID, data.count)
             // Log first few bytes for debugging
             let hexString = data.prefix(16).map { String(format: "%02x", $0) }.joined(separator: " ")
             os_log("First 16 bytes: %{public}@", log: log, type: .debug, hexString)
@@ -625,12 +659,13 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             return
         }
         os_log("Successfully added GATT service: %{public}@", log: log, type: .info, service.uuid.uuidString)
-        // Start advertising now that service is confirmed added
+        // Start advertising now that service is confirmed added (following BitChat whitepaper)
         if !peripheral.isAdvertising {
-            os_log("Starting advertising after service added with nickname: %{public}@", log: log, type: .info, myNickname)
+            os_log("Starting advertising after service added with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
             peripheral.startAdvertising([
                 CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
-                CBAdvertisementDataLocalNameKey: myNickname
+                CBAdvertisementDataLocalNameKey: myNickname,
+                CBAdvertisementDataIsConnectable: true
             ])
         }
     }
