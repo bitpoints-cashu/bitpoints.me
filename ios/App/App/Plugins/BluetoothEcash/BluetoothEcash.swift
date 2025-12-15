@@ -265,7 +265,7 @@ struct BinaryProtocol {
 
     // Decode binary data to BitchatPacket
     static func decode(_ data: Data) -> BitchatPacket? {
-        guard data.count >= v1HeaderSize else { return nil }
+        guard data is Data, data.count >= v1HeaderSize else { return nil }
 
         let version = data[Offsets.version]
         guard let headerSize = headerSize(for: version) else { return nil }
@@ -634,7 +634,7 @@ final class BLEMeshService: NSObject {
         var shouldConnect = false
 
         // Check if we already have a real nickname
-        if let existingPeer = peers[id], existingPeer.name != "connecting..." && !existingPeer.name.hasSuffix("…") {
+        if let existingPeer = peers[id] as? PeerSnapshot, existingPeer.name != "connecting..." && !existingPeer.name.hasSuffix("…") {
             name = existingPeer.name
         } else if let advName = advertisedName, !advName.isEmpty && advName != "connecting..." {
             name = advName
@@ -709,10 +709,19 @@ extension BLEMeshService: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let peripheralID = peripheral.identifier.uuidString
 
-        // Extract advertised name from advertisement data (following BitChat whitepaper)
-        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
-        let serviceUUIDs = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]
-        let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
+        // Safely extract advertised name from advertisement data (following BitChat whitepaper)
+        let advertisedName: String?
+        let serviceUUIDs: [CBUUID]?
+        let isConnectable: Bool
+
+        if let advData = advertisementData as? [String: Any] {
+            advertisedName = advData[CBAdvertisementDataLocalNameKey] as? String
+            serviceUUIDs = advData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]
+            isConnectable = (advData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? true
+        } else {
+            os_log("❌ Invalid advertisementData type: %{public}@", log: log, type: .error, type(of: advertisementData))
+            return
+        }
 
         // Only process peers advertising our service
         guard let uuids = serviceUUIDs, uuids.contains(Self.serviceUUID) else {
@@ -839,7 +848,7 @@ extension BLEMeshService: CBPeripheralDelegate {
 
                     // Update the peer with the received nickname
                     peersQueue.async(flags: .barrier) { [self] in
-                        if var peer = self.peers[peerID] {
+                        if var peer = self.peers[peerID] as? PeerSnapshot {
                             let oldName = peer.name
                             peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                             self.peers[peerID] = peer
@@ -881,7 +890,7 @@ extension BLEMeshService: CBPeripheralDelegate {
                 os_log("📋 Received raw announce data from %{public}@: nickname='%{public}@'", log: log, type: .info, peerID, announcement.nickname)
 
                 peersQueue.async(flags: .barrier) { [self] in
-                    if var peer = self.peers[peerID] {
+                    if var peer = self.peers[peerID] as? PeerSnapshot {
                         let oldName = peer.name
                         peer = PeerSnapshot(id: peerID, name: announcement.nickname, lastSeen: Date(), isConnected: peer.isConnected)
                         self.peers[peerID] = peer
@@ -902,7 +911,7 @@ extension BLEMeshService: CBPeripheralDelegate {
                 os_log("📝 Extracted fallback nickname '%{public}@' from %{public}@ data", log: log, type: .info, fallbackNickname, peerID)
 
                 peersQueue.async(flags: .barrier) { [self] in
-                    if var peer = self.peers[peerID] {
+                    if var peer = self.peers[peerID] as? PeerSnapshot {
                         let oldName = peer.name
                         peer = PeerSnapshot(id: peerID, name: fallbackNickname, lastSeen: Date(), isConnected: peer.isConnected)
                         self.peers[peerID] = peer
