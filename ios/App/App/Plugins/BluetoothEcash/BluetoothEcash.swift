@@ -1,9 +1,17 @@
 import Foundation
 import CoreBluetooth
 import os.log
+import CryptoKit
 #if os(iOS)
 import UIKit
 #endif
+
+// SHA256 extension for Data
+extension Data {
+    func sha256() -> Data {
+        Data(SHA256.hash(data: self))
+    }
+}
 
 // MARK: - BitChat Reference Implementation (Cloned from bitchat repository)
 
@@ -37,52 +45,6 @@ enum MessageType: UInt8 {
     }
 }
 
-/// Core packet structure for BitChat messages (simplified)
-struct BitchatPacket {
-    let version: UInt8 = 1
-    let type: UInt8
-    let senderID: Data
-    let recipientID: Data?
-    let timestamp: UInt64
-    let payload: Data
-    let signature: Data?
-
-    // Simple binary decoding (without full crypto verification)
-    static func decode(from data: Data) -> BitchatPacket? {
-        guard data.count >= 14 else { return nil } // Minimum header size
-
-        let version = data[0]
-        guard version == 1 else { return nil }
-
-        let type = data[1]
-        let ttl = data[2] // Not used in decode
-        let timestamp = data.subdata(in: 3..<11).withUnsafeBytes { $0.load(as: UInt64.self).bigEndian }
-        let flags = data[11]
-        let payloadLength = data.subdata(in: 12..<14).withUnsafeBytes { $0.load(as: UInt16.self).bigEndian }
-
-        var offset = 14
-        let senderID = data.subdata(in: offset..<offset+8)
-        offset += 8
-
-        var recipientID: Data? = nil
-        if (flags & 0x01) != 0 { // hasRecipient
-            recipientID = data.subdata(in: offset..<offset+8)
-            offset += 8
-        }
-
-        guard offset + Int(payloadLength) <= data.count else { return nil }
-        let payload = data.subdata(in: offset..<offset+Int(payloadLength))
-
-        return BitchatPacket(
-            type: type,
-            senderID: senderID,
-            recipientID: recipientID,
-            timestamp: timestamp,
-            payload: payload,
-            signature: nil // Simplified - no signature validation
-        )
-    }
-}
 
 struct AnnouncementPacket {
     let nickname: String
@@ -191,6 +153,7 @@ struct AnnouncementPacket {
         )
     }
 }
+
 
 /// Lightweight BLE mesh service inspired by BitChat.
 /// - Advertises a single service/characteristic.
@@ -442,10 +405,11 @@ final class BLEMeshService: NSObject {
             serviceAdded = true
             // Don't start advertising here - wait for didAdd callback
         } else if !peripheralManager.isAdvertising {
-            // Service already added, start advertising (following BitChat reference - no local name for privacy)
-            os_log("Starting advertising with service %{public}@", log: log, type: .info, Self.serviceUUID.uuidString)
+            // Service already added, start advertising (include local name for discoverability)
+            os_log("Starting advertising with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
             peripheralManager.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
+                CBAdvertisementDataLocalNameKey: myNickname
             ])
         }
     }
@@ -818,7 +782,8 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
         if !peripheral.isAdvertising {
             os_log("Restarting advertising after central unsubscribed", log: log, type: .info)
             peripheral.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
+                CBAdvertisementDataLocalNameKey: myNickname
             ])
         }
     }
@@ -830,11 +795,12 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             return
         }
         os_log("Successfully added GATT service: %{public}@", log: log, type: .info, service.uuid.uuidString)
-        // Start advertising now that service is confirmed added (following BitChat reference - no local name for privacy)
+        // Start advertising now that service is confirmed added (include local name for discoverability)
         if !peripheral.isAdvertising {
-            os_log("Starting advertising after service added with service %{public}@", log: log, type: .info, Self.serviceUUID.uuidString)
+            os_log("Starting advertising after service added with service %{public}@ and local name: %{public}@", log: log, type: .info, Self.serviceUUID.uuidString, myNickname)
             peripheral.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID]
+                CBAdvertisementDataServiceUUIDsKey: [Self.serviceUUID],
+                CBAdvertisementDataLocalNameKey: myNickname
             ])
         }
     }
