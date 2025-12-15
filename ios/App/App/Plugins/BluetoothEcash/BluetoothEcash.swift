@@ -733,7 +733,7 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
         os_log("Received read request for characteristic %{public}@ from central %{public}@", log: log, type: .info, request.characteristic.uuid.uuidString, request.central.identifier.uuidString)
         if request.characteristic.uuid == Self.characteristicUUID {
-            // Send announce packet via read (simplified - no crypto for basic functionality)
+            // Send announce packet in full BitchatPacket format (matching BitChat reference)
             let announcement = AnnouncementPacket(
                 nickname: myNickname,
                 noisePublicKey: Data(count: 32), // Placeholder
@@ -741,12 +741,28 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
                 directNeighbors: nil
             )
 
-            if let announceData = announcement.encode() {
-                request.value = announceData
-                peripheral.respond(to: request, withResult: .success)
-                os_log("✅ Responded to read request with announce data: nickname='%{public}@' (length: %{public}d)", log: log, type: .info, myNickname, announceData.count)
+            if let announcePayload = announcement.encode() {
+                // Create full BitchatPacket (following BitChat reference)
+                let packet = BitchatPacket(
+                    type: MessageType.announce.rawValue,
+                    senderID: Data(count: 8), // Placeholder sender ID
+                    recipientID: nil,
+                    timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
+                    payload: announcePayload,
+                    signature: nil
+                )
+
+                // Encode the full packet
+                if let packetData = BinaryProtocol.encode(packet) {
+                    request.value = packetData
+                    peripheral.respond(to: request, withResult: .success)
+                    os_log("✅ Responded to read request with BitchatPacket: type=announce, nickname='%{public}@', length=%{public}d", log: log, type: .info, myNickname, packetData.count)
+                } else {
+                    os_log("❌ Failed to encode BitchatPacket for read request", log: log, type: .error)
+                    peripheral.respond(to: request, withResult: .unlikelyError)
+                }
             } else {
-                os_log("❌ Failed to encode announce data for read request", log: log, type: .error)
+                os_log("❌ Failed to encode announce payload for read request", log: log, type: .error)
                 peripheral.respond(to: request, withResult: .unlikelyError)
             }
         } else {
@@ -758,7 +774,7 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         os_log("Central %{public}@ subscribed to characteristic %{public}@", log: log, type: .info, central.identifier.uuidString, characteristic.uuid.uuidString)
         if characteristic.uuid == Self.characteristicUUID {
-            // Send announce packet in proper BitchatPacket format (simplified, no crypto)
+            // Send announce packet in proper BitchatPacket format (matching BitChat reference)
             let announcement = AnnouncementPacket(
                 nickname: myNickname,
                 noisePublicKey: Data(count: 32), // Placeholder
@@ -767,24 +783,27 @@ extension BLEMeshService: CBPeripheralManagerDelegate {
             )
 
             if let announcePayload = announcement.encode() {
-                // Create simplified BitchatPacket (no signature)
+                // Create full BitchatPacket (following BitChat reference implementation)
                 let packet = BitchatPacket(
                     type: MessageType.announce.rawValue,
-                    senderID: Data(count: 8), // Placeholder sender ID
+                    senderID: Data(count: 8), // Placeholder sender ID - should be derived from peer ID
                     recipientID: nil,
                     timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
                     payload: announcePayload,
-                    signature: nil
+                    signature: nil // No signature for simplified implementation
                 )
 
-                // For simplified implementation, just send the payload (not full packet)
-                // Full implementation would encode the packet and send it
-                os_log("Sending announce payload to subscriber: nickname='%{public}@', length=%{public}d", log: log, type: .info, myNickname, announcePayload.count)
-                let success = peripheral.updateValue(announcePayload, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
-                if success {
-                    os_log("✅ Sent announce payload to subscriber %{public}@ successfully", log: log, type: .info, central.identifier.uuidString)
+                // Encode the full packet (following BitChat's BinaryProtocol.encode)
+                if let packetData = BinaryProtocol.encode(packet) {
+                    os_log("Sending BitchatPacket to subscriber: type=%{public}@, payload_length=%{public}d, total_length=%{public}d", log: log, type: .info, "announce", announcePayload.count, packetData.count)
+                    let success = peripheral.updateValue(packetData, for: characteristic as! CBMutableCharacteristic, onSubscribedCentrals: [central])
+                    if success {
+                        os_log("✅ Sent announce packet to subscriber %{public}@ successfully", log: log, type: .info, central.identifier.uuidString)
+                    } else {
+                        os_log("❌ Failed to send announce packet to subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
+                    }
                 } else {
-                    os_log("❌ Failed to send announce payload to subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
+                    os_log("❌ Failed to encode BitchatPacket for subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
                 }
             } else {
                 os_log("❌ Failed to encode announce payload for subscriber %{public}@", log: log, type: .error, central.identifier.uuidString)
