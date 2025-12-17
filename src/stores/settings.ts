@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
+import { Capacitor } from "@capacitor/core";
 
 const defaultNostrRelays = ["wss://relay.damus.io", "wss://nos.lol"];
 
@@ -98,16 +99,11 @@ export const useSettingsStore = defineStore("settings", {
       showBitcoin: useLocalStorage<boolean>("cashu.settings.showBitcoin", true),
       showPoints: useLocalStorage<boolean>("cashu.settings.showPoints", false),
       // Toggle native/Web Bluetooth mesh.
-      // Force enabled for all builds (native + PWA)
-      bluetoothEnabled: (() => {
-        const bluetoothRef = useLocalStorage<boolean>(
-          "cashu.settings.bluetoothEnabled",
-          true
-        );
-        // Force it to be true
-        bluetoothRef.value = true;
-        return bluetoothRef;
-      })(),
+      // Default enabled on Android, disabled elsewhere
+      bluetoothEnabled: useLocalStorage<boolean>(
+        "cashu.settings.bluetoothEnabled",
+        Capacitor.getPlatform() === "android"
+      ),
     };
   },
 });

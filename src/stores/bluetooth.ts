@@ -65,10 +65,11 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
     /**
      * Check if any Bluetooth is available (native or web)
-     * Always return true to force Bluetooth availability
+     * Respects the bluetoothEnabled setting
      */
     isBluetoothAvailable(): boolean {
-      return true; // Force Bluetooth to always be available
+      const settingsStore = useSettingsStore();
+      return settingsStore.bluetoothEnabled && Capacitor.isNativePlatform();
     },
 
     /**

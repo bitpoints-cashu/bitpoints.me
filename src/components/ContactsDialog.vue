@@ -655,11 +655,7 @@ export default defineComponent({
 
     // Check if BluetoothEcash plugin is available (native only, not web)
     const isBluetoothEcashAvailable = computed(() => {
-<<<<<<< HEAD
       return Capacitor.isNativePlatform() && settingsStore.bluetoothEnabled;
-=======
-      return Capacitor.isNativePlatform();
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
     });
 
     // Fetch connected peers with Nostr capability
@@ -838,14 +834,11 @@ export default defineComponent({
               peer.peerID,
               `[UNFAVORITED]:${npub}`
             );
-<<<<<<< HEAD
             console.log(
               `📤 Sent unfavorite notification to ${
                 peer.nickname
               } with npub: ${npub.substring(0, 16)}...`
             );
-=======
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
           }
         } catch (error) {
           console.error("Failed to send unfavorite notification:", error);
@@ -875,14 +868,11 @@ export default defineComponent({
               peer.peerID,
               `[FAVORITE_REQUEST]:${npub}`
             );
-<<<<<<< HEAD
             console.log(
               `📤 Sent favorite request to ${
                 peer.nickname
               } with npub: ${npub.substring(0, 16)}...`
             );
-=======
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
           }
         } catch (error) {
           console.error("Failed to send favorite request:", error);
@@ -1090,15 +1080,12 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
-<<<<<<< HEAD
       if (!settingsStore.bluetoothEnabled) {
         notifyError(
           "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
         );
         return;
       }
-=======
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;
@@ -1108,11 +1095,6 @@ export default defineComponent({
         startPolling();
         await fetchConnectedPeers();
         await fetchOfflineFavorites();
-<<<<<<< HEAD
-      }
-    };
-
-=======
         notifySuccess("Bluetooth mesh enabled! Discovering nearby contacts...");
       }
     };
@@ -1161,7 +1143,6 @@ export default defineComponent({
       openSendDialog(firstPeer);
     };
 
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
     // Username editing functions
     const startEditingUsername = () => {
       localUsername.value = bluetoothStore.nickname;
@@ -1381,11 +1362,8 @@ export default defineComponent({
       closeSendDialog,
       sendToken,
       enableBluetooth,
-<<<<<<< HEAD
-=======
       enableBluetoothAndSend,
       openSendToNearbyDialog,
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
       formatLastSeen,
       formatNpub,
       formatCurrency,
