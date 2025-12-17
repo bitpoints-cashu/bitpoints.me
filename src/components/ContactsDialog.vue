@@ -211,14 +211,6 @@
           >
             <!-- Connected peers section -->
             <template v-if="connectedPeers.length > 0">
-<<<<<<< HEAD
-              <q-item-label
-                header
-                class="text-grey-6 q-pa-sm text-uppercase text-caption"
-              >
-                Nearby ({{ connectedPeers.length }})
-              </q-item-label>
-=======
               <div class="row items-center q-pa-sm">
                 <div class="col">
                   <q-item-label
@@ -243,7 +235,6 @@
                   </q-btn>
                 </div>
               </div>
->>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
               <q-item
                 v-for="peer in connectedPeers"
                 :key="peer.peerID"
