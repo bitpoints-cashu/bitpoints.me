@@ -18,7 +18,7 @@ const envKeyServerUrl =
 export const DEFAULT_KEY_SERVER_URL =
   (typeof envKeyServerUrl === "string" && envKeyServerUrl.trim().length > 0
     ? envKeyServerUrl.trim()
-    : undefined) ?? "http://keys.bitpints.me";
+    : undefined) ?? "https://keys.bitpoints.me";
 
 export interface KeyServerClientConfig {
   baseUrl?: string;

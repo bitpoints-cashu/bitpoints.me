@@ -202,22 +202,25 @@
               autocomplete="current-password"
               :disable="recoverbullBackupStore.restoreInProgress"
             />
-            <q-file
-              v-model="recoverbullBackupFile"
-              accept="application/json"
-              color="primary"
-              outlined
-              dense
-              label="Select RecoverBull backup file"
-              :disable="recoverbullBackupStore.restoreInProgress"
-              @update:model-value="onRecoverbullBackupFileSelected"
-            >
-              <template v-slot:after>
-                <span class="text-caption text-grey-7">{{
-                  recoverbullBackupFileName || "No file selected"
-                }}</span>
-              </template>
-            </q-file>
+            <input
+              ref="recoverbullBackupFileInput"
+              type="file"
+              accept=".json,.josn,application/json"
+              class="hidden-file-input"
+              @change="handleRecoverbullBackupFile"
+            />
+            <div class="row items-center q-gutter-sm">
+              <q-btn
+                outline
+                color="primary"
+                :disable="recoverbullBackupStore.restoreInProgress"
+                label="Select RecoverBull backup file"
+                @click="triggerRecoverbullBackupFileDialog"
+              />
+              <span class="text-caption text-grey-7">
+                {{ recoverbullBackupFileName || "No file selected" }}
+              </span>
+            </div>
             <q-input
               v-model="recoverbullBackupText"
               type="textarea"
@@ -2376,13 +2379,6 @@ import { getShortUrl } from "src/js/wallet-helpers";
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { useMintsStore, MintClass } from "src/stores/mints";
 import { useWalletStore } from "src/stores/wallet";
-import {
-  encryptMnemonicWithPassphrase,
-  decryptMnemonicWithPassphrase,
-  downloadEncryptedVault,
-  parseEncryptedVaultPayload,
-} from "src/utils/passphraseVault";
-import { map } from "underscore";
 import { useSettingsStore } from "src/stores/settings";
 import { useNostrStore } from "src/stores/nostr";
 import { useNPCStore } from "src/stores/npubcash";
@@ -2487,19 +2483,8 @@ export default defineComponent({
       nip46Token: "",
       nip07SignerAvailable: false,
       newRelay: "",
-      downloadPassphrase: "",
-      downloadPassphraseConfirm: "",
-      downloadNote: "",
-      downloadInProgress: false,
-      downloadMessage: null,
-      restorePayload: "",
-      restorePassphrase: "",
-      restoreFileName: "",
-      restoreInProgress: false,
-      restoreMessage: null,
       recoverbullPassword: "",
       recoverbullRestorePassword: "",
-      recoverbullBackupFile: null as File | null,
       recoverbullBackupFileName: "",
       recoverbullBackupFileContent: "",
       recoverbullBackupText: "",
@@ -2968,22 +2953,24 @@ export default defineComponent({
       }
     },
 
-    onRecoverbullBackupFileSelected(file: File | File[] | null) {
+    triggerRecoverbullBackupFileDialog() {
+      const input = this.$refs.recoverbullBackupFileInput as HTMLInputElement | undefined;
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+    handleRecoverbullBackupFile(event: Event) {
+      const target = event.target as HTMLInputElement | undefined;
+      const file = target?.files?.[0] ?? null;
       if (!file) {
         this.recoverbullBackupFileContent = "";
         this.recoverbullBackupFileName = "";
         return;
       }
 
-      const selectedFile = Array.isArray(file) ? file[0] : file;
-      if (!selectedFile) {
-        this.recoverbullBackupFileContent = "";
-        this.recoverbullBackupFileName = "";
-        return;
-      }
-
-      this.recoverbullBackupFileName = selectedFile.name;
-      selectedFile
+      this.recoverbullBackupFileName = file.name;
+      file
         .text()
         .then((content) => {
           this.recoverbullBackupFileContent = content;
@@ -3040,6 +3027,7 @@ export default defineComponent({
         });
       }
     },
+
     async downloadEncryptedSeed() {
       if (this.downloadInProgress) {
         return;
@@ -3195,6 +3183,7 @@ export default defineComponent({
         this.restoreInProgress = false;
       }
     },
+
     handleBitcoinToggle: function (enabled) {
       if (!enabled && !this.showPoints) {
         // Prevent disabling Bitcoin if Points is also disabled

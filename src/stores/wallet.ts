@@ -60,9 +60,11 @@ import { useI18n } from "vue-i18n";
 // before the payment is completed. This is necessary because the catch block in the melt function would otherwise remove all
 // quotes from the invoiceHistory and the user would not be able to pay the invoice again after reopening the app.
 let isUnloading = false;
-window.addEventListener("beforeunload", () => {
-  isUnloading = true;
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener("beforeunload", () => {
+    isUnloading = true;
+  });
+}
 
 type Invoice = {
   amount: number;
@@ -87,9 +89,7 @@ type KeysetCounter = {
   counter: number;
 };
 
-const receiveStore = useReceiveTokensStore();
-const tokenStore = useTokensStore();
-const proofsStore = useProofsStore();
+// Store references are created locally in functions to avoid Pinia initialization issues in tests
 
 export const useWalletStore = defineStore("wallet", {
   state: () => {
@@ -474,6 +474,9 @@ export const useWalletStore = defineStore("wallet", {
       const uIStore = useUiStore();
       const mintStore = useMintsStore();
       const p2pkStore = useP2PKStore();
+      const receiveStore = useReceiveTokensStore();
+      const tokenStore = useTokensStore();
+      const proofsStore = useProofsStore();
 
       receiveStore.showReceiveTokens = false;
 
@@ -1445,6 +1448,7 @@ export const useWalletStore = defineStore("wallet", {
     },
     handleCashuToken: function () {
       this.payInvoiceData.show = false;
+      const receiveStore = useReceiveTokensStore();
       receiveStore.showReceiveTokens = true;
 
       // Auto-receive if token is valid and not P2PK locked

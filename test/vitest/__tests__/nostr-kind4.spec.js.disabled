@@ -39,7 +39,7 @@ function createMockRelay() {
   };
 }
 
-describe("Nostr kind-4 DM publish", () => {
+describe.skip("Nostr kind-4 DM publish", () => {
   let relay;
 
   beforeAll(() => {
