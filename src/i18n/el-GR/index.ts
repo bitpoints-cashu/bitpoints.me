@@ -64,6 +64,12 @@ export default {
       failed_to_decode_invoice: "Αποτυχία αποκωδικοποίησης τιμολογίου",
       invalid_lnurl: "Μη έγκυρο LNURL",
       lnurl_error: "Σφάλμα LNURL",
+      lnurl_withdraw_error: "Σφάλμα LNURL-withdraw",
+      no_lnurl_withdraw_data: "Δεν υπάρχουν δεδομένα LNURL-withdraw",
+      lnurl_withdraw_amount_out_of_range:
+        "Το ποσό ανάληψης είναι εκτός επιτρεπόμενων ορίων",
+      lnurl_withdraw_requested:
+        "Αίτημα ανάληψης στάλθηκε. Αναμονή για πληρωμή {amount}.",
       no_amount: "Δεν υπάρχει ποσό",
       no_lnurl_data: "Δεν υπάρχουν δεδομένα LNURL",
       no_price_data: "Δεν υπάρχουν δεδομένα τιμής.",
@@ -1191,6 +1197,25 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label:
+        "Ο { payee } σας επιτρέπει να αποσύρετε { value } { ticker }",
+      amount_range_label:
+        "Ο { payee } σας επιτρέπει να αποσύρετε{br}μεταξύ { min } και { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "Amount ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

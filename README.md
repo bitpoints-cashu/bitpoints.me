@@ -204,10 +204,10 @@ adb logcat | grep "BluetoothEcash"
 
 ## Documentation
 
-- [Bluetooth Implementation](./BLUETOOTH_DEVELOPMENT_SUMMARY.md)
-- [Nostr Auto-Claim](./NOSTR_AUTO_CLAIM_IMPLEMENTATION.md)
-- [Testing Guide](./BLUETOOTH_TESTING_GUIDE.md)
-- [Release Notes](./RELEASE_NOTES_v1.2.0.md)
+- [iOS Build Instructions](./docs/build.md)
+- [Bluetooth Implementation](./docs/BLUETOOTH_DEVELOPMENT_SUMMARY.md)
+- [Nostr Auto-Claim](./docs/NOSTR_AUTO_CLAIM_IMPLEMENTATION.md)
+- [Release Notes](./docs/RELEASE_NOTES_v1.2.0.md)
 
 ## Roadmap
 

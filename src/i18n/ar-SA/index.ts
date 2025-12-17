@@ -63,6 +63,10 @@ export default {
       failed_to_decode_invoice: "فشل فك ترميز الفاتورة",
       invalid_lnurl: "LNURL غير صالح",
       lnurl_error: "خطأ في LNURL",
+      lnurl_withdraw_error: "خطأ في سحب LNURL",
+      no_lnurl_withdraw_data: "لا توجد بيانات سحب LNURL",
+      lnurl_withdraw_amount_out_of_range: "المبلغ خارج نطاق السحب المسموح",
+      lnurl_withdraw_requested: "تم طلب السحب. بانتظار الدفع {amount}.",
       no_amount: "لا يوجد مبلغ",
       no_lnurl_data: "لا توجد بيانات LNURL",
       no_price_data: "لا توجد بيانات سعرية.",
@@ -1177,6 +1181,24 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label: "{ payee } يسمح لك بسحب { value } { ticker }",
+      amount_range_label:
+        "{ payee } يسمح لك بسحب{br}بين { min } و { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "Amount ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

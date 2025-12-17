@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { nextTick } from "vue";
 import { currentDateStr } from "src/js/utils";
 import { useMintsStore, WalletProof, MintClass, Mint } from "./mints";
 import { useLocalStorage } from "@vueuse/core";
@@ -141,6 +142,7 @@ export const useWalletStore = defineStore("wallet", {
           routes: [],
           tag: "",
         },
+        lnurlwithdraw: null as any,
         lnurlauth: {},
         input: {
           request: "",
@@ -1446,7 +1448,7 @@ export const useWalletStore = defineStore("wallet", {
       receiveStore.showReceiveTokens = true;
 
       // Auto-receive if token is valid and not P2PK locked
-      this.$nextTick(async () => {
+      nextTick(async () => {
         if (receiveStore.receiveData.tokensBase64) {
           const p2pkStore = useP2PKStore();
           const isP2PKLocked =
@@ -1479,6 +1481,30 @@ export const useWalletStore = defineStore("wallet", {
       const p2pkStore = useP2PKStore();
       req = req.trim();
       this.payInvoiceData.input.request = req;
+      this.payInvoiceData.lnurlpay = null as any;
+      this.payInvoiceData.lnurlwithdraw = null as any;
+      const lowerReq = req.toLowerCase();
+      // Handle lightning: prefixes that actually contain LNURL/addresses
+      if (
+        lowerReq.startsWith("lightning:lnurl1") ||
+        lowerReq.startsWith("lightning:lnurl")
+      ) {
+        this.payInvoiceData.input.request = req.slice("lightning:".length);
+        await this.lnurlPayFirst(this.payInvoiceData.input.request);
+        const uiStore = useUiStore();
+        uiStore.closeDialogs();
+        return;
+      }
+      if (
+        lowerReq.startsWith("lightning:") &&
+        req.slice("lightning:".length).match(/[\w.+-~_]+@[\w.+-~_]/)
+      ) {
+        this.payInvoiceData.input.request = req.slice("lightning:".length);
+        await this.lnurlPayFirst(this.payInvoiceData.input.request);
+        const uiStore = useUiStore();
+        uiStore.closeDialogs();
+        return;
+      }
       if (req.toLowerCase().startsWith("lnbc")) {
         this.payInvoiceData.input.request = req;
         await this.handleBolt11Invoice();
@@ -1526,49 +1552,90 @@ export const useWalletStore = defineStore("wallet", {
       uiStore.closeDialogs();
     },
     lnurlPayFirst: async function (address: string) {
-      var host;
-      var data;
-      if (address.split("@").length == 2) {
-        let [user, lnaddresshost] = address.split("@");
-        host = `https://${lnaddresshost}/.well-known/lnurlp/${user}`;
-        const resp = await axios.get(host); // Moved it here: we don't want 2 potential calls
-        data = resp.data;
-      } else if (address.toLowerCase().slice(0, 6) === "lnurl1") {
-        let decoded = bech32.decode(address, 20000);
-        const words = bech32.fromWords(decoded.words);
-        const uint8Array = new Uint8Array(words);
-        host = new TextDecoder().decode(uint8Array);
-
-        const resp = await axios.get(host);
-        data = resp.data;
-      }
-      if (host == undefined) {
-        notifyError(
-          this.t("wallet.notifications.invalid_lnurl"),
-          this.t("wallet.notifications.lnurl_error")
-        );
-        return;
-      }
-      if (data.tag == "payRequest") {
-        this.payInvoiceData.lnurlpay = data;
-        this.payInvoiceData.lnurlpay.domain = host
-          .split("https://")[1]
-          .split("/")[0];
-        if (
-          this.payInvoiceData.lnurlpay.maxSendable ==
-          this.payInvoiceData.lnurlpay.minSendable
+      let host;
+      let data;
+      try {
+        if (address.split("@").length == 2) {
+          let [user, lnaddresshost] = address.split("@");
+          host = `https://${lnaddresshost}/.well-known/lnurlp/${user}`;
+          const resp = await axios.get(host);
+          data = resp.data;
+        } else if (address.toLowerCase().slice(0, 6) === "lnurl1") {
+          let decoded = bech32.decode(address, 20000);
+          const words = bech32.fromWords(decoded.words);
+          const uint8Array = new Uint8Array(words);
+          host = new TextDecoder().decode(uint8Array);
+          const resp = await axios.get(host);
+          data = resp.data;
+        } else if (
+          address.toLowerCase().startsWith("https://") ||
+          address.toLowerCase().startsWith("http://")
         ) {
-          this.payInvoiceData.input.amount =
-            this.payInvoiceData.lnurlpay.maxSendable / 1000;
+          host = address;
+          const resp = await axios.get(host);
+          data = resp.data;
         }
-        this.payInvoiceData.invoice = null;
-        this.payInvoiceData.input = {
-          request: "",
-          amount: null,
-          comment: "",
-          quote: "",
-        };
-        this.payInvoiceData.show = true;
+        if (host == undefined || data == undefined) {
+          notifyError(
+            this.t("wallet.notifications.invalid_lnurl"),
+            this.t("wallet.notifications.lnurl_error")
+          );
+          return;
+        }
+        const domain = host.replace("https://", "").replace("http://", "");
+        if (data.tag == "payRequest") {
+          this.payInvoiceData.lnurlwithdraw = null as any;
+          this.payInvoiceData.lnurlpay = data;
+          this.payInvoiceData.lnurlpay.domain = domain.split("/")[0];
+          if (
+            this.payInvoiceData.lnurlpay.maxSendable ==
+            this.payInvoiceData.lnurlpay.minSendable
+          ) {
+            this.payInvoiceData.input.amount =
+              this.payInvoiceData.lnurlpay.maxSendable / 1000;
+          }
+          this.payInvoiceData.invoice = null;
+          this.payInvoiceData.input = {
+            request: "",
+            amount: null,
+            comment: "",
+            quote: "",
+          };
+          this.payInvoiceData.show = true;
+        } else if (data.tag == "withdrawRequest") {
+          this.payInvoiceData.lnurlpay = null as any;
+          this.payInvoiceData.lnurlwithdraw = {
+            domain: domain.split("/")[0],
+            callback: data.callback,
+            k1: data.k1,
+            minWithdrawable: data.minWithdrawable,
+            maxWithdrawable: data.maxWithdrawable,
+            defaultDescription: data.defaultDescription,
+            balanceCheck: data.balanceCheck,
+            payLink: data.payLink,
+            tag: data.tag,
+          };
+          const defaultAmount =
+            data.maxWithdrawable == data.minWithdrawable
+              ? data.maxWithdrawable / 1000
+              : Math.floor(data.maxWithdrawable / 1000);
+          this.payInvoiceData.invoice = null;
+          this.payInvoiceData.input = {
+            request: "",
+            amount: defaultAmount,
+            comment: "",
+            quote: "",
+          };
+          this.payInvoiceData.show = true;
+        } else {
+          notifyError(
+            this.t("wallet.notifications.invalid_lnurl"),
+            this.t("wallet.notifications.lnurl_error")
+          );
+        }
+      } catch (error) {
+        console.error("lnurlPayFirst error", error);
+        notifyApiError(error, this.t("wallet.notifications.lnurl_error"));
       }
     },
     lnurlPaySecond: async function () {
@@ -1615,6 +1682,85 @@ export const useWalletStore = defineStore("wallet", {
           return;
         }
         await this.decodeRequest(data.pr);
+      }
+    },
+    lnurlWithdrawSecond: async function () {
+      const mintStore = useMintsStore();
+      let amount = this.payInvoiceData.input.amount;
+      const withdrawData = this.payInvoiceData.lnurlwithdraw as any;
+      if (amount == null) {
+        notifyError(
+          this.t("wallet.notifications.no_amount"),
+          this.t("wallet.notifications.lnurl_withdraw_error")
+        );
+        return;
+      }
+      if (!withdrawData || withdrawData.tag !== "withdrawRequest") {
+        notifyError(
+          this.t("wallet.notifications.no_lnurl_withdraw_data"),
+          this.t("wallet.notifications.lnurl_withdraw_error")
+        );
+        return;
+      }
+      if (mintStore.activeUnit == "usd") {
+        const priceUsd = usePriceStore().bitcoinPrice;
+        if (priceUsd == 0) {
+          notifyError(
+            this.t("wallet.notifications.no_price_data"),
+            this.t("wallet.notifications.lnurl_withdraw_error")
+          );
+          return;
+        }
+        const pointsPrice = 1 / (priceUsd / 1e8);
+        const usdAmount = amount;
+        amount = Math.floor(usdAmount * pointsPrice);
+      }
+      const amountMsat = Math.floor(amount * 1000);
+      if (
+        amountMsat < withdrawData.minWithdrawable ||
+        amountMsat > withdrawData.maxWithdrawable
+      ) {
+        notifyError(
+          this.t("wallet.notifications.lnurl_withdraw_amount_out_of_range"),
+          this.t("wallet.notifications.lnurl_withdraw_error")
+        );
+        return;
+      }
+      try {
+        this.payInvoiceData.blocking = true;
+        const mintWallet = this.mintWallet(
+          mintStore.activeMintUrl,
+          mintStore.activeUnit
+        );
+        const mintQuote = await this.requestMint(amount, mintWallet);
+        const separator = withdrawData.callback.includes("?") ? "&" : "?";
+        const callbackUrl = `${withdrawData.callback}${separator}k1=${
+          withdrawData.k1
+        }&pr=${encodeURIComponent(mintQuote.request)}`;
+        const { data } = await axios.get(callbackUrl);
+        if (data?.status && data.status.toUpperCase() === "ERROR") {
+          notifyError(
+            data.reason || this.t("wallet.notifications.lnurl_withdraw_error"),
+            this.t("wallet.notifications.lnurl_withdraw_error")
+          );
+          return;
+        }
+        notify(
+          this.t("wallet.notifications.lnurl_withdraw_requested", {
+            amount: useUiStore().formatCurrency(amount, mintStore.activeUnit),
+          })
+        );
+        await this.mintOnPaid(mintQuote.quote, true, true, true);
+        this.payInvoiceData.show = false;
+      } catch (error) {
+        console.error("lnurlWithdrawSecond error", error);
+        notifyApiError(
+          error,
+          this.t("wallet.notifications.lnurl_withdraw_error")
+        );
+        throw error;
+      } finally {
+        this.payInvoiceData.blocking = false;
       }
     },
     initializeMnemonic: function () {

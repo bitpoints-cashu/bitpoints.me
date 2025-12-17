@@ -251,27 +251,27 @@ window.windowMixin = {
       mintsStore.activeUnit = "sat";
     }
 
-    // only for iOS
-    if (window.Capacitor && Capacitor.getPlatform() === "ios") {
-      SafeArea.getStatusBarHeight().then(({ statusBarHeight }) => {
-        document.documentElement.style.setProperty(
-          `--safe-area-inset-top`,
-          `${statusBarHeight}px`
-        );
-      });
-
-      SafeArea.removeAllListeners();
-
-      // when safe-area changed
-      SafeArea.addListener("safeAreaChanged", (data) => {
-        const { insets } = data;
-        for (const [key, value] of Object.entries(insets)) {
-          document.documentElement.style.setProperty(
-            `--safe-area-inset-${key}`,
-            `${value}px`
-          );
-        }
-      });
+    // only for iOS; guard to avoid duplicate listeners and reduce noise
+    if (
+      window.Capacitor &&
+      Capacitor.getPlatform() === "ios" &&
+      !window.__safeAreaInitialized &&
+      SafeArea &&
+      typeof SafeArea.getSafeAreaInsets === "function"
+    ) {
+      window.__safeAreaInitialized = true;
+      SafeArea.getSafeAreaInsets()
+        .then(({ insets }) => {
+          for (const [key, value] of Object.entries(insets || {})) {
+            document.documentElement.style.setProperty(
+              `--safe-area-inset-${key}`,
+              `${value}px`
+            );
+          }
+        })
+        .catch((e) => {
+          console.warn("SafeArea getSafeAreaInsets failed", e);
+        });
     }
   },
 };

@@ -821,10 +821,15 @@ export default defineComponent({
         }
       } else {
         clearInterval(this.qrInterval);
-        this.sendData.data = "";
+        // reset send data but keep consistent shape
         this.sendData.tokensBase64 = "";
         this.sendData.historyToken = null;
         this.sendData.paymentRequest = null;
+        this.sendData.amount = null;
+        this.sendData.historyAmount = null;
+        this.sendData.memo = "";
+        this.sendData.tokens = "";
+        this.sendData.p2pkPubkey = "";
       }
     },
   },
@@ -1192,6 +1197,7 @@ export default defineComponent({
       this.payInvoiceData.show = true;
       this.payInvoiceData.invoice = null;
       this.payInvoiceData.lnurlpay = null;
+      this.payInvoiceData.lnurlwithdraw = null;
       this.payInvoiceData.domain = "";
       this.payInvoiceData.lnurlauth = null;
       this.payInvoiceData.input.request = "";

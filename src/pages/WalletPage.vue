@@ -47,9 +47,11 @@
               </div>
             </q-btn>
           </div>
-          <ReceiveDialog v-model="showReceiveDialog" />
-          <SendDialog v-model="showSendDialog" />
         </div>
+
+        <!-- Dialogs -->
+        <ReceiveDialog v-model="showReceiveDialog" />
+        <SendDialog v-model="showSendDialog" />
 
         <!-- Contacts (Bluetooth + QR Code) -->
         <div class="row justify-center q-gutter-sm q-mt-sm q-mb-md">
@@ -58,7 +60,8 @@
             outline
             color="primary"
             class="q-px-lg"
-            @click="showContactsDialog = true"
+            @click="openContactsDialog"
+            style="z-index: 1000; position: relative"
           >
             <q-icon name="contacts" size="1.2rem" class="q-mr-sm" />
             <span>Contacts</span>
@@ -384,6 +387,7 @@ import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrStore } from "src/stores/nostr";
 import { usePRStore } from "src/stores/payment-request";
 import { useDexieStore } from "src/stores/dexie";
+import { useSettingsStore } from "src/stores/settings";
 
 import { useStorageStore } from "src/stores/storage";
 import ReceiveTokenDialog from "src/components/ReceiveTokenDialog.vue";
@@ -671,6 +675,7 @@ export default {
       this.payInvoiceData.show = true;
       this.payInvoiceData.invoice = null;
       this.payInvoiceData.lnurlpay = null;
+      this.payInvoiceData.lnurlwithdraw = null;
       this.payInvoiceData.domain = "";
       this.payInvoiceData.lnurlauth = null;
       this.payInvoiceData.input.request = "";
@@ -692,6 +697,14 @@ export default {
     decodeQR: function (res) {
       this.camera.data = res;
       this.camera.show = false;
+
+      // If receive tokens dialog is open, treat as token to receive
+      if (this.showReceiveTokens) {
+        this.receiveData.tokensBase64 = res;
+        return;
+      }
+
+      // Otherwise, treat as Lightning request
       this.decodeRequest(res);
     },
     /////////////////////////////////// WALLET ///////////////////////////////////
@@ -784,16 +797,39 @@ export default {
         }
       };
     },
+    openContactsDialog: async function () {
+      const bluetoothStore = useBluetoothStore();
+
+      // If Bluetooth is not active, try to start it and wait for it to complete
+      if (!bluetoothStore.isActive && this.isNativeApp) {
+        try {
+          const success = await bluetoothStore.startService();
+          if (!success) {
+            // Still open the dialog so user can manually enable
+            this.showContactsDialog = true;
+            return;
+          }
+        } catch (e) {
+          // Still open the dialog so user can see the enable button
+          this.showContactsDialog = true;
+          return;
+        }
+      }
+
+      // Open the contacts dialog after ensuring Bluetooth is active
+      this.showContactsDialog = true;
+    },
+
     initializeBluetooth: async function () {
       try {
         const bluetoothStore = useBluetoothStore();
-        // Only initialize the store (setup event listeners, etc)
+        // Initialize the store (setup event listeners, etc)
         await bluetoothStore.initialize();
 
         // For desktop PWA: Don't auto-start - Web Bluetooth requires user gesture
         // User MUST click "Connect Device" button in Settings to enable
         if (this.isNativeApp) {
-          // Only auto-start for native mobile apps
+          // Auto-start for native mobile apps
           await bluetoothStore.startService();
         }
       } catch (e) {

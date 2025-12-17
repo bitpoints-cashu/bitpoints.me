@@ -63,6 +63,12 @@ export default {
       failed_to_decode_invoice: "Kunde inte avkoda fakturan",
       invalid_lnurl: "Ogiltig LNURL",
       lnurl_error: "LNURL-fel",
+      lnurl_withdraw_error: "LNURL-withdraw fel",
+      no_lnurl_withdraw_data: "Ingen LNURL-withdraw-data",
+      lnurl_withdraw_amount_out_of_range:
+        "Uttagsbelopp utanför tillåtet intervall",
+      lnurl_withdraw_requested:
+        "Uttag begärt. Väntar på betalning av {amount}.",
       no_amount: "Inget belopp",
       no_lnurl_data: "Ingen LNURL-data",
       no_price_data: "Ingen prisdata.",
@@ -1186,6 +1192,24 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label: "{ payee } låter dig ta ut { value } { ticker }",
+      amount_range_label:
+        "{ payee } låter dig ta ut{br}mellan { min } och { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "Belopp ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

@@ -16,8 +16,8 @@ android {
         applicationId "me.bitpoints.wallet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "0.1.9"
+        versionCode 12
+        versionName "0.1.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -40,6 +40,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+        }
+    }
+    packaging {
+        resources {
+            excludes += ['META-INF/INDEX.LIST', 'META-INF/DEPENDENCIES']
         }
     }
     compileOptions {
@@ -92,15 +97,14 @@ dependencies {
     implementation "com.google.crypto.tink:tink-android:1.12.0"
 
     // Google Sign-In and Drive API for Google Drive backups
-    implementation "com.google.android.gms:play-services-auth:21.2.0"
-    implementation "com.google.api-client:google-api-client-android:2.5.0"
-    implementation "com.google.api-client:google-api-client-gson:2.5.0"
-    implementation("com.google.apis:google-api-services-drive:v3-rev20240205-2.0.0") {
-        exclude group: "org.apache.httpcomponents"
-    }
-    implementation("com.google.http-client:google-http-client-android:1.43.3") {
-        exclude group: "org.apache.httpcomponents"
-    }
+    // Temporarily disabled to fix lint issues - can be re-enabled later
+    // implementation "com.google.android.gms:play-services-auth:21.2.0"
+    // implementation "com.google.api-client:google-api-client-android:2.4.0"
+    // implementation "com.google.api-client:google-api-client-gson:2.4.0"
+    // implementation("com.google.http-client:google-http-client-android:1.43.3") {
+    //     exclude group: "org.apache.httpcomponents"
+    //     exclude module: "httpclient"
+    // }
 }
 
 apply from: 'capacitor.build.gradle'

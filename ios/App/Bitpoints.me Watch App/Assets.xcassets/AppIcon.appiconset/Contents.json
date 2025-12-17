@@ -1,0 +1,50 @@
+{
+  "images" : [
+    {
+      "idiom" : "watch",
+      "role" : "notificationCenter",
+      "scale" : "2x",
+      "size" : "24x24"
+    },
+    {
+      "idiom" : "watch",
+      "role" : "companionSettings",
+      "scale" : "2x",
+      "size" : "29x29"
+    },
+    {
+      "idiom" : "watch",
+      "role" : "appLauncher",
+      "scale" : "2x",
+      "size" : "40x40"
+    },
+    {
+      "idiom" : "watch",
+      "role" : "quickLook",
+      "scale" : "2x",
+      "size" : "44x44"
+    },
+    {
+      "idiom" : "watch",
+      "role" : "quickLook",
+      "scale" : "2x",
+      "size" : "86x86"
+    },
+    {
+      "idiom" : "watch",
+      "role" : "quickLook",
+      "scale" : "2x",
+      "size" : "98x98"
+    },
+    {
+      "idiom" : "watch-marketing",
+      "scale" : "2x",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+

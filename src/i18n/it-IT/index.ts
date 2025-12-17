@@ -64,6 +64,12 @@ export default {
       failed_to_decode_invoice: "Impossibile decodificare la fattura",
       invalid_lnurl: "LNURL non valido",
       lnurl_error: "Errore LNURL",
+      lnurl_withdraw_error: "Errore LNURL-withdraw",
+      no_lnurl_withdraw_data: "Nessun dato LNURL-withdraw",
+      lnurl_withdraw_amount_out_of_range:
+        "Importo di prelievo fuori dall'intervallo consentito",
+      lnurl_withdraw_requested:
+        "Prelievo richiesto. In attesa del pagamento di {amount}.",
       no_amount: "Nessun importo",
       no_lnurl_data: "Nessun dato LNURL",
       no_price_data: "Nessun dato di prezzo.",
@@ -1186,6 +1192,25 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label:
+        "{ payee } ti permette di prelevare { value } { ticker }",
+      amount_range_label:
+        "{ payee } ti permette di prelevare{br}tra { min } e { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "Importo ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

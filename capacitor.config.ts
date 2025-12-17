@@ -1,9 +1,37 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+// Get active brand from environment
+const getActiveBrandId = () => process.env.BRAND || "bitpoints";
+
+// Brand configurations
+const brandConfigs: Record<string, { appId: string; appName: string }> = {
+  bitpoints: {
+    appId: "me.bitpoints.wallet",
+    appName: "Bitpoints.me",
+  },
+  trails: {
+    appId: "com.trailscoffee.points",
+    appName: "Trails Coffee Points",
+  },
+  pandewaffle: {
+    appId: "me.bitpoints.pandewaffle",
+    appName: "Pandewaffle",
+  },
+};
+
+const activeBrandId = getActiveBrandId();
+const brandConfig = brandConfigs[activeBrandId] || brandConfigs.bitpoints;
+
 const config: CapacitorConfig = {
-  appId: "me.bitpoints.wallet",
-  appName: "Bitpoints.me",
+  appId: brandConfig.appId,
+  appName: brandConfig.appName,
   webDir: "dist/spa/",
+  packageClassList: [
+    "CAPCameraPlugin",
+    "ClipboardPlugin",
+    "HapticsPlugin",
+    "SafeAreaPlugin",
+  ],
 };
 
 // Wear OS configuration

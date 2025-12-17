@@ -47,7 +47,9 @@ function fromBase64(value: string): Uint8Array {
 
 function randomBytes(length: number): Uint8Array {
   if (!isBrowserCryptoAvailable) {
-    throw new Error("Secure random generator is unavailable in this environment.");
+    throw new Error(
+      "Secure random generator is unavailable in this environment."
+    );
   }
   const array = new Uint8Array(length);
   globalThis.crypto.getRandomValues(array);
@@ -60,7 +62,9 @@ async function deriveKey(
   iterations = PBKDF2_ITERATIONS
 ): Promise<CryptoKey> {
   if (!isBrowserCryptoAvailable) {
-    throw new Error("Web Crypto API is required for passphrase-based encryption.");
+    throw new Error(
+      "Web Crypto API is required for passphrase-based encryption."
+    );
   }
   const baseKey = await globalThis.crypto.subtle.importKey(
     "raw",
@@ -146,7 +150,11 @@ export async function decryptMnemonicWithPassphrase(
   const salt = fromBase64(vault.salt);
   const iv = fromBase64(vault.iv);
   const ciphertext = fromBase64(vault.ciphertext);
-  const key = await deriveKey(passphrase, salt, vault.iterations || PBKDF2_ITERATIONS);
+  const key = await deriveKey(
+    passphrase,
+    salt,
+    vault.iterations || PBKDF2_ITERATIONS
+  );
   const decrypted = await globalThis.crypto.subtle.decrypt(
     {
       name: vault.algorithm,
@@ -213,7 +221,8 @@ function normaliseVaultFromJson(payload: any): PassphraseEncryptedVault {
     algorithm: typeof algorithm === "string" ? algorithm.trim() : ALGORITHM,
     iterations: parsedIterations,
     createdAt: parsedCreatedAt,
-    note: typeof note === "string" && note.trim() !== "" ? note.trim() : undefined,
+    note:
+      typeof note === "string" && note.trim() !== "" ? note.trim() : undefined,
   };
 }
 
@@ -246,7 +255,9 @@ function parseFromKeyValue(payload: string): PassphraseEncryptedVault {
     );
   }
 
-  const parsedIterations = kv["iterations"] ? Number(kv["iterations"]) : PBKDF2_ITERATIONS;
+  const parsedIterations = kv["iterations"]
+    ? Number(kv["iterations"])
+    : PBKDF2_ITERATIONS;
   const parsedCreatedAt = kv["created"]
     ? Date.parse(kv["created"])
     : Number.isFinite(Number(kv["created"]))
@@ -259,13 +270,17 @@ function parseFromKeyValue(payload: string): PassphraseEncryptedVault {
     iv,
     version: kv["version"] || VERSION,
     algorithm: kv["algorithm"] || ALGORITHM,
-    iterations: Number.isFinite(parsedIterations) ? parsedIterations : PBKDF2_ITERATIONS,
+    iterations: Number.isFinite(parsedIterations)
+      ? parsedIterations
+      : PBKDF2_ITERATIONS,
     createdAt: Number.isFinite(parsedCreatedAt) ? parsedCreatedAt : Date.now(),
     note: kv["note"],
   };
 }
 
-export function parseEncryptedVaultPayload(payload: string): PassphraseEncryptedVault {
+export function parseEncryptedVaultPayload(
+  payload: string
+): PassphraseEncryptedVault {
   const trimmed = payload.trim();
   if (!trimmed) {
     throw new Error("Encrypted payload cannot be empty.");
@@ -280,9 +295,7 @@ export function parseEncryptedVaultPayload(payload: string): PassphraseEncrypted
 }
 
 export function formatVaultFilename(createdAt: number = Date.now()): string {
-  const timestamp = new Date(createdAt)
-    .toISOString()
-    .replace(/[:.]/g, "-");
+  const timestamp = new Date(createdAt).toISOString().replace(/[:.]/g, "-");
   return `${DEFAULT_FILENAME_PREFIX}-${timestamp}.json`;
 }
 
@@ -305,4 +318,3 @@ export function downloadEncryptedVault(
   document.body.removeChild(anchor);
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
-

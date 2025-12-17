@@ -64,6 +64,12 @@ export default {
       failed_to_decode_invoice: "Fatura çözülemedi",
       invalid_lnurl: "Geçersiz LNURL",
       lnurl_error: "LNURL hatası",
+      lnurl_withdraw_error: "LNURL-withdraw hatası",
+      no_lnurl_withdraw_data: "LNURL-withdraw verisi yok",
+      lnurl_withdraw_amount_out_of_range:
+        "Çekim tutarı izin verilen aralığın dışında",
+      lnurl_withdraw_requested:
+        "Çekim talep edildi. {amount} ödemesi bekleniyor.",
       no_amount: "Tutar yok",
       no_lnurl_data: "LNURL verisi yok",
       no_price_data: "Fiyat verisi yok.",
@@ -1187,6 +1193,25 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label:
+        "{ payee } { value } { ticker } çekmenize izin veriyor",
+      amount_range_label:
+        "{ payee }{br}{ min } ile { max } { ticker } arasında çekmenize izin veriyor",
+      inputs: {
+        amount: {
+          label: "Miktar ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

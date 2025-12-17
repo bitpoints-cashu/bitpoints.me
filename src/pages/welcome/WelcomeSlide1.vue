@@ -2,36 +2,43 @@
 <template>
   <div class="q-pa-md flex flex-center">
     <div class="text-center">
-      <h2 class="q-mt-md">Welcome to Bitpoints</h2>
+      <h2 class="q-mt-md">Welcome to {{ brandName }}</h2>
       <div class="text-left">
         <p class="q-mt-sm">Your personal Bitcoin-backed rewards wallet.</p>
 
-        <div
-          class="q-mt-lg q-pa-md"
-          style="background: rgba(0, 0, 0, 0.05); border-radius: 8px"
+        <q-expansion-item
+          v-model="termsOpen"
+          class="q-mt-lg terms-card"
+          icon="policy"
+          label="Terms and Conditions (tap to view)"
+          expand-icon="keyboard_arrow_down"
+          dense-toggle
         >
-          <h3 class="q-mb-md text-weight-medium">Terms and Conditions</h3>
-          <p class="q-mb-sm">
-            By using Bitpoints, you agree to our terms of service. Please review
-            the full terms before continuing.
-          </p>
-          <p class="q-mb-sm text-caption">
-            • Use this app at your own risk<br />
-            • Keep your wallet backup secure<br />
-            • Bitcoin transactions are irreversible
-          </p>
-        </div>
+          <div class="q-pa-md text-left">
+            <p class="q-mb-sm">
+              By using {{ brandName }}, you agree to our terms of service.
+              Please review the full terms before continuing.
+            </p>
+            <p class="q-mb-sm text-caption">
+              • Use this app at your own risk<br />
+              • Keep your wallet backup secure<br />
+              • Bitcoin transactions are irreversible
+            </p>
+          </div>
+        </q-expansion-item>
 
         <div class="q-mt-lg">
           <q-checkbox
             v-model="welcomeStore.termsAccepted"
             label="I have read and agree to the terms and conditions"
             class="q-mb-md"
+            dense
           />
           <q-checkbox
             v-model="welcomeStore.seedPhraseValidated"
             label="I understand how to backup my wallet securely"
             class="q-mb-md"
+            dense
           />
         </div>
       </div>
@@ -41,14 +48,20 @@
 
 <script lang="ts">
 import { useWelcomeStore } from "src/stores/welcome";
+import { ref } from "vue";
+import { getBrandName } from "src/utils/branding";
 
 export default {
   name: "WelcomeSlide1",
   setup() {
     const welcomeStore = useWelcomeStore();
+    const termsOpen = ref(false);
+    const brandName = getBrandName();
 
     return {
       welcomeStore,
+      termsOpen,
+      brandName,
     };
   },
 };
@@ -80,6 +93,15 @@ p {
 
 .scroll-indicator:hover {
   background: rgba(0, 0, 0, 0.9);
+}
+
+.terms-card .q-item {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+.q-checkbox__label {
+  white-space: normal;
 }
 
 @keyframes bounce {

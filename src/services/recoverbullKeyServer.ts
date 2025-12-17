@@ -60,7 +60,10 @@ export class RecoverbullKeyServerError extends Error {
   readonly cooldownMinutes?: number;
   readonly attempts?: number;
 
-  constructor(message: string, options: Partial<RecoverbullKeyServerError> = {}) {
+  constructor(
+    message: string,
+    options: Partial<RecoverbullKeyServerError> = {}
+  ) {
     super(message);
     this.name = "RecoverbullKeyServerError";
     this.code = options.code;
@@ -70,7 +73,9 @@ export class RecoverbullKeyServerError extends Error {
   }
 }
 
-function normalizeErrorPayload(payload: KeyServerErrorPayload = {}): Partial<RecoverbullKeyServerError> {
+function normalizeErrorPayload(
+  payload: KeyServerErrorPayload = {}
+): Partial<RecoverbullKeyServerError> {
   return {
     requestedAt: payload.requested_at,
     cooldownMinutes: payload.rate_limit_cooldown,
@@ -79,7 +84,10 @@ function normalizeErrorPayload(payload: KeyServerErrorPayload = {}): Partial<Rec
 }
 
 function createHttpClient(config: KeyServerClientConfig): AxiosInstance {
-  const baseURL = (config.baseUrl ?? DEFAULT_KEY_SERVER_URL).replace(/\/+$/, "");
+  const baseURL = (config.baseUrl ?? DEFAULT_KEY_SERVER_URL).replace(
+    /\/+$/,
+    ""
+  );
 
   return axios.create({
     baseURL,
@@ -196,5 +204,3 @@ export class RecoverbullKeyServerClient {
     return new RecoverbullKeyServerError("Unknown key server error");
   }
 }
-
-

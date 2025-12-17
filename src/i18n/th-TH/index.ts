@@ -64,6 +64,10 @@ export default {
       failed_to_decode_invoice: "ไม่สามารถถอดรหัสใบแจ้งหนี้",
       invalid_lnurl: "LNURL ไม่ถูกต้อง",
       lnurl_error: "ข้อผิดพลาด LNURL",
+      lnurl_withdraw_error: "ข้อผิดพลาด LNURL-withdraw",
+      no_lnurl_withdraw_data: "ไม่มีข้อมูล LNURL-withdraw",
+      lnurl_withdraw_amount_out_of_range: "จำนวนถอนอยู่นอกช่วงที่กำหนด",
+      lnurl_withdraw_requested: "ส่งคำขอถอนแล้ว รอการชำระเงิน {amount}",
       no_amount: "ไม่มียอดเงิน",
       no_lnurl_data: "ไม่มีข้อมูล LNURL",
       no_price_data: "ไม่มีข้อมูลราคา",
@@ -1180,6 +1184,24 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label: "{ payee } อนุญาตให้คุณถอนได้ { value } { ticker }",
+      amount_range_label:
+        "{ payee } อนุญาตให้คุณถอน{br}ระหว่าง { min } และ { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "จำนวน ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

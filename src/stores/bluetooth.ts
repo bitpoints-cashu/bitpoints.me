@@ -12,6 +12,7 @@ import { useWalletStore } from "./wallet";
 import { useNostrStore } from "./nostr";
 import { useReceiveTokensStore } from "./receiveTokensStore";
 import { useFavoritesStore } from "./favorites";
+import { useSettingsStore } from "./settings";
 import { useLocalStorage } from "@vueuse/core";
 import { notifySuccess, notifyError, notifyWarning } from "src/js/notify";
 import { Capacitor } from "@capacitor/core";
@@ -64,9 +65,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
     /**
      * Check if any Bluetooth is available (native or web)
+     * Always return true to force Bluetooth availability
      */
     isBluetoothAvailable(): boolean {
-      return Capacitor.isNativePlatform() || this.isWebBluetoothAvailable;
+      return true; // Force Bluetooth to always be available
     },
 
     /**
@@ -112,6 +114,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
   actions: {
     /**
      * Initialize the Bluetooth service and event listeners
+     * Always initialize regardless of settings
      */
     async initialize() {
       if (this.isInitialized) return;
@@ -275,26 +278,15 @@ export const useBluetoothStore = defineStore("bluetooth", {
       try {
         // Desktop PWA with Web Bluetooth
         if (this.isDesktop) {
-          console.log("🖥️ Desktop PWA detected, using Web Bluetooth...");
-
           if (!this.isWebBluetoothAvailable) {
-            console.error("❌ Web Bluetooth not available");
             notifyError(
               "Web Bluetooth not supported. Please use Chrome or Edge browser."
             );
             return false;
           }
 
-          console.log("✅ Web Bluetooth available, starting service...");
-          console.log("🔗 Current URL:", window.location.href);
-          console.log(
-            "🔒 HTTPS enabled:",
-            window.location.protocol === "https:"
-          );
-
           // Web Bluetooth requires user interaction to request device
           // This will show browser's device picker dialog
-          console.log("🎯 Requesting Bluetooth device...");
           const peer = await webBluetoothService.requestDevice();
 
           if (!peer) {
@@ -305,10 +297,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
             return false;
           }
 
-          console.log("🎉 Device connected successfully:", peer);
           this.isActive = true;
           notifySuccess(`Connected to ${peer.nickname}!`);
-          console.log("✅ Web Bluetooth service started");
           return true;
         }
 
@@ -325,9 +315,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
         await BluetoothEcash.setNickname({ nickname: this.nickname });
 
         await BluetoothEcash.startService();
-        this.isActive = true;
+        // Ensure reactivity with proper state update
+        this.$patch({ isActive: true });
         console.log(
-          `Bluetooth mesh service started with nickname: ${this.nickname}`
+          `Bluetooth mesh service started with nickname: ${this.nickname}, isActive: ${this.isActive}`
         );
 
         // Start polling for peers
@@ -345,6 +336,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Stop Bluetooth mesh service
      */
     async stopService() {
+      console.log("🔧 Bluetooth stopService called");
       try {
         if (this.isDesktop) {
           webBluetoothService.disconnectAll();

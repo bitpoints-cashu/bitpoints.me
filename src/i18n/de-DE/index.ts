@@ -64,6 +64,12 @@ export default {
       failed_to_decode_invoice: "Rechnung konnte nicht dekodiert werden",
       invalid_lnurl: "Ungültige LNURL",
       lnurl_error: "LNURL Fehler",
+      lnurl_withdraw_error: "LNURL-Withdraw Fehler",
+      no_lnurl_withdraw_data: "Keine LNURL-Withdraw-Daten",
+      lnurl_withdraw_amount_out_of_range:
+        "Abhebungsbetrag außerhalb des erlaubten Bereichs",
+      lnurl_withdraw_requested:
+        "Abhebung angefordert. Warte auf Zahlung von {amount}.",
       no_amount: "Kein Betrag",
       no_lnurl_data: "Keine LNURL-Daten",
       no_price_data: "Keine Preisdaten.",
@@ -1193,6 +1199,25 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label:
+        "{ payee } erlaubt dir { value } { ticker } abzuheben",
+      amount_range_label:
+        "{ payee } erlaubt dir{br}zwischen { min } und { max } { ticker } abzuheben",
+      inputs: {
+        amount: {
+          label: "Betrag ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },
