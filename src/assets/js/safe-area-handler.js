@@ -1,16 +1,16 @@
 /**
  * Safe Area Handler
- * 
+ *
  * Simple JavaScript solution to handle safe area insets
  * This ensures proper layout on devices with notches/Dynamic Island
  */
-(function() {
-    'use strict';
-    
-    // Function to update safe area CSS
-    function updateSafeAreaCSS() {
-        // Get safe area insets using CSS env() function
-        const css = `
+(function () {
+  "use strict";
+
+  // Function to update safe area CSS
+  function updateSafeAreaCSS() {
+    // Get safe area insets using CSS env() function
+    const css = `
             :root {
                 --safe-area-inset-top: env(safe-area-inset-top, 0px);
                 --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -93,42 +93,41 @@
                 margin-top: max(env(safe-area-inset-top, 0px), 20px) !important;
             }
         `;
-        
-        // Remove existing safe area styles
-        const existingStyle = document.getElementById('safe-area-styles');
-        if (existingStyle) {
-            existingStyle.remove();
-        }
-        
-        // Add new safe area styles
-        const style = document.createElement('style');
-        style.id = 'safe-area-styles';
-        style.textContent = css;
-        document.head.appendChild(style);
-        
-        console.log('Safe area CSS updated');
+
+    // Remove existing safe area styles
+    const existingStyle = document.getElementById("safe-area-styles");
+    if (existingStyle) {
+      existingStyle.remove();
     }
-    
-    // Function to handle orientation changes
-    function handleOrientationChange() {
-        setTimeout(updateSafeAreaCSS, 100);
-    }
-    
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateSafeAreaCSS);
-    } else {
-        updateSafeAreaCSS();
-    }
-    
-    // Handle orientation changes
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
-    
-    // Also update when Capacitor is ready
-    document.addEventListener('deviceready', updateSafeAreaCSS);
-    
-    // Export for manual updates if needed
-    window.updateSafeAreaCSS = updateSafeAreaCSS;
-    
+
+    // Add new safe area styles
+    const style = document.createElement("style");
+    style.id = "safe-area-styles";
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    console.log("Safe area CSS updated");
+  }
+
+  // Function to handle orientation changes
+  function handleOrientationChange() {
+    setTimeout(updateSafeAreaCSS, 100);
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", updateSafeAreaCSS);
+  } else {
+    updateSafeAreaCSS();
+  }
+
+  // Handle orientation changes
+  window.addEventListener("orientationchange", handleOrientationChange);
+  window.addEventListener("resize", handleOrientationChange);
+
+  // Also update when Capacitor is ready
+  document.addEventListener("deviceready", updateSafeAreaCSS);
+
+  // Export for manual updates if needed
+  window.updateSafeAreaCSS = updateSafeAreaCSS;
 })();

@@ -5,7 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 /**
  * Noise encrypted payload types and handling - 100% compatible with iOS SimplifiedBluetoothService
- * 
+ *
  * This handles all encrypted content that goes through noiseEncrypted packets:
  * - Private messages with TLV encoding
  * - Delivery acknowledgments
@@ -59,17 +59,17 @@ data class NoisePayload(
          */
         fun decode(data: ByteArray): NoisePayload? {
             if (data.isEmpty()) return null
-            
+
             val typeValue = data[0].toUByte()
             val type = NoisePayloadType.fromValue(typeValue) ?: return null
-            
+
             // Extract payload data (remaining bytes after type byte)
             val payloadData = if (data.size > 1) {
                 data.copyOfRange(1, data.size)
             } else {
                 ByteArray(0)
             }
-            
+
             return NoisePayload(type, payloadData)
         }
     }
@@ -78,12 +78,12 @@ data class NoisePayload(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-        
+
         other as NoisePayload
-        
+
         if (type != other.type) return false
         if (!data.contentEquals(other.data)) return false
-        
+
         return true
     }
 
@@ -95,7 +95,11 @@ data class NoisePayload(
 }
 
 /**
- * Private message packet with TLV encoding - matches iOS PrivateMessagePacket exactly
+ * Private message packet with TLV encoding - 2-byte length fields for large messages
+ *
+ * NOTE: This uses 2-byte length fields (up to 65KB) instead of 1-byte (255 bytes max).
+ * This breaks backward compatibility with BitChat's 1-byte TLV implementation.
+ * BitChat will need to upgrade to 2-byte TLV to exchange messages with BitPoints.
  */
 @Parcelize
 data class PrivateMessagePacket(
@@ -109,7 +113,7 @@ data class PrivateMessagePacket(
     private enum class TLVType(val value: UByte) {
         MESSAGE_ID(0x00u),
         CONTENT(0x01u);
-        
+
         companion object {
             fun fromValue(value: UByte): TLVType? {
                 return values().find { it.value == value }
@@ -118,10 +122,49 @@ data class PrivateMessagePacket(
     }
 
     /**
-     * Encode to TLV binary data - exactly like iOS
-     * Format: [type][length][value] for each field
+     * Encode to TLV binary data with 2-byte length fields (default for large content)
+     * Format: [type:u8][length:u16][value] for each field
+     * Supports up to 65KB per field (2-byte length)
      */
     fun encode(): ByteArray? {
+        return encode2B()
+    }
+
+    /**
+     * Encode to TLV binary data with 2-byte fields
+     * Format: [type:u16][length:u16][value] - matches Bitchat exactly
+     */
+    fun encode2B(): ByteArray? {
+        val messageIDData = messageID.toByteArray(Charsets.UTF_8)
+        val contentData = content.toByteArray(Charsets.UTF_8)
+
+        // 2-byte length supports up to 65535
+        if (messageIDData.size > 0xFFFF || contentData.size > 0xFFFF) return null
+
+        val out = mutableListOf<Byte>()
+
+        fun put(type: UShort, value: ByteArray) {
+            // type u16
+            out.add(((type.toInt() ushr 8) and 0xFF).toByte())
+            out.add((type.toInt() and 0xFF).toByte())
+            // length u16
+            out.add(((value.size ushr 8) and 0xFF).toByte())
+            out.add((value.size and 0xFF).toByte())
+            out.addAll(value.toList())
+        }
+
+        put(0u, messageIDData)
+        put(1u, contentData)
+
+        return out.toByteArray()
+    }
+
+    /**
+     * Encode to TLV binary data with 1-byte length fields (legacy format)
+     * Format: [type:u8][length:u8][value] for each field
+     * Supports up to 255 bytes per field
+     */
+    fun encode1B(): ByteArray? {
         val messageIDData = messageID.toByteArray(Charsets.UTF_8)
         val contentData = content.toByteArray(Charsets.UTF_8)
         
@@ -144,51 +187,78 @@ data class PrivateMessagePacket(
         
         return result.toByteArray()
     }
-    
+
     companion object {
         /**
-         * Decode from TLV binary data - exactly like iOS
+         * Decode from TLV binary data. Tries 2-byte TLV first, then legacy 1-byte TLV.
          */
         fun decode(data: ByteArray): PrivateMessagePacket? {
+            decode2B(data)?.let { return it }
+            return decode1B(data)
+        }
+
+        private fun decode2B(data: ByteArray): PrivateMessagePacket? {
             var offset = 0
             var messageID: String? = null
             var content: String? = null
-            
-            while (offset + 2 <= data.size) {
-                // Read TLV type
-                val typeValue = data[offset].toUByte()
-                val type = TLVType.fromValue(typeValue) ?: return null
-                offset += 1
-                
-                // Read TLV length
-                val length = data[offset].toUByte().toInt()
-                offset += 1
-                
-                // Check bounds
-                if (offset + length > data.size) return null
-                
-                // Read TLV value
+
+            while (offset + 4 <= data.size) {
+                // Read type u16
+                val tHigh = data[offset].toInt() and 0xFF
+                val tLow = data[offset + 1].toInt() and 0xFF
+                val type = (tHigh shl 8) or tLow
+                offset += 2
+
+                // Read length u16
+                if (offset + 2 > data.size) return null
+                val lHigh = data[offset].toInt() and 0xFF
+                val lLow = data[offset + 1].toInt() and 0xFF
+                val length = (lHigh shl 8) or lLow
+                offset += 2
+
+                if (length < 0 || offset + length > data.size) return null
                 val value = data.copyOfRange(offset, offset + length)
                 offset += length
-                
+
                 when (type) {
-                    TLVType.MESSAGE_ID -> {
-                        messageID = String(value, Charsets.UTF_8)
-                    }
-                    TLVType.CONTENT -> {
-                        content = String(value, Charsets.UTF_8)
+                    0 -> messageID = String(value, Charsets.UTF_8)
+                    1 -> content = String(value, Charsets.UTF_8)
+                    else -> {
+                        // Unknown type, ignore for forward compatibility
                     }
                 }
             }
-            
-            return if (messageID != null && content != null) {
-                PrivateMessagePacket(messageID, content)
-            } else {
-                null
+
+            return if (messageID != null && content != null) PrivateMessagePacket(messageID, content) else null
+        }
+
+        private fun decode1B(data: ByteArray): PrivateMessagePacket? {
+            var offset = 0
+            var messageID: String? = null
+            var content: String? = null
+
+            while (offset + 2 <= data.size) {
+                val typeValue = data[offset].toUByte()
+                val type = TLVType.fromValue(typeValue) ?: return null
+                offset += 1
+
+                val length = data[offset].toUByte().toInt()
+                offset += 1
+
+                if (length < 0 || offset + length > data.size) return null
+                val value = data.copyOfRange(offset, offset + length)
+                offset += length
+
+                when (type) {
+                    TLVType.MESSAGE_ID -> messageID = String(value, Charsets.UTF_8)
+                    TLVType.CONTENT -> content = String(value, Charsets.UTF_8)
+                }
             }
+
+            return if (messageID != null && content != null) PrivateMessagePacket(messageID, content) else null
         }
     }
-    
+
     override fun toString(): String {
         return "PrivateMessagePacket(messageID='$messageID', content='${content.take(50)}${if (content.length > 50) "..." else ""}')"
     }

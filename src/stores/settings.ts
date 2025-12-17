@@ -1,11 +1,7 @@
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
 
-const defaultNostrRelays = [
-  "wss://relay.damus.io",
-  "wss://relay.8333.space/",
-  "wss://nos.lol",
-];
+const defaultNostrRelays = ["wss://relay.damus.io", "wss://nos.lol"];
 
 export const useSettingsStore = defineStore("settings", {
   state: () => {
@@ -82,14 +78,36 @@ export const useSettingsStore = defineStore("settings", {
         "cashu.settings.bip177",
         false
       ),
+      // Enable BitChat-compatible Nostr interop (TLV + giftwrap)
+      bitchatInteropEnabled: useLocalStorage<boolean>(
+        "cashu.settings.bitchatInteropEnabled",
+        false
+      ),
       multinutEnabled: useLocalStorage<boolean>(
         "cashu.settings.multinutEnabled",
         false
       ),
       nostrMintBackupEnabled: useLocalStorage<boolean>(
         "cashu.settings.nostrMintBackupEnabled",
-        false
+        true
       ),
+      walletDisplayUnit: useLocalStorage<string>(
+        "cashu.settings.walletDisplayUnit",
+        "sat"
+      ),
+      showBitcoin: useLocalStorage<boolean>("cashu.settings.showBitcoin", true),
+      showPoints: useLocalStorage<boolean>("cashu.settings.showPoints", false),
+      // Toggle native/Web Bluetooth mesh.
+      // Force enabled for all builds (native + PWA)
+      bluetoothEnabled: (() => {
+        const bluetoothRef = useLocalStorage<boolean>(
+          "cashu.settings.bluetoothEnabled",
+          true
+        );
+        // Force it to be true
+        bluetoothRef.value = true;
+        return bluetoothRef;
+      })(),
     };
   },
 });

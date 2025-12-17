@@ -2,6 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-parcelize'
 
+// Load keystore properties
+def keystorePropertiesFile = rootProject.file("app/keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "me.bitpoints.wallet"
     compileSdk rootProject.ext.compileSdkVersion
@@ -9,8 +16,8 @@ android {
         applicationId "me.bitpoints.wallet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 12
+        versionName "0.1.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,10 +25,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    packaging {
+        resources {
+            excludes += ['META-INF/INDEX.LIST', 'META-INF/DEPENDENCIES']
         }
     }
     compileOptions {
@@ -66,6 +89,22 @@ dependencies {
 
     // AndroidX Security for encrypted storage
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
+
+    // OkHttp for WebSocket connections (Nostr relays)
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+
+    // Tink for XChaCha20Poly1305 encryption (NIP-44)
+    implementation "com.google.crypto.tink:tink-android:1.12.0"
+
+    // Google Sign-In and Drive API for Google Drive backups
+    // Temporarily disabled to fix lint issues - can be re-enabled later
+    // implementation "com.google.android.gms:play-services-auth:21.2.0"
+    // implementation "com.google.api-client:google-api-client-android:2.4.0"
+    // implementation "com.google.api-client:google-api-client-gson:2.4.0"
+    // implementation("com.google.http-client:google-http-client-android:1.43.3") {
+    //     exclude group: "org.apache.httpcomponents"
+    //     exclude module: "httpclient"
+    // }
 }
 
 apply from: 'capacitor.build.gradle'

@@ -84,6 +84,318 @@
       </q-list>
     </div>
 
+    <!-- RECOVERBULL BACKUP SECTION -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">RecoverBull Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left" on-left>
+      <q-list padding class="recoverbull-backup-list">
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              RecoverBull Backup
+            </q-item-label>
+            <q-item-label caption>
+              Secure your seed phrase using the RecoverBull protocol. Your
+              password unlocks the encrypted backup key stored on
+              {{ recoverbullKeyServerStore.baseUrl }}.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullPassword"
+              type="password"
+              label="Backup password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="new-password"
+              :disable="recoverbullBackupStore.backupInProgress"
+            />
+          </q-item-section>
+          <q-item-section side>
+            <q-btn
+              outline
+              color="primary"
+              :loading="recoverbullBackupStore.backupInProgress"
+              :disable="
+                recoverbullBackupStore.backupInProgress || !recoverbullPassword
+              "
+              @click="createRecoverbullBackup"
+            >
+              Create Backup
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullBackupStore.lastError">
+          <q-item-section>
+            <q-banner class="bg-negative text-white" dense>
+              {{ recoverbullBackupStore.lastError }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullRateLimit">
+          <q-item-section>
+            <q-banner class="bg-warning text-dark" dense>
+              Key server rate limit is active. Please wait before retrying.
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullLastBackup">
+          <q-item-section>
+            <q-item-label caption>
+              Backup ID: {{ recoverbullLastBackup.identifierHex }}
+            </q-item-label>
+            <q-item-label caption>
+              Created
+              {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side class="row items-center no-wrap">
+            <q-btn
+              round
+              dense
+              flat
+              icon="content_copy"
+              @click="copyRecoverbullBackupJson"
+            >
+              <q-tooltip>Copy backup JSON</q-tooltip>
+            </q-btn>
+            <q-btn flat color="primary" @click="downloadRecoverbullBackup">
+              Download JSON
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <q-separator class="q-my-md" />
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore from RecoverBull Backup
+            </q-item-label>
+            <q-item-label caption>
+              Provide the backup file (or paste its content) and password to
+              recover your mnemonic.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullRestorePassword"
+              type="password"
+              label="Restore password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="current-password"
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+            <q-file
+              v-model="recoverbullBackupFile"
+              accept="application/json"
+              color="primary"
+              outlined
+              dense
+              label="Select RecoverBull backup file"
+              :disable="recoverbullBackupStore.restoreInProgress"
+              @update:model-value="onRecoverbullBackupFileSelected"
+            >
+              <template v-slot:after>
+                <span class="text-caption text-grey-7">{{
+                  recoverbullBackupFileName || "No file selected"
+                }}</span>
+              </template>
+            </q-file>
+            <q-input
+              v-model="recoverbullBackupText"
+              type="textarea"
+              label="Or paste backup JSON"
+              autogrow
+              outlined
+              dense
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-btn
+              outline
+              color="warning"
+              :loading="recoverbullBackupStore.restoreInProgress"
+              :disable="
+                recoverbullBackupStore.restoreInProgress ||
+                (!recoverbullBackupFileContent && !recoverbullBackupText) ||
+                !recoverbullRestorePassword
+              "
+              @click="restoreRecoverbullBackup"
+            >
+              Restore Backup
+            </q-btn>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
+    <!-- ENCRYPTED SEED BACKUP (OFFLINE) -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">Encrypted Seed Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left">
+      <input
+        ref="encryptedSeedFileInput"
+        type="file"
+        accept="application/json"
+        class="hidden-file-input"
+        @change="handleEncryptedSeedFile"
+      />
+      <q-list padding>
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Create Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Choose a passphrase (min 6 characters). The mnemonic will be
+              encrypted client-side and offered as a downloadable JSON file.
+            </q-item-label>
+            <q-input
+              v-model="downloadPassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadPassphraseConfirm"
+              type="password"
+              outlined
+              dense
+              label="Confirm Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadNote"
+              type="text"
+              outlined
+              dense
+              label="Optional Note"
+              counter
+              maxlength="120"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="primary"
+                outline
+                label="Download Encrypted Seed"
+                :loading="downloadInProgress"
+                @click="downloadEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore From Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Upload a previously downloaded encrypted seed file or paste the
+              JSON payload below, then enter the passphrase to restore.
+            </q-item-label>
+            <div class="q-mt-sm row items-center">
+              <q-btn
+                outline
+                color="primary"
+                label="Upload Encrypted File"
+                @click="triggerEncryptedSeedFileDialog"
+              />
+              <div v-if="restoreFileName" class="text-caption q-ml-sm">
+                {{ restoreFileName }}
+              </div>
+            </div>
+            <q-input
+              v-model="restorePayload"
+              type="textarea"
+              outlined
+              autogrow
+              label="Encrypted JSON payload"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="restorePassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="warning"
+                outline
+                label="Restore Seed From Encrypted Backup"
+                :loading="restoreInProgress"
+                @click="restoreEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="downloadMessage">
+          <q-item-section>
+            <q-banner
+              dense
+              :class="
+                downloadMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
+              {{ downloadMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="restoreMessage">
+          <q-item-section>
+            <q-banner
+              dense
+              :class="
+                restoreMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
+              {{ restoreMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
     <!-- BLUETOOTH SETTINGS SECTION -->
     <div class="section-divider q-my-md">
       <div class="divider-line"></div>
@@ -1061,6 +1373,34 @@
               />
             </q-item-section>
           </q-item>
+          <!-- wallet display unit -->
+          <q-item>
+            <q-item-section>
+              <q-item-label overline class="text-weight-bold"
+                >Wallet Display Unit</q-item-label
+              >
+              <q-item-label caption
+                >Choose how to display amounts on the wallet
+                screen</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+          <q-item>
+            <q-item-section>
+              <q-select
+                v-model="walletDisplayUnit"
+                :options="[
+                  { label: 'Sats', value: 'sat' },
+                  { label: 'Points', value: 'points' },
+                ]"
+                rounded
+                outlined
+                dense
+                emit-value
+                map-options
+              />
+            </q-item-section>
+          </q-item>
         </div>
 
         <div class="section-divider q-my-md">
@@ -1359,6 +1699,39 @@
               <q-toggle
                 v-model="bip177BitcoinSymbol"
                 :label="$t('Settings.appearance.bip177.toggle')"
+                color="primary"
+              />
+            </q-item>
+          </q-list>
+        </div>
+
+        <!-- wallet display -->
+        <div class="q-py-sm q-px-xs text-left" on-left>
+          <q-list padding>
+            <q-item>
+              <q-item-section>
+                <q-item-label overline class="text-weight-bold"
+                  >Wallet Display</q-item-label
+                >
+                <q-item-label caption
+                  >Choose which balance types to show on the wallet
+                  page</q-item-label
+                >
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showBitcoin"
+                @update:model-value="handleBitcoinToggle"
+                label="Show Bitcoin (sats)"
+                color="primary"
+              />
+            </q-item>
+            <q-item>
+              <q-toggle
+                v-model="showPoints"
+                @update:model-value="handlePointsToggle"
+                label="Show Points"
                 color="primary"
               />
             </q-item>
@@ -2003,6 +2376,12 @@ import { getShortUrl } from "src/js/wallet-helpers";
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { useMintsStore, MintClass } from "src/stores/mints";
 import { useWalletStore } from "src/stores/wallet";
+import {
+  encryptMnemonicWithPassphrase,
+  decryptMnemonicWithPassphrase,
+  downloadEncryptedVault,
+  parseEncryptedVaultPayload,
+} from "src/utils/passphraseVault";
 import { map } from "underscore";
 import { useSettingsStore } from "src/stores/settings";
 import { useNostrStore } from "src/stores/nostr";
@@ -2022,6 +2401,8 @@ import { useNPCV2Store } from "src/stores/npcv2";
 import { useNostrMintBackupStore } from "src/stores/nostrMintBackup";
 import { usePriceStore } from "src/stores/price";
 import { useI18n } from "vue-i18n";
+import { useRecoverbullBackupStore } from "src/stores/recoverbullBackup";
+import { useRecoverbullKeyServerStore } from "src/stores/recoverbullKeyServer";
 
 export default defineComponent({
   name: "SettingsView",
@@ -2106,12 +2487,29 @@ export default defineComponent({
       nip46Token: "",
       nip07SignerAvailable: false,
       newRelay: "",
+      downloadPassphrase: "",
+      downloadPassphraseConfirm: "",
+      downloadNote: "",
+      downloadInProgress: false,
+      downloadMessage: null,
+      restorePayload: "",
+      restorePassphrase: "",
+      restoreFileName: "",
+      restoreInProgress: false,
+      restoreMessage: null,
+      recoverbullPassword: "",
+      recoverbullRestorePassword: "",
+      recoverbullBackupFile: null as File | null,
+      recoverbullBackupFileName: "",
+      recoverbullBackupFileContent: "",
+      recoverbullBackupText: "",
     };
   },
   computed: {
     ...mapWritableState(useSettingsStore, [
       "getBitcoinPrice",
       "bitcoinPriceCurrency",
+      "walletDisplayUnit",
       "checkSentTokens",
       "useWebsockets",
       "nfcEncoding",
@@ -2126,9 +2524,13 @@ export default defineComponent({
       "auditorUrl",
       "auditorApiUrl",
       "bip177BitcoinSymbol",
+      "showBitcoin",
+      "showPoints",
       "multinutEnabled",
       "nostrMintBackupEnabled",
     ]),
+    recoverbullBackupStore: () => useRecoverbullBackupStore(),
+    recoverbullKeyServerStore: () => useRecoverbullKeyServerStore(),
     ...mapState(useP2PKStore, ["p2pkKeys"]),
     ...mapWritableState(useP2PKStore, [
       "showP2PKDialog",
@@ -2150,6 +2552,7 @@ export default defineComponent({
       "seedSignerPrivateKeyNsec",
     ]),
     ...mapState(useWalletStore, ["mnemonic"]),
+    walletStore: () => useWalletStore(),
     ...mapState(useUiStore, ["ndefSupported"]),
     ...mapWritableState(useNPCV2Store, [
       "npcV2Loading",
@@ -2204,6 +2607,12 @@ export default defineComponent({
       set(value) {
         this.nwcEnabled = value;
       },
+    },
+    recoverbullLastBackup() {
+      return this.recoverbullBackupStore.lastBackup;
+    },
+    recoverbullRateLimit() {
+      return this.recoverbullKeyServerStore.rateLimit;
     },
   },
   watch: {
@@ -2459,6 +2868,353 @@ export default defineComponent({
         this.updateBitcoinPriceForCurrentCurrency();
       }
     },
+
+    formatDateTime(date: Date) {
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
+    },
+
+    async createRecoverbullBackup() {
+      if (!this.recoverbullPassword) {
+        this.$q.notify({
+          type: "warning",
+          message: "Enter a password to create a RecoverBull backup.",
+        });
+        return;
+      }
+
+      try {
+        const mnemonicString = this.walletStore.initializeMnemonic();
+        const mnemonicWords = mnemonicString.trim().split(/\s+/);
+
+        const summary = await this.recoverbullBackupStore.createBackup({
+          mnemonic: mnemonicWords,
+          password: this.recoverbullPassword,
+        });
+
+        this.$q.notify({
+          type: "positive",
+          message: "RecoverBull backup created. Download the backup file now.",
+        });
+
+        // Auto-download for convenience
+        this.downloadRecoverbullBackup();
+      } catch (error: any) {
+        console.error("RecoverBull backup failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: error?.message ?? "Failed to create RecoverBull backup.",
+        });
+      }
+    },
+
+    downloadRecoverbullBackup() {
+      const summary = this.recoverbullBackupStore.lastBackup;
+      if (!summary) {
+        return;
+      }
+      if (typeof document === "undefined") {
+        console.warn("Cannot download backup: document is unavailable.");
+        return;
+      }
+      try {
+        const blob = new Blob([summary.backupJson], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = summary.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Failed to trigger backup download:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Unable to download backup file.",
+        });
+      }
+    },
+
+    async copyRecoverbullBackupJson() {
+      const summary = this.recoverbullBackupStore.lastBackup;
+      if (!summary) {
+        return;
+      }
+
+      try {
+        if (
+          typeof navigator === "undefined" ||
+          !navigator.clipboard ||
+          !navigator.clipboard.writeText
+        ) {
+          throw new Error("Clipboard API not available");
+        }
+        await navigator.clipboard.writeText(summary.backupJson);
+        this.$q.notify({
+          type: "positive",
+          message: "Backup JSON copied to clipboard.",
+        });
+      } catch (error) {
+        console.error("Failed to copy RecoverBull backup JSON:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Unable to copy backup JSON.",
+        });
+      }
+    },
+
+    onRecoverbullBackupFileSelected(file: File | File[] | null) {
+      if (!file) {
+        this.recoverbullBackupFileContent = "";
+        this.recoverbullBackupFileName = "";
+        return;
+      }
+
+      const selectedFile = Array.isArray(file) ? file[0] : file;
+      if (!selectedFile) {
+        this.recoverbullBackupFileContent = "";
+        this.recoverbullBackupFileName = "";
+        return;
+      }
+
+      this.recoverbullBackupFileName = selectedFile.name;
+      selectedFile
+        .text()
+        .then((content) => {
+          this.recoverbullBackupFileContent = content;
+        })
+        .catch((error) => {
+          console.error("Failed to read backup file:", error);
+          this.recoverbullBackupFileContent = "";
+          this.$q.notify({
+            type: "negative",
+            message: "Unable to read backup file.",
+          });
+        });
+    },
+
+    async restoreRecoverbullBackup() {
+      const backupJson =
+        this.recoverbullBackupFileContent || this.recoverbullBackupText;
+      if (!backupJson) {
+        this.$q.notify({
+          type: "warning",
+          message: "Provide a RecoverBull backup file or JSON payload.",
+        });
+        return;
+      }
+      if (!this.recoverbullRestorePassword) {
+        this.$q.notify({
+          type: "warning",
+          message: "Enter the password used when creating the backup.",
+        });
+        return;
+      }
+
+      try {
+        const mnemonic = await this.recoverbullBackupStore.restoreBackup({
+          backupJson,
+          password: this.recoverbullRestorePassword,
+        });
+
+        if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
+          throw new Error("Recovered mnemonic is invalid.");
+        }
+
+        this.walletStore.mnemonic = mnemonic.join(" ");
+        this.hideMnemonic = true;
+        this.$q.notify({
+          type: "positive",
+          message: "RecoverBull backup restored successfully.",
+        });
+      } catch (error: any) {
+        console.error("RecoverBull restore failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: error?.message ?? "Failed to restore RecoverBull backup.",
+        });
+      }
+    },
+    async downloadEncryptedSeed() {
+      if (this.downloadInProgress) {
+        return;
+      }
+      this.downloadMessage = null;
+      const passphrase = this.downloadPassphrase.trim();
+      const confirm = this.downloadPassphraseConfirm.trim();
+
+      if (passphrase.length < 6) {
+        this.$q.notify({
+          type: "warning",
+          message: "Passphrase must be at least 6 characters long.",
+        });
+        return;
+      }
+      if (passphrase !== confirm) {
+        this.$q.notify({
+          type: "warning",
+          message: "Passphrase confirmation does not match.",
+        });
+        return;
+      }
+
+      this.downloadInProgress = true;
+      try {
+        const mnemonicString = this.walletStore.initializeMnemonic();
+        const mnemonic = mnemonicString.trim().split(/\s+/);
+        const vault = await encryptMnemonicWithPassphrase(
+          mnemonic,
+          passphrase,
+          this.downloadNote ? this.downloadNote.trim() : undefined
+        );
+        downloadEncryptedVault(vault);
+        this.downloadMessage = {
+          type: "success",
+          text: "Encrypted seed downloaded. Store the JSON file and passphrase securely—both are required to recover your wallet.",
+        };
+        this.$q.notify({
+          type: "positive",
+          message: "Encrypted seed downloaded successfully.",
+        });
+        this.downloadPassphrase = "";
+        this.downloadPassphraseConfirm = "";
+        this.downloadNote = "";
+      } catch (error) {
+        const message =
+          (error as Error).message ||
+          "Failed to generate encrypted seed backup.";
+        this.downloadMessage = {
+          type: "error",
+          text: message,
+        };
+        this.$q.notify({
+          type: "negative",
+          message,
+        });
+      } finally {
+        this.downloadInProgress = false;
+      }
+    },
+    triggerEncryptedSeedFileDialog() {
+      const input = this.$refs.encryptedSeedFileInput as
+        | HTMLInputElement
+        | undefined;
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    },
+    handleEncryptedSeedFile(event: Event) {
+      const target = event.target as HTMLInputElement;
+      const file = target?.files?.[0];
+      if (!file) {
+        return;
+      }
+      this.restoreFileName = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          this.restorePayload = result;
+          this.restoreMessage = {
+            type: "success",
+            text: "Encrypted payload loaded from file. Enter your passphrase to restore.",
+          };
+        }
+      };
+      reader.onerror = () => {
+        this.restoreMessage = {
+          type: "error",
+          text: "Failed to read encrypted file. Please try again.",
+        };
+      };
+      reader.readAsText(file, "utf-8");
+    },
+    async restoreEncryptedSeed() {
+      if (this.restoreInProgress) {
+        return;
+      }
+      this.restoreMessage = null;
+      const payload = this.restorePayload.trim();
+      const passphrase = this.restorePassphrase.trim();
+
+      if (!payload) {
+        this.$q.notify({
+          type: "warning",
+          message: "Paste the encrypted JSON payload or upload the file first.",
+        });
+        return;
+      }
+      if (passphrase.length === 0) {
+        this.$q.notify({
+          type: "warning",
+          message: "Enter the passphrase you used when encrypting the backup.",
+        });
+        return;
+      }
+
+      this.restoreInProgress = true;
+      try {
+        const vault = parseEncryptedVaultPayload(payload);
+        const { mnemonic } = await decryptMnemonicWithPassphrase(
+          vault,
+          passphrase
+        );
+        if (!Array.isArray(mnemonic) || mnemonic.length === 0) {
+          throw new Error("Encrypted backup did not contain a valid mnemonic.");
+        }
+
+        this.walletStore.mnemonic = mnemonic.join(" ");
+        this.hideMnemonic = true;
+        this.restoreMessage = {
+          type: "success",
+          text: "Seed phrase restored from encrypted backup. Remember to clear any sensitive data when you are done.",
+        };
+        this.$q.notify({
+          type: "positive",
+          message: "Seed phrase restored successfully.",
+        });
+      } catch (error) {
+        const message =
+          (error as Error).message ||
+          "Failed to decrypt encrypted backup. Check the passphrase and payload.";
+        this.restoreMessage = {
+          type: "error",
+          text: message,
+        };
+        this.$q.notify({
+          type: "negative",
+          message,
+        });
+      } finally {
+        this.restoreInProgress = false;
+      }
+    },
+    handleBitcoinToggle: function (enabled) {
+      if (!enabled && !this.showPoints) {
+        // Prevent disabling Bitcoin if Points is also disabled
+        this.showBitcoin = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
+      }
+    },
+    handlePointsToggle: function (enabled) {
+      if (!enabled && !this.showBitcoin) {
+        // Prevent disabling Points if Bitcoin is also disabled
+        this.showPoints = true; // Revert the change
+        this.$q.notify({
+          type: "warning",
+          message: "At least one balance type must be enabled",
+        });
+      }
+    },
   },
   created: async function () {
     this.nip07SignerAvailable = await this.checkNip07Signer();
@@ -2483,6 +3239,10 @@ export default defineComponent({
   flex: 1;
   height: 1px;
   background-color: #48484a;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .divider-text {

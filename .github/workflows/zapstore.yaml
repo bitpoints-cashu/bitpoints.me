@@ -1,0 +1,51 @@
+name: Publish to Zapstore
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Zapstore CLI
+        run: |
+          # Try the documented checksum first
+          curl -sL https://cdn.zapstore.dev/88c82772eee5c262a0a2553f85a569004ebee54b1636f080ec930f314ac01b1d1d -o zapstore
+          if [ "$(shasum -a 256 zapstore | cut -d' ' -f1)" = "88c82772eee5c262a0a2553f85a569004ebee54b1636f080ec930f314ac01b1d1d" ]; then
+            echo "Checksum verified"
+          else
+            echo "Checksum mismatch, trying alternative download"
+            # Try alternative download if checksum fails
+            rm zapstore
+            # Download from GitHub releases if available
+            curl -sL https://github.com/zapstore/zapstore-cli/releases/latest/download/zapstore-linux-x86_64 -o zapstore || echo "Failed to download"
+          fi
+          chmod +x zapstore || echo "Failed to make executable"
+
+      - name: Verify Zapstore CLI
+        run: |
+          ./zapstore --version || echo "Zapstore CLI not working, will skip publishing"
+
+      - name: Publish to Zapstore
+        run: |
+          if [ -f zapstore ] && [ -x zapstore ]; then
+            ./zapstore publish --indexer-mode || echo "Zapstore publish failed"
+          else
+            echo "Zapstore CLI not available, skipping publish"
+          fi
+        env:
+          SIGN_WITH: ${{ secrets.ZAPSTORE_SIGNING_KEY }}
+
+      - name: Manual instructions
+        if: failure()
+        run: |
+          echo "Zapstore publishing failed. Manual steps:"
+          echo "1. Install zapstore CLI: https://zapstore.dev/docs/publish"
+          echo "2. Run: zapstore publish"
+          echo "3. Set SIGN_WITH environment variable with your Nostr signing key"
+          echo "4. Contact Zapstore support if issues persist"

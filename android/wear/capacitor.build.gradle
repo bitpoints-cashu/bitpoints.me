@@ -1,0 +1,34 @@
+// Capacitor build configuration for Wear OS module
+
+android {
+    // Add Capacitor specific configurations
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+    }
+
+    // Ensure proper signing for Wear OS
+    signingConfigs {
+        debug {
+            // Use default debug keystore
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.debug // Use debug for now
+        }
+    }
+}
+
+// Add Capacitor dependencies
+dependencies {
+    // Capacitor core
+    implementation project(':capacitor-android')
+
+    // Capacitor plugins
+    implementation project(':capacitor-cordova-android-plugins')
+}

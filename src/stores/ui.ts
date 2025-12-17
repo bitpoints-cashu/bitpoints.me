@@ -16,6 +16,7 @@ import { useSettingsStore } from "./settings";
 
 const unitTickerShortMap = {
   points: "points",
+  sat: "sats",
   usd: "USD",
   eur: "EUR",
   msat: "msats",
@@ -32,7 +33,7 @@ export const useUiStore = defineStore("ui", {
     showNumericKeyboard: false,
     activityOrb: false,
     tab: useLocalStorage("cashu.ui.tab", "history" as string),
-    expandHistory: useLocalStorage("cashu.ui.expandHistory", false as boolean),
+    expandHistory: useLocalStorage("cashu.ui.expandHistory", true as boolean),
     globalMutexLock: false,
     showDebugConsole: useLocalStorage("cashu.ui.showDebugConsole", false),
     lastBalanceCached: useLocalStorage("cashu.ui.lastBalanceCached", 0),
@@ -99,7 +100,10 @@ export const useUiStore = defineStore("ui", {
           return "****";
         }
         if (currency == "points") return this.formatPoints(value);
-        if (currency == "sat") return this.formatSatAsPoints(value);
+        if (currency == "sat")
+          return (
+            new Intl.NumberFormat(navigator.language).format(value) + " sats"
+          );
         if (currency == "msat") return this.fromMsat(value);
         if (currency == "usd") value = value / 100;
         if (currency == "eur") value = value / 100;

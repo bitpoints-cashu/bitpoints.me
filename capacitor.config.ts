@@ -1,15 +1,48 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const config: CapacitorConfig = {
-  appId: "me.bitpoints.wallet",
-  appName: "Bitpoints.me",
-  webDir: "dist/spa/",
-  android: {
-    includePlugins: ["BluetoothEcash"],
+// Get active brand from environment
+const getActiveBrandId = () => process.env.BRAND || "bitpoints";
+
+// Brand configurations
+const brandConfigs: Record<string, { appId: string; appName: string }> = {
+  bitpoints: {
+    appId: "me.bitpoints.wallet",
+    appName: "Bitpoints.me",
   },
-  ios: {
-    includePlugins: ["BluetoothEcash", "Camera"],
+  trails: {
+    appId: "com.trailscoffee.points",
+    appName: "Trails Coffee Points",
+  },
+  pandewaffle: {
+    appId: "me.bitpoints.pandewaffle",
+    appName: "Pandewaffle",
   },
 };
 
-export default config;
+const activeBrandId = getActiveBrandId();
+const brandConfig = brandConfigs[activeBrandId] || brandConfigs.bitpoints;
+
+const config: CapacitorConfig = {
+  appId: brandConfig.appId,
+  appName: brandConfig.appName,
+  webDir: "dist/spa/",
+  packageClassList: [
+    "CAPCameraPlugin",
+    "ClipboardPlugin",
+    "HapticsPlugin",
+    "SafeAreaPlugin",
+  ],
+};
+
+// Wear OS configuration
+const wearConfig: CapacitorConfig = {
+  appId: "me.bitpoints.wear",
+  appName: "Bitpoints Wear",
+  webDir: "dist/wear/",
+  android: {
+    path: "android/wear",
+  },
+};
+
+// Export based on environment or build target
+export default process.env.CAPACITOR_TARGET === "wear" ? wearConfig : config;

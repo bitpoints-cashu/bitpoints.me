@@ -7,4 +7,4 @@
 .eslintrc.js
 babel.config.js
 **/cashu-ts/dist/**
-/android/app/build/**
+/android/**/build/**

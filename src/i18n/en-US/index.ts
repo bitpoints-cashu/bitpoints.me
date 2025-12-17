@@ -72,6 +72,12 @@ export default {
       failed_to_decode_invoice: "Failed to decode invoice",
       invalid_lnurl: "Invalid LNURL",
       lnurl_error: "LNURL Error",
+      lnurl_withdraw_error: "LNURL-withdraw error",
+      no_lnurl_withdraw_data: "No LNURL-withdraw data",
+      lnurl_withdraw_amount_out_of_range:
+        "Withdraw amount outside allowed range",
+      lnurl_withdraw_requested:
+        "Withdraw requested. Waiting for payment of {amount}.",
       no_amount: "No amount",
       no_lnurl_data: "No LNURL data",
       no_price_data: "No price data.",
@@ -590,6 +596,15 @@ export default {
     p4: {
       text: "This app is in beta. We hold no responsibility for people losing access to rewards. Use at your own risk!",
     },
+    inputs: {
+      checkbox: {
+        label: "I have read and agree to the terms",
+      },
+      backupCheckbox: {
+        label: "I understand how to backup my wallet",
+      },
+    },
+    scrollHint: "Scroll down to accept terms and conditions",
   },
   WelcomeSlide2: {
     title: "Install PWA",
@@ -1250,6 +1265,24 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label: "{ payee } lets you withdraw { value } { ticker }",
+      amount_range_label:
+        "{ payee } lets you withdraw{br}between { min } and { max } { ticker }",
+      inputs: {
+        amount: {
+          label: "Amount ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

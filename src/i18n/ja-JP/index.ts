@@ -64,6 +64,11 @@ export default {
       failed_to_decode_invoice: "請求書をデコードできませんでした",
       invalid_lnurl: "無効なLNURL",
       lnurl_error: "LNURLエラー",
+      lnurl_withdraw_error: "LNURL-withdrawエラー",
+      no_lnurl_withdraw_data: "LNURL-withdrawデータがありません",
+      lnurl_withdraw_amount_out_of_range: "出金額が許容範囲外です",
+      lnurl_withdraw_requested:
+        "出金をリクエストしました。{amount}の支払いを待機中です。",
       no_amount: "金額がありません",
       no_lnurl_data: "LNURLデータがありません",
       no_price_data: "価格データがありません。",
@@ -1185,6 +1190,25 @@ export default {
         },
         send: {
           label: "@:global.actions.send.label",
+        },
+      },
+    },
+    lnurlwithdraw: {
+      amount_exact_label:
+        "{ payee }が{ value } { ticker }の出金を許可しています",
+      amount_range_label:
+        "{ payee }が{ min }から{ max } { ticker }の出金を許可しています",
+      inputs: {
+        amount: {
+          label: "金額 ({ ticker }) *",
+        },
+      },
+      actions: {
+        close: {
+          label: "@:global.actions.close.label",
+        },
+        withdraw: {
+          label: "Withdraw",
         },
       },
     },

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bitpoints Wear</string>
+    <string name="title_activity_main">Bitpoints Wear</string>
+
+    <!-- Wear OS specific strings -->
+    <string name="wear_app_name">Bitpoints</string>
+    <string name="wear_balance_label">Balance</string>
+    <string name="wear_send_label">Send</string>
+    <string name="wear_receive_label">Receive</string>
+    <string name="wear_history_label">History</string>
+
+    <!-- Status messages -->
+    <string name="bluetooth_scanning">Scanning...</string>
+    <string name="bluetooth_connected">Connected</string>
+    <string name="bluetooth_disconnected">Disconnected</string>
+    <string name="nostr_connected">Nostr Active</string>
+    <string name="nostr_disconnected">Nostr Offline</string>
+
+    <!-- Error messages -->
+    <string name="error_bluetooth_not_available">Bluetooth not available</string>
+    <string name="error_permissions_denied">Permissions denied</string>
+    <string name="error_connection_failed">Connection failed</string>
+    <string name="error_send_failed">Send failed</string>
+
+    <!-- Battery optimization -->
+    <string name="battery_optimization_title">Battery Optimization</string>
+    <string name="battery_optimization_message">Allow Bitpoints to run in background for Bluetooth mesh networking</string>
+    <string name="battery_optimization_allow">Allow</string>
+    <string name="battery_optimization_deny">Deny</string>
+</resources>
+

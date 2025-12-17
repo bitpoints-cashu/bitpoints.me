@@ -322,7 +322,10 @@ export default defineComponent({
       handler(newToken) {
         if (newToken && this.tokenDecodesCorrectly) {
           // Auto-receive if token is valid and not P2PK locked
-          this.autoReceiveIfValid();
+          // Use nextTick to avoid race conditions with direct receiveIfDecodes calls
+          this.$nextTick(() => {
+            this.autoReceiveIfValid();
+          });
         }
       },
       immediate: false,
@@ -542,10 +545,40 @@ export default defineComponent({
         return;
       }
 
+      // Check if token is already claimed (in history with amount < 0)
+      const tokensStore = useTokensStore();
+      const tokenInHistory = tokensStore.tokenAlreadyInHistory(
+        this.receiveData.tokensBase64
+      );
+      if (tokenInHistory && tokenInHistory.amount < 0) {
+        // Token already claimed, skip
+        console.log("ℹ️ Token already claimed, skipping auto-receive");
+        return;
+      }
+
       try {
         // Auto-receive the token
         await this.receiveIfDecodes();
-      } catch (error) {
+      } catch (error: any) {
+        // Check if error is "Token already spent" - this is expected in race conditions
+        const errorMessage = error?.message || error?.toString() || "";
+        if (
+          errorMessage.includes("Token already spent") ||
+          errorMessage.includes("already spent") ||
+          errorMessage.includes("Outputs have already been signed")
+        ) {
+          // Token was already claimed (likely by nostr auto-claim), silently handle
+          console.log("ℹ️ Token already spent, marking as claimed");
+          const tokensStore = useTokensStore();
+          const historyToken = tokensStore.tokenAlreadyInHistory(
+            this.receiveData.tokensBase64
+          );
+          if (historyToken && historyToken.amount > 0) {
+            // Mark as claimed
+            tokensStore.setTokenPaid(this.receiveData.tokensBase64);
+          }
+          return;
+        }
         console.error("Auto-receive failed:", error);
         // Don't show error notification here as it might be expected for some edge cases
       }

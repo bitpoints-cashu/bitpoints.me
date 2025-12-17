@@ -1,0 +1,29 @@
+
+> bitpoints@0.1.2 dev
+> quasar dev
+
+
+ .d88888b.
+d88P" "Y88b
+888     888
+888     888 888  888  8888b.  .d8888b   8888b.  888d888
+888     888 888  888     "88b 88K          "88b 888P"
+888 Y8b 888 888  888 .d888888 "Y8888b. .d888888 888
+Y88b.Y8b88P Y88b 888 888  888      X88 888  888 888
+ "Y888888"   "Y88888 "Y888888  88888P' "Y888888 888
+       Y8b
+
+ App •  TIP  • 🚀  You specified an explicit quasar.config.js > devServer > port. It is recommended to use a different devServer > port for each Quasar mode to avoid browser cache issues. Example: ctx.mode.ssr ? 9100 : ...
+
+ » Reported at............ 10/28/2025 3:28:18 PM
+ » App dir................ /home/juli/git/bitpoints.me
+ » App URL................ https://localhost:8080/
+                           https://209.53.47.42:8080/
+ » Dev mode............... spa
+ » Pkg quasar............. v2.18.2
+ » Pkg @quasar/app-vite... v1.11.0
+ » Browser target......... esnext
+
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme

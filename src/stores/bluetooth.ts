@@ -12,9 +12,12 @@ import { useWalletStore } from "./wallet";
 import { useNostrStore } from "./nostr";
 import { useReceiveTokensStore } from "./receiveTokensStore";
 import { useFavoritesStore } from "./favorites";
+import { useSettingsStore } from "./settings";
 import { useLocalStorage } from "@vueuse/core";
 import { notifySuccess, notifyError, notifyWarning } from "src/js/notify";
 import { Capacitor } from "@capacitor/core";
+import { btLog } from "src/utils/bluetoothLogger";
+import { generateDefaultUsername } from "src/utils/username";
 
 /**
  * Bluetooth Mesh Ecash Store
@@ -32,7 +35,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
     ),
     contacts: useLocalStorage<BluetoothContact[]>("bluetooth-contacts", []),
     pendingMessages: [] as string[], // Message IDs being sent
-    nickname: useLocalStorage<string>("bluetooth-nickname", "Bitpoints User"),
+    nickname: useLocalStorage<string>(
+      "bluetooth-nickname",
+      generateDefaultUsername()
+    ),
     alwaysOnEnabled: useLocalStorage<boolean>("bluetooth-always-on", true),
     alwaysOnActive: false,
   }),
@@ -59,9 +65,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
     /**
      * Check if any Bluetooth is available (native or web)
+     * Always return true to force Bluetooth availability
      */
     isBluetoothAvailable(): boolean {
-      return Capacitor.isNativePlatform() || this.isWebBluetoothAvailable;
+      return true; // Force Bluetooth to always be available
     },
 
     /**
@@ -107,6 +114,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
   actions: {
     /**
      * Initialize the Bluetooth service and event listeners
+     * Always initialize regardless of settings
      */
     async initialize() {
       if (this.isInitialized) return;
@@ -270,26 +278,15 @@ export const useBluetoothStore = defineStore("bluetooth", {
       try {
         // Desktop PWA with Web Bluetooth
         if (this.isDesktop) {
-          console.log("🖥️ Desktop PWA detected, using Web Bluetooth...");
-
           if (!this.isWebBluetoothAvailable) {
-            console.error("❌ Web Bluetooth not available");
             notifyError(
               "Web Bluetooth not supported. Please use Chrome or Edge browser."
             );
             return false;
           }
 
-          console.log("✅ Web Bluetooth available, starting service...");
-          console.log("🔗 Current URL:", window.location.href);
-          console.log(
-            "🔒 HTTPS enabled:",
-            window.location.protocol === "https:"
-          );
-
           // Web Bluetooth requires user interaction to request device
           // This will show browser's device picker dialog
-          console.log("🎯 Requesting Bluetooth device...");
           const peer = await webBluetoothService.requestDevice();
 
           if (!peer) {
@@ -300,10 +297,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
             return false;
           }
 
-          console.log("🎉 Device connected successfully:", peer);
           this.isActive = true;
           notifySuccess(`Connected to ${peer.nickname}!`);
-          console.log("✅ Web Bluetooth service started");
           return true;
         }
 
@@ -320,9 +315,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
         await BluetoothEcash.setNickname({ nickname: this.nickname });
 
         await BluetoothEcash.startService();
-        this.isActive = true;
+        // Ensure reactivity with proper state update
+        this.$patch({ isActive: true });
         console.log(
-          `Bluetooth mesh service started with nickname: ${this.nickname}`
+          `Bluetooth mesh service started with nickname: ${this.nickname}, isActive: ${this.isActive}`
         );
 
         // Start polling for peers
@@ -340,6 +336,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Stop Bluetooth mesh service
      */
     async stopService() {
+      console.log("🔧 Bluetooth stopService called");
       try {
         if (this.isDesktop) {
           webBluetoothService.disconnectAll();
@@ -391,14 +388,33 @@ export const useBluetoothStore = defineStore("bluetooth", {
     async sendToken(options: SendTokenOptions): Promise<string | null> {
       console.log("🔵 [STORE] sendToken called with:", options);
 
+      // Debug logging
+      btLog.send(
+        `Initiating send: ${options.amount} ${options.unit} to ${
+          options.peerID || "broadcast"
+        }`,
+        {
+          amount: options.amount,
+          unit: options.unit,
+          peerID: options.peerID,
+          mint: options.mint,
+          memo: options.memo,
+          tokenLength: options.token?.length || 0,
+        }
+      );
+
       try {
         // Desktop PWA with Web Bluetooth
         if (this.isDesktop) {
           if (!options.peerID) {
+            btLog.error("Web Bluetooth requires specific peer selection");
             notifyError("Web Bluetooth requires specific peer selection");
             return null;
           }
 
+          btLog.send("Using Web Bluetooth for send", {
+            peerID: options.peerID,
+          });
           console.log("🔵 [WEB] Sending token via Web Bluetooth...");
           const success = await webBluetoothService.sendToken(
             options.token,
@@ -408,24 +424,32 @@ export const useBluetoothStore = defineStore("bluetooth", {
           if (success) {
             const messageId = Date.now().toString();
             this.pendingMessages.push(messageId);
+            btLog.send("Web Bluetooth send successful", { messageId });
             console.log("🔵 [WEB] Success, messageId:", messageId);
             return messageId;
           } else {
+            btLog.error("Web Bluetooth send failed");
             notifyError("Failed to send token via Web Bluetooth");
             return null;
           }
         }
 
         // Native mobile app
+        btLog.send("Using native Bluetooth for send", { platform: "native" });
         console.log("🔵 [STORE] Calling BluetoothEcash.sendToken...");
         const result = await BluetoothEcash.sendToken(options);
         console.log("🔵 [STORE] Native returned:", result);
 
         const { messageId } = result;
         this.pendingMessages.push(messageId);
+        btLog.send("Native send successful", { messageId, result });
         console.log("🔵 [STORE] Success, returning messageId:", messageId);
         return messageId;
       } catch (e) {
+        btLog.error("Send failed with error", {
+          error: e?.message || e?.toString(),
+          stack: e?.stack,
+        });
         console.error("🔵 [STORE ERROR]:", e);
         notifyError("Failed to send token via Bluetooth");
         return null;
@@ -465,20 +489,34 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Claim a received token
      */
     async claimToken(messageId: string) {
+      btLog.claim("Starting token claim process", { messageId });
+
       try {
         const message = this.unclaimedTokens.find((t) => t.id === messageId);
         if (!message) {
+          btLog.error("Token not found in unclaimed list", { messageId });
           throw new Error("Token not found");
         }
+
+        btLog.claim("Token found, preparing for claim", {
+          messageId,
+          amount: message.amount,
+          unit: message.unit,
+          sender: message.sender,
+          tokenLength: message.cashuToken?.length || 0,
+        });
 
         // Use wallet store to receive the token
         const walletStore = useWalletStore();
         const receiveStore = useReceiveTokensStore();
 
         receiveStore.receiveData.tokensBase64 = message.cashuToken;
+        btLog.claim("Calling receiveIfDecodes", { messageId });
         const success = await receiveStore.receiveIfDecodes();
 
         if (success) {
+          btLog.claim("Token decode and validation successful", { messageId });
+
           // Mark as claimed
           await BluetoothEcash.markTokenClaimed({ messageId });
 
@@ -492,6 +530,13 @@ export const useBluetoothStore = defineStore("bluetooth", {
           // Add sender to contacts
           this.addContact(message.sender, message.senderPeerID);
 
+          btLog.claim("✅ Token claimed successfully", {
+            messageId,
+            amount: message.amount,
+            unit: message.unit,
+            sender: message.sender,
+          });
+
           notifySuccess(
             `Claimed ${message.amount} ${
               message.unit
@@ -499,9 +544,15 @@ export const useBluetoothStore = defineStore("bluetooth", {
           );
           return true;
         } else {
+          btLog.error("Token decode/validation failed", { messageId });
           throw new Error("Failed to redeem token with mint");
         }
       } catch (e) {
+        btLog.error("Claim failed with error", {
+          messageId,
+          error: e?.message || e?.toString(),
+          stack: e?.stack,
+        });
         console.error("Failed to claim token:", e);
 
         // Check if the error is "Token already spent"
@@ -510,6 +561,9 @@ export const useBluetoothStore = defineStore("bluetooth", {
           errorMessage.includes("Token already spent") ||
           errorMessage.includes("already spent")
         ) {
+          btLog.claim("Token already spent, removing from unclaimed list", {
+            messageId,
+          });
           console.log(
             `Token ${messageId} already spent, removing from unclaimed list`
           );
@@ -529,6 +583,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
         }
 
         // For other errors, show notification
+        btLog.error("Claim failed, showing error notification", {
+          messageId,
+          error: errorMessage,
+        });
         notifyError("Failed to claim token");
         return false;
       }
@@ -539,14 +597,24 @@ export const useBluetoothStore = defineStore("bluetooth", {
      */
     async autoClaimTokens() {
       if (!navigator.onLine) {
+        btLog.claim("Offline - skipping auto-claim", { online: false });
         console.log("Offline - skipping auto-claim");
         return;
       }
 
       const unclaimed = this.unclaimedTokens.filter((t) => !t.claimed);
+      btLog.claim(`Auto-claiming ${unclaimed.length} tokens`, {
+        count: unclaimed.length,
+        online: true,
+      });
       console.log(`Auto-claiming ${unclaimed.length} tokens`);
 
       for (const token of unclaimed) {
+        btLog.claim(`Auto-claiming token ${token.id}`, {
+          messageId: token.id,
+          amount: token.amount,
+          unit: token.unit,
+        });
         await this.claimToken(token.id);
         // Small delay between claims
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -737,6 +805,18 @@ export const useBluetoothStore = defineStore("bluetooth", {
      * Handle ecash received event
      */
     handleEcashReceived(message: EcashMessage) {
+      // Debug logging
+      btLog.receive(`Token received from peer ${message.senderPeerID}`, {
+        messageId: message.id,
+        sender: message.sender,
+        senderPeerID: message.senderPeerID,
+        amount: message.amount,
+        unit: message.unit,
+        memo: message.memo,
+        tokenLength: message.cashuToken?.length || 0,
+        tokenPreview: message.cashuToken?.substring(0, 50) + "..." || "N/A",
+      });
+
       // Add to unclaimed tokens
       const existing = this.unclaimedTokens.find((t) => t.id === message.id);
       if (!existing) {
@@ -750,8 +830,21 @@ export const useBluetoothStore = defineStore("bluetooth", {
 
         // Try to auto-claim if online
         if (navigator.onLine) {
+          btLog.claim("Auto-claiming received token", {
+            messageId: message.id,
+            online: true,
+          });
           this.claimToken(message.id);
+        } else {
+          btLog.claim("Token received offline, will claim when online", {
+            messageId: message.id,
+            online: false,
+          });
         }
+      } else {
+        btLog.receive("Token already exists in unclaimed list", {
+          messageId: message.id,
+        });
       }
     },
 
@@ -762,6 +855,12 @@ export const useBluetoothStore = defineStore("bluetooth", {
       const existing = this.nearbyPeers.find((p) => p.peerID === peer.peerID);
       if (!existing) {
         this.nearbyPeers.push(peer);
+        btLog.peer("New peer discovered", {
+          peerID: peer.peerID,
+          nickname: peer.nickname || "unnamed",
+          isDirect: peer.isDirect,
+          isConnected: peer.isConnected,
+        });
         console.log(
           `New peer discovered: ${peer.peerID} (${peer.nickname || "unnamed"})`
         );
@@ -771,6 +870,10 @@ export const useBluetoothStore = defineStore("bluetooth", {
           (p) => p.peerID === peer.peerID
         );
         this.nearbyPeers[index] = peer;
+        btLog.peer("Peer info updated", {
+          peerID: peer.peerID,
+          nickname: peer.nickname || "unnamed",
+        });
       }
     },
 
@@ -781,6 +884,7 @@ export const useBluetoothStore = defineStore("bluetooth", {
       const index = this.nearbyPeers.findIndex((p) => p.peerID === peerID);
       if (index !== -1) {
         this.nearbyPeers.splice(index, 1);
+        btLog.peer("Peer lost", { peerID });
         console.log(`Peer lost: ${peerID}`);
       }
     },
@@ -820,6 +924,9 @@ export const useBluetoothStore = defineStore("bluetooth", {
       // Update favorites store with the peer's Nostr npub
       const favoritesStore = useFavoritesStore();
       favoritesStore.updateNostrNpub(peerID, npub);
+
+      // NEW: Also update peerID index for fast lookup
+      favoritesStore.updateNostrPublicKeyForPeerID(peerID, npub);
 
       // If they favorited us, update the theyFavoritedUs flag
       if (isFavorite) {
@@ -899,6 +1006,8 @@ export const useBluetoothStore = defineStore("bluetooth", {
       } else {
         console.log(`✅ Updating existing favorite npub for ${peerID}`);
         favoritesStore.updateNostrNpub(peerID, npub);
+        // NEW: Also update peerID index for fast lookup
+        favoritesStore.updateNostrPublicKeyForPeerID(peerID, npub);
       }
 
       favoritesStore.updatePeerFavoritedUs(peerID, true);

@@ -12,43 +12,7 @@
 
     <q-separator />
 
-    <q-card-section>
-      <q-input
-        v-model="localNickname"
-        label="Bluetooth Name"
-        hint="How you appear to nearby peers"
-        outlined
-        :rules="[
-          (val) => (val && val.length >= 3) || 'Minimum 3 characters',
-          (val) => (val && val.length <= 32) || 'Maximum 32 characters',
-        ]"
-      >
-        <template #prepend>
-          <q-icon name="person" />
-        </template>
-        <template #append>
-          <q-btn
-            v-if="nicknameChanged"
-            flat
-            dense
-            round
-            icon="check"
-            color="primary"
-            @click="saveNickname"
-          >
-            <q-tooltip>Apply changes</q-tooltip>
-          </q-btn>
-        </template>
-      </q-input>
-
-      <div class="text-caption text-grey-6 q-mt-xs">
-        Current: <strong>{{ bluetoothStore.nickname }}</strong>
-      </div>
-    </q-card-section>
-
-    <q-separator />
-
-    <q-card-section>
+    <q-card-section v-if="meshEnabled">
       <div class="text-subtitle2 q-mb-sm">Connection Status</div>
 
       <!-- Desktop help text -->
@@ -148,10 +112,10 @@
       </q-list>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
     <!-- Always-On Mode Section (Android only) -->
-    <q-card-section v-if="!isDesktop">
+    <q-card-section v-if="meshEnabled && !isDesktop">
       <div class="text-subtitle2 q-mb-sm">Always-On Mode</div>
       <div class="text-caption text-grey-6 q-mb-sm">
         For kids' devices without consistent internet - keeps Bluetooth mesh
@@ -228,9 +192,9 @@
       </q-banner>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
-    <q-card-section>
+    <q-card-section v-if="meshEnabled">
       <div class="row q-gutter-sm">
         <q-btn
           outline
@@ -267,9 +231,9 @@
       </div>
     </q-card-section>
 
-    <q-separator />
+    <q-separator v-if="meshEnabled" />
 
-    <q-card-section class="q-pt-sm">
+    <q-card-section v-if="meshEnabled" class="q-pt-sm">
       <div class="text-caption text-grey-6">
         <q-icon name="info" size="xs" class="q-mr-xs" />
         <span v-if="isDesktop && !isWebBluetoothSupported">
@@ -283,6 +247,20 @@
         <span v-else> Bluetooth mesh enables offline token transfers </span>
       </div>
     </q-card-section>
+    <q-card-section v-else>
+      <q-banner dense class="bg-grey-3 text-dark" rounded>
+        <template v-slot:avatar>
+          <q-icon name="info" />
+        </template>
+        <span v-if="isDesktop">
+          Bluetooth mesh is disabled in this browser. Nostr/BitChat is active
+          for contacts. Enable mesh in Advanced Features to try Web Bluetooth.
+        </span>
+        <span v-else>
+          Bluetooth mesh is disabled. Nostr/BitChat is active for contacts.
+        </span>
+      </q-banner>
+    </q-card-section>
   </q-card>
 </template>
 
@@ -290,6 +268,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useBluetoothStore } from "src/stores/bluetooth";
 import { useFavoritesStore } from "src/stores/favorites";
+import { useSettingsStore } from "src/stores/settings";
 import { Capacitor } from "@capacitor/core";
 import { notifySuccess } from "src/js/notify";
 
@@ -301,9 +280,10 @@ const emit = defineEmits<{
 
 const bluetoothStore = useBluetoothStore();
 const favoritesStore = useFavoritesStore();
+const settingsStore = useSettingsStore();
 
-const localNickname = ref("");
 const isDesktop = computed(() => !Capacitor.isNativePlatform());
+const meshEnabled = computed(() => true); // Force Bluetooth to always appear enabled
 
 const isWebBluetoothSupported = computed(() => {
   try {
@@ -314,25 +294,8 @@ const isWebBluetoothSupported = computed(() => {
   }
 });
 
-const nicknameChanged = computed(() => {
-  return localNickname.value !== bluetoothStore.nickname;
-});
-
-async function saveNickname() {
-  if (!localNickname.value || localNickname.value.length < 3) {
-    return;
-  }
-
-  try {
-    // Update nickname in store
-    await bluetoothStore.updateNickname(localNickname.value);
-    notifySuccess("Bluetooth name updated!");
-  } catch (error) {
-    console.error("Failed to update nickname:", error);
-  }
-}
-
 async function toggleBluetooth(enabled: boolean) {
+  if (!meshEnabled.value) return;
   if (enabled) {
     await bluetoothStore.startService();
   } else {
@@ -342,6 +305,7 @@ async function toggleBluetooth(enabled: boolean) {
 
 async function connectDesktopDevice() {
   try {
+    if (!meshEnabled.value) return;
     // For desktop, this will show the browser's device picker
     await bluetoothStore.startService();
   } catch (error) {
@@ -388,8 +352,6 @@ function showBatteryInfo() {
 }
 
 onMounted(async () => {
-  localNickname.value = bluetoothStore.nickname;
-
   // Check always-on status on mount
   if (!isDesktop.value) {
     await bluetoothStore.checkAlwaysOnStatus();

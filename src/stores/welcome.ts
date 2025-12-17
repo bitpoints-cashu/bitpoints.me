@@ -17,24 +17,52 @@ export const useWelcomeStore = defineStore("welcome", {
     currentSlide: useLocalStorage<number>("cashu.welcome.currentSlide", 0),
     seedPhraseValidated: useLocalStorage<boolean>(
       "cashu.welcome.seedPhraseValidated",
-      true // Skip seed phrase validation on startup
+      false
     ),
     termsAccepted: useLocalStorage<boolean>(
       "cashu.welcome.termsAccepted",
-      true // Skip terms acceptance on startup
+      false
     ),
   }),
   getters: {
-    // Determines if the current slide is the last one (only 2 slides now)
-    isLastSlide: (state) => state.currentSlide === 1,
+    // Determines if the current slide is the last one
+    // PWA shows 2 slides, Android shows 1 slide
+    isLastSlide: (state) => {
+      // Check if running on native platform (Android/iOS)
+      const isNative = (() => {
+        try {
+          const hasCapacitor =
+            typeof window !== "undefined" && !!window?.Capacitor;
+          if (!hasCapacitor) {
+            return false;
+          }
+
+          const platform = window.Capacitor.getPlatform();
+          const isNativePlatform =
+            window.Capacitor.isNativePlatform &&
+            window.Capacitor.isNativePlatform();
+          return (
+            platform === "android" || platform === "ios" || isNativePlatform
+          );
+        } catch (error) {
+          return false;
+        }
+      })();
+
+      // Android/iOS: only 1 slide (slide 0 is last)
+      // PWA/Web: 2 slides (slide 1 is last)
+      return isNative ? state.currentSlide === 0 : state.currentSlide === 1;
+    },
 
     // Determines if the user can proceed to the next slide
     canProceed: (state) => {
       switch (state.currentSlide) {
         case 0:
-          return true; // Welcome slide
+          // First slide: require both terms acceptance AND seed phrase validation
+          return state.termsAccepted && state.seedPhraseValidated;
         case 1:
-          return true; // PWA install slide
+          // Second slide: require seed phrase validation (for PWA/web only)
+          return state.seedPhraseValidated;
         default:
           return false;
       }
@@ -45,13 +73,13 @@ export const useWelcomeStore = defineStore("welcome", {
   },
   actions: {
     /**
-     * Initializes the welcome dialog based on local storage.
-     * Should be called when the store is initialized.
+     * Initializes the welcome flow.
+     * Called when the welcome page component is mounted.
+     * The component itself handles redirect if welcome is not needed.
      */
     initializeWelcome() {
-      if (!this.showWelcome) {
-        window.location.href = "/";
-      }
+      // Initialization logic if needed
+      // Redirect logic is handled by the WelcomePage component
     },
 
     /**

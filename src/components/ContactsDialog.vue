@@ -39,6 +39,13 @@
             Bluetooth is off. Turn it on to discover nearby contacts.
             <template v-slot:action>
               <q-btn flat label="Enable" @click="enableBluetooth" />
+              <q-btn
+                flat
+                label="Send to Nearby"
+                @click="enableBluetoothAndSend"
+                color="primary"
+                class="q-ml-sm"
+              />
             </template>
           </q-banner>
 
@@ -204,12 +211,39 @@
           >
             <!-- Connected peers section -->
             <template v-if="connectedPeers.length > 0">
+<<<<<<< HEAD
               <q-item-label
                 header
                 class="text-grey-6 q-pa-sm text-uppercase text-caption"
               >
                 Nearby ({{ connectedPeers.length }})
               </q-item-label>
+=======
+              <div class="row items-center q-pa-sm">
+                <div class="col">
+                  <q-item-label
+                    header
+                    class="text-grey-6 text-uppercase text-caption"
+                  >
+                    Nearby ({{ connectedPeers.length }})
+                  </q-item-label>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    v-if="bluetoothStore.isActive && connectedPeers.length > 0"
+                    flat
+                    dense
+                    round
+                    color="primary"
+                    icon="send"
+                    size="sm"
+                    @click="openSendToNearbyDialog"
+                  >
+                    <q-tooltip>Send to nearby contacts</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
               <q-item
                 v-for="peer in connectedPeers"
                 :key="peer.peerID"
@@ -630,7 +664,11 @@ export default defineComponent({
 
     // Check if BluetoothEcash plugin is available (native only, not web)
     const isBluetoothEcashAvailable = computed(() => {
+<<<<<<< HEAD
       return Capacitor.isNativePlatform() && settingsStore.bluetoothEnabled;
+=======
+      return Capacitor.isNativePlatform();
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
     });
 
     // Fetch connected peers with Nostr capability
@@ -809,11 +847,14 @@ export default defineComponent({
               peer.peerID,
               `[UNFAVORITED]:${npub}`
             );
+<<<<<<< HEAD
             console.log(
               `📤 Sent unfavorite notification to ${
                 peer.nickname
               } with npub: ${npub.substring(0, 16)}...`
             );
+=======
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
           }
         } catch (error) {
           console.error("Failed to send unfavorite notification:", error);
@@ -843,11 +884,14 @@ export default defineComponent({
               peer.peerID,
               `[FAVORITE_REQUEST]:${npub}`
             );
+<<<<<<< HEAD
             console.log(
               `📤 Sent favorite request to ${
                 peer.nickname
               } with npub: ${npub.substring(0, 16)}...`
             );
+=======
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
           }
         } catch (error) {
           console.error("Failed to send favorite request:", error);
@@ -1055,12 +1099,15 @@ export default defineComponent({
     };
 
     const enableBluetooth = async () => {
+<<<<<<< HEAD
       if (!settingsStore.bluetoothEnabled) {
         notifyError(
           "Bluetooth mesh is disabled in settings. Enable it in Advanced Features first."
         );
         return;
       }
+=======
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
       if (!isBluetoothEcashAvailable.value) {
         notifyError("Bluetooth is not available in this environment");
         return;
@@ -1070,9 +1117,60 @@ export default defineComponent({
         startPolling();
         await fetchConnectedPeers();
         await fetchOfflineFavorites();
+<<<<<<< HEAD
       }
     };
 
+=======
+        notifySuccess("Bluetooth mesh enabled! Discovering nearby contacts...");
+      }
+    };
+
+    const enableBluetoothAndSend = async () => {
+      if (!isBluetoothEcashAvailable.value) {
+        notifyError("Bluetooth is not available in this environment");
+        return;
+      }
+
+      // Start Bluetooth service
+      await bluetoothStore.startService();
+      if (bluetoothStore.isActive) {
+        startPolling();
+        await fetchConnectedPeers();
+        await fetchOfflineFavorites();
+        notifySuccess(
+          "Bluetooth mesh enabled! Ready to send to nearby contacts."
+        );
+
+        // If we have nearby peers, show them or prepare for sending
+        if (connectedPeers.value.length > 0) {
+          // Auto-select the first peer for convenience
+          if (connectedPeers.value[0]) {
+            selectedPeerID.value = connectedPeers.value[0].peerID;
+            // Optionally open send dialog automatically
+            // openSendDialog(connectedPeers.value[0]);
+          }
+        } else {
+          notifyInfo(
+            "Bluetooth enabled! Waiting for nearby contacts to appear..."
+          );
+        }
+      }
+    };
+
+    const openSendToNearbyDialog = () => {
+      if (connectedPeers.value.length === 0) {
+        notifyInfo("No nearby contacts found");
+        return;
+      }
+
+      // For now, open send dialog for the first nearby peer
+      // In the future, this could open a multi-select dialog
+      const firstPeer = connectedPeers.value[0];
+      openSendDialog(firstPeer);
+    };
+
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
     // Username editing functions
     const startEditingUsername = () => {
       localUsername.value = bluetoothStore.nickname;
@@ -1292,6 +1390,11 @@ export default defineComponent({
       closeSendDialog,
       sendToken,
       enableBluetooth,
+<<<<<<< HEAD
+=======
+      enableBluetoothAndSend,
+      openSendToNearbyDialog,
+>>>>>>> 76c67bc8637b2994fc0585d0fd15626679061541
       formatLastSeen,
       formatNpub,
       formatCurrency,

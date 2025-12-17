@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
@@ -16,7 +17,8 @@
         <!-- Google Play Services version (required for WebView features on Android 14+) -->
         <meta-data
             android:name="com.google.android.gms.version"
-            android:value="12451000" />
+            android:value="12451000"
+            tools:replace="android:value" />
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"

@@ -1,43 +1,32 @@
 {
+  "name": "Bitpoints.me",
+  "short_name": "Bitpoints",
+  "description": "Bitcoin-backed rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffef7",
+  "theme_color": "#6B4FBB",
   "icons": [
     {
-      "src": "../icons/icon-48.webp",
-      "type": "image/png",
-      "sizes": "48x48",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-72.webp",
-      "type": "image/png",
-      "sizes": "72x72",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-96.webp",
-      "type": "image/png",
-      "sizes": "96x96",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-128.webp",
+      "src": "icons/icon-128x128.png",
       "type": "image/png",
       "sizes": "128x128",
       "purpose": "any maskable"
     },
     {
-      "src": "../icons/icon-192.webp",
+      "src": "icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "../icons/icon-256.webp",
+      "src": "icons/icon-256x256.png",
       "type": "image/png",
       "sizes": "256x256",
       "purpose": "any maskable"
     },
     {
-      "src": "../icons/icon-512.webp",
+      "src": "icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"

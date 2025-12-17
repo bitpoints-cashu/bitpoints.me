@@ -25,29 +25,40 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
     <!-- Open Graph / Social Media -->
-    <meta property="og:title" content="Bitpoints.me - Bitcoin-backed Rewards" />
+    <meta
+      property="og:title"
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.name : 'Bitpoints.me' %> - <%= typeof brandConfig !== 'undefined' ? brandConfig.shortName : 'Bitcoin-backed Rewards' %>"
+    />
     <meta
       property="og:description"
-      content="Rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh."
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.description : 'Rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.' %>"
     />
-    <meta property="og:image" content="og-image.png" />
+    <meta
+      property="og:image"
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.ogImage || 'og-image.png' : 'og-image.png' %>"
+    />
     <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="<%= typeof brandConfig !== 'undefined' ? 'https://' + brandConfig.domain : 'https://bitpoints.me' %>"
+    />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Bitpoints.me - Bitcoin-backed Rewards"
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.name : 'Bitpoints.me' %> - <%= typeof brandConfig !== 'undefined' ? brandConfig.shortName : 'Bitcoin-backed Rewards' %>"
     />
     <meta
       name="twitter:description"
-      content="Rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh."
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.description : 'Rewards that appreciate over time. Powered by Cashu ecash, Nostr identity, and Bluetooth mesh.' %>"
     />
-    <meta name="twitter:image" content="og-image.png" />
-    
-    <!-- Safe Area Fix -->
-    <link rel="stylesheet" href="src/assets/css/safe-area-fix.css">
-    
-    <!-- Safe Area Handler -->
-    <script src="src/assets/js/safe-area-handler.js"></script>
+    <meta
+      name="twitter:image"
+      content="<%= typeof brandConfig !== 'undefined' ? brandConfig.ogImage || 'og-image.png' : 'og-image.png' %>"
+    />
+
+    <!-- Safe Area Fix - Moved to main app bundle -->
+
+    <!-- Safe Area Handler - Moved to main app bundle -->
   </head>
   <body>
     <!-- quasar:entry-point -->

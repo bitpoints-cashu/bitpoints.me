@@ -1,15 +1,7 @@
-<!-- src/components/WelcomePage.vue -->
+<!-- src/pages/WelcomePage.vue -->
 <template>
-  <q-dialog
-    v-model="welcomeStore.showWelcome"
-    persistent
-    transition-show="slide-up"
-    transition-hide="fadeOut"
-    full-screen
-    @drop.prevent="dragFile"
-    @dragover.prevent
-  >
-    <q-card class="q-pa-none" style="height: 100%">
+  <q-page class="welcome-page">
+    <q-card class="q-pa-none partial-height">
       <q-carousel
         v-model="welcomeStore.currentSlide"
         animated
@@ -19,7 +11,8 @@
         <q-carousel-slide :name="0">
           <WelcomeSlide1 />
         </q-carousel-slide>
-        <q-carousel-slide :name="1">
+        <!-- Only show second slide for PWA/web browsers -->
+        <q-carousel-slide v-if="!isNativeApp" :name="1">
           <WelcomeSlide2 />
         </q-carousel-slide>
       </q-carousel>
@@ -58,11 +51,11 @@
         />
       </div>
     </q-card>
-  </q-dialog>
+  </q-page>
 </template>
 
 <script lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useWelcomeStore } from "src/stores/welcome";
 import { useStorageStore } from "src/stores/storage";
@@ -135,16 +128,54 @@ export default {
       if (file) readFile(file);
     };
 
+    const isNativeApp = computed(() => {
+      try {
+        // Check if we're running in Capacitor (native app)
+        const hasCapacitor =
+          typeof window !== "undefined" && !!window.Capacitor;
+        if (!hasCapacitor) {
+          return false;
+        }
+
+        const platform = window.Capacitor.getPlatform();
+        const isNativePlatform =
+          window.Capacitor.isNativePlatform &&
+          window.Capacitor.isNativePlatform();
+
+        // Android/iOS are native platforms
+        return platform === "android" || platform === "ios" || isNativePlatform;
+      } catch (error) {
+        return false;
+      }
+    });
+
     onMounted(() => {
+      console.log(
+        "WelcomePage: onMounted - showWelcome:",
+        welcomeStore.showWelcome
+      );
+
+      // Check if welcome is needed
+      if (!welcomeStore.showWelcome) {
+        console.log(
+          "WelcomePage: Welcome already completed, redirecting to wallet"
+        );
+        // User has already completed welcome, redirect to wallet
+        router.push("/");
+        return;
+      }
+
+      console.log("WelcomePage: Welcome needed, initializing");
       welcomeStore.initializeWelcome();
     });
 
-    // Watch for welcome completion and navigate to wallet (PWA only)
+    // Watch for welcome completion and navigate to wallet
     watch(
       () => welcomeStore.showWelcome,
       (newValue) => {
-        if (!newValue && !window.Capacitor) {
-          // Only for PWA - let Vue Router handle navigation
+        if (!newValue) {
+          console.log("WelcomePage: Welcome completed, navigating to wallet");
+          // Welcome completed, navigate to wallet
           router.push("/");
         }
       }
@@ -155,16 +186,26 @@ export default {
       fileUpload,
       onChangeFileUpload,
       dragFile,
+      isNativeApp,
     };
   },
 };
 </script>
 
 <style scoped>
-.q-dialog__inner {
-  height: 100%;
-  width: 100%;
-  margin: 0; /* Align dialog to cover the entire viewport */
+.welcome-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.partial-height {
+  height: 75vh;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  margin: 16px auto 0 auto;
+  overflow: hidden;
 }
 
 .q-card {

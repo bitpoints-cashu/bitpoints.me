@@ -8,6 +8,7 @@ import { notifyApiError, notifyError, notifySuccess } from "../js/notify";
 import token from "../js/token";
 import { useTokensStore } from "../stores/tokens";
 import { useNostrStore } from "../stores/nostr";
+import { getBrandDomain } from "../utils/branding";
 // type NPCConnection = {
 //   walletPublicKey: string,
 //   walletPrivateKey: string,
@@ -57,10 +58,10 @@ export const useNPCStore = defineStore("npc", {
     automaticClaim: useLocalStorage<boolean>("cashu.npc.automaticClaim", true),
     // npcConnections: useLocalStorage<NPCConnection[]>("cashu.npc.connections", []),
     npcAddress: useLocalStorage<string>("cashu.npc.address", ""),
-    npcDomain: useLocalStorage<string>("cashu.npc.domain", "bitpoints.me"),
+    npcDomain: useLocalStorage<string>("cashu.npc.domain", getBrandDomain()),
     baseURL: useLocalStorage<string>(
       "cashu.npc.baseURL",
-      "https://npubcash.bitpoints.me"
+      `https://npubcash.${getBrandDomain()}`
     ),
     npcLoading: false,
     // ndk: new NDK(),
@@ -80,9 +81,10 @@ export const useNPCStore = defineStore("npc", {
       );
       console.log("npub:", nip19.npubEncode(walletPublicKeyHex));
 
-      // Set baseURL for API calls - use npubcash subdomain if domain is bitpoints.me
-      if (this.npcDomain === "bitpoints.me") {
-        this.baseURL = "https://npubcash.bitpoints.me";
+      // Set baseURL for API calls - use npubcash subdomain for current brand domain
+      const brandDomain = getBrandDomain();
+      if (this.npcDomain === brandDomain) {
+        this.baseURL = `https://npubcash.${brandDomain}`;
       } else {
         this.baseURL = `https://${this.npcDomain}`;
       }

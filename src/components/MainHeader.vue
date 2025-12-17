@@ -13,8 +13,8 @@
       />
       <q-toolbar-title class="flex flex-center">
         <img
-          src="~assets/bitpoints-logo.png"
-          alt="Bitpoints"
+          :src="brandLogo"
+          :alt="brandName"
           style="height: 100px; max-width: 400px; object-fit: contain"
         />
       </q-toolbar-title>
@@ -116,9 +116,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent, ref, computed } from "vue";
 import { useUiStore } from "src/stores/ui";
 import { useI18n } from "vue-i18n";
+import { getBrand, getBrandName, getActiveBrandId } from "src/utils/branding";
+
+// Import brand logos statically so Vite can bundle them
+import bitpointsLogo from "../assets/brands/bitpoints/bitpoints-logo-purple.png";
+import trailsLogo from "../assets/brands/trails/trails-logo.png";
+import pandewaffleLogo from "../assets/brands/pandewaffle/pandewaffle-logo.png";
 
 export default defineComponent({
   name: "MainHeader",
@@ -130,6 +136,19 @@ export default defineComponent({
     const { t } = useI18n();
     const countdown = ref(0);
     let countdownInterval;
+
+    // Get brand logo and name - use static imports for proper Vite bundling
+    const brand = computed(() => getBrand());
+    const brandLogo = computed(() => {
+      const brandId = getActiveBrandId();
+      const logos = {
+        bitpoints: bitpointsLogo,
+        trails: trailsLogo,
+        pandewaffle: pandewaffleLogo,
+      };
+      return logos[brandId] || bitpointsLogo;
+    });
+    const brandName = computed(() => getBrandName());
 
     const toggleLeftDrawer = () => {
       leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -166,6 +185,8 @@ export default defineComponent({
       reload,
       countdown,
       uiStore,
+      brandLogo,
+      brandName,
     };
   },
 });

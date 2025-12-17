@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<watch-face xmlns:android="http://schemas.android.com/apk/res/android">
+    <complication-provider
+        android:name="me.bitpoints.wear.services.WearComplicationsService"
+        android:label="@string/wear_app_name"
+        android:icon="@mipmap/ic_launcher" />
+</watch-face>

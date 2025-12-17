@@ -233,6 +233,88 @@
           </div>
         </q-form>
       </div>
+      <div v-else-if="payInvoiceData.lnurlwithdraw">
+        <q-form @submit="lnurlWithdrawSecond" class="q-gutter-md">
+          <p
+            v-if="
+              payInvoiceData.lnurlwithdraw.maxWithdrawable ==
+              payInvoiceData.lnurlwithdraw.minWithdrawable
+            "
+            class="q-my-none text-h6 text-center"
+          >
+            <i18n-t keypath="PayInvoiceDialog.lnurlwithdraw.amount_exact_label">
+              <template v-slot:payee>
+                <b>{{ payInvoiceData.lnurlwithdraw.domain }}</b>
+              </template>
+              <template v-slot:value>
+                {{ payInvoiceData.lnurlwithdraw.maxWithdrawable / 1000 }}
+              </template>
+              <template v-slot:ticker>
+                {{ tickerShort }}
+              </template>
+            </i18n-t>
+          </p>
+          <p v-else class="q-my-none text-h6 text-center">
+            <i18n-t keypath="PayInvoiceDialog.lnurlwithdraw.amount_range_label">
+              <template v-slot:payee>
+                <b>{{ payInvoiceData.lnurlwithdraw.domain }}</b>
+              </template>
+              <template v-slot:br>
+                <br />
+              </template>
+              <template v-slot:min>
+                <b>{{ payInvoiceData.lnurlwithdraw.minWithdrawable / 1000 }}</b>
+              </template>
+              <template v-slot:max>
+                <b>{{ payInvoiceData.lnurlwithdraw.maxWithdrawable / 1000 }}</b>
+              </template>
+              <template v-slot:ticker>
+                {{ tickerShort }}
+              </template>
+            </i18n-t>
+          </p>
+          <q-separator class="q-my-sm"></q-separator>
+          <div
+            class="row"
+            v-if="payInvoiceData.lnurlwithdraw.defaultDescription"
+          >
+            <p class="col text-justify text-italic">
+              {{ payInvoiceData.lnurlwithdraw.defaultDescription }}
+            </p>
+          </div>
+          <div class="row">
+            <div class="col">
+              <q-input
+                filled
+                dense
+                autofocus
+                v-model.number="payInvoiceData.input.amount"
+                type="number"
+                :label="
+                  $t('PayInvoiceDialog.lnurlwithdraw.inputs.amount.label', {
+                    ticker: tickerShort,
+                  })
+                "
+                :min="payInvoiceData.lnurlwithdraw.minWithdrawable / 1000"
+                :max="payInvoiceData.lnurlwithdraw.maxWithdrawable / 1000"
+                :readonly="
+                  payInvoiceData.lnurlwithdraw.maxWithdrawable ==
+                  payInvoiceData.lnurlwithdraw.minWithdrawable
+                "
+              >
+              </q-input>
+            </div>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn unelevated color="primary" type="submit">{{
+              $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.label")
+            }}</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">{{
+              $t("PayInvoiceDialog.lnurlwithdraw.actions.close.label")
+            }}</q-btn>
+          </div>
+        </q-form>
+      </div>
       <div v-else>
         <div class="row items-center no-wrap q-mb-xl">
           <div class="col-10">
@@ -428,6 +510,7 @@ export default defineComponent({
       "meltQuoteInvoiceData",
       "decodeRequest",
       "lnurlPaySecond",
+      "lnurlWithdrawSecond",
     ]),
     ...mapActions(useCameraStore, ["closeCamera", "showCamera"]),
     canPay: function () {

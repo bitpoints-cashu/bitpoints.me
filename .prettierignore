@@ -3,3 +3,5 @@ src-capacitor
 src-cordova
 android
 ios
+.quasar
+*.md

@@ -19,7 +19,7 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final String BATTERY_OPTIMIZATION_REQUEST = "me.bitpoints.wallet.REQUEST_BATTERY_OPTIMIZATION";
     private static final int CAMERA_PERMISSION_REQUEST = 1001;
-    
+
     private BroadcastReceiver batteryOptimizationReceiver;
 
     @Override
@@ -27,17 +27,17 @@ public class MainActivity extends BridgeActivity {
         Log.i(TAG, "onCreate: Registering BluetoothEcash plugin");
         try {
             registerPlugin(BluetoothEcashPlugin.class);
-            Log.i(TAG, "onCreate: BluetoothEcash plugin registered successfully");
+            Log.i(TAG, "onCreate: Custom plugins registered successfully");
         } catch (Exception e) {
-            Log.e(TAG, "onCreate: Failed to register BluetoothEcash plugin", e);
+            Log.e(TAG, "onCreate: Failed to register custom plugins", e);
         }
-        
+
         // Register battery optimization receiver
         registerBatteryOptimizationReceiver();
-        
+
         super.onCreate(savedInstanceState);
     }
-    
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -50,7 +50,7 @@ public class MainActivity extends BridgeActivity {
             }
         }
     }
-    
+
     /**
      * Register broadcast receiver for battery optimization requests
      */
@@ -64,7 +64,7 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         };
-        
+
         IntentFilter filter = new IntentFilter(BATTERY_OPTIMIZATION_REQUEST);
         try {
             // For Android 14+ (SDK 34+), we must specify RECEIVER_NOT_EXPORTED
@@ -79,7 +79,7 @@ public class MainActivity extends BridgeActivity {
             Log.e(TAG, "Failed to register battery optimization receiver", e);
         }
     }
-    
+
     /**
      * Request battery optimization exemption
      */
