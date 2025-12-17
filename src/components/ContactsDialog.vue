@@ -775,6 +775,16 @@ export default defineComponent({
 
       // Only fetch connected peers if Bluetooth is available
       if (isBluetoothEcashAvailable.value) {
+        // Automatically start Bluetooth if it's enabled but not active
+        if (settingsStore.bluetoothEnabled && !bluetoothStore.isActive) {
+          try {
+            console.log("Contacts dialog: Automatically starting Bluetooth service");
+            await bluetoothStore.startService();
+          } catch (error) {
+            console.error("Error starting Bluetooth service:", error);
+          }
+        }
+
         try {
           await fetchConnectedPeers();
           if (bluetoothStore.isActive) {
