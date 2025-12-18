@@ -574,7 +574,6 @@ import {
   ref,
   computed,
   onMounted,
-  onUnmounted,
   nextTick,
   watch,
 } from "vue";
@@ -633,6 +632,7 @@ export default defineComponent({
     const proofsStore = useProofsStore();
     const tokensStore = useTokensStore();
     const nostrStore = useNostrStore();
+    const settingsStore = useSettingsStore();
 
     const selectedPeerID = ref<string | null>(null);
     const showSendDialog = ref(false);
@@ -647,7 +647,8 @@ export default defineComponent({
     const isEditingUsername = ref(false);
     const localUsername = ref("");
 
-    const connectedPeers = ref<Array<Peer & { canSendViaNostr?: boolean }>>([]);
+    // Use the same data source as NearbyContactsDialog
+    const connectedPeers = computed(() => bluetoothStore.sortedPeers);
     const offlineFavorites = ref<OfflineFavorite[]>([]);
     const pollInterval = ref<number | null>(null);
 
@@ -658,20 +659,7 @@ export default defineComponent({
       return Capacitor.isNativePlatform();
     });
 
-    // Fetch connected peers with Nostr capability
-    const fetchConnectedPeers = async () => {
-      if (!isBluetoothEcashAvailable.value) {
-        connectedPeers.value = [];
-        return;
-      }
-      try {
-        const result = await BluetoothEcash.getAvailablePeers();
-        connectedPeers.value = result.peers || [];
-      } catch (error) {
-        console.error("Failed to fetch connected peers:", error);
-        connectedPeers.value = [];
-      }
-    };
+    // Connected peers are now provided by bluetoothStore.sortedPeers
 
     // Fetch offline favorites (from Bluetooth + QR code contacts)
     const fetchOfflineFavorites = async () => {
@@ -738,25 +726,7 @@ export default defineComponent({
       }
     };
 
-    // Refresh contacts periodically
-    const startPolling = () => {
-      if (pollInterval.value) {
-        clearInterval(pollInterval.value);
-      }
-      pollInterval.value = window.setInterval(async () => {
-        if (bluetoothStore.isActive) {
-          await fetchConnectedPeers();
-          await fetchOfflineFavorites();
-        }
-      }, 5000);
-    };
-
-    const stopPolling = () => {
-      if (pollInterval.value) {
-        clearInterval(pollInterval.value);
-        pollInterval.value = null;
-      }
-    };
+    // Contacts are refreshed automatically by the bluetooth store
 
     onMounted(async () => {
       // Use nextTick to ensure dialog is fully rendered before fetching
@@ -773,9 +743,8 @@ export default defineComponent({
         offlineFavorites.value = [];
       }
 
-      // Only fetch connected peers if Bluetooth is available
+      // Only start Bluetooth if Bluetooth is available and enabled but not active
       if (isBluetoothEcashAvailable.value) {
-        // Automatically start Bluetooth if it's enabled but not active
         if (settingsStore.bluetoothEnabled && !bluetoothStore.isActive) {
           try {
             console.log(
@@ -786,22 +755,10 @@ export default defineComponent({
             console.error("Error starting Bluetooth service:", error);
           }
         }
-
-        try {
-          await fetchConnectedPeers();
-          if (bluetoothStore.isActive) {
-            startPolling();
-          }
-        } catch (error) {
-          console.error("Error fetching connected peers:", error);
-          connectedPeers.value = [];
-        }
       }
     });
 
-    onUnmounted(() => {
-      stopPolling();
-    });
+    // No cleanup needed - store handles its own lifecycle
 
     const formatLastSeen = (timestamp: number): string => {
       const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -1104,8 +1061,6 @@ export default defineComponent({
       }
       await bluetoothStore.startService();
       if (bluetoothStore.isActive) {
-        startPolling();
-        await fetchConnectedPeers();
         await fetchOfflineFavorites();
         notifySuccess("Bluetooth mesh enabled! Discovering nearby contacts...");
       }
@@ -1120,8 +1075,6 @@ export default defineComponent({
       // Start Bluetooth service
       await bluetoothStore.startService();
       if (bluetoothStore.isActive) {
-        startPolling();
-        await fetchConnectedPeers();
         await fetchOfflineFavorites();
         notifySuccess(
           "Bluetooth mesh enabled! Ready to send to nearby contacts."
@@ -1390,6 +1343,7 @@ export default defineComponent({
       startEditingUsername,
       saveUsername,
       cancelEditingUsername,
+      settingsStore,
     };
   },
 });
