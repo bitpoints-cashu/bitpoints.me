@@ -79,4 +79,4 @@ See `BLUETOOTH_DEVELOPMENT_SUMMARY.md` for detailed Bluetooth implementation doc
 **Version**: 1.3.7
 **Build**: Release
 **File**: bitpoints-v1.3.7-bluetooth-contacts-fix.apk
-**Size**: ~16 MB
+**Size**: ~19 MB
