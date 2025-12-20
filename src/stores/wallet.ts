@@ -60,7 +60,7 @@ import { useI18n } from "vue-i18n";
 // before the payment is completed. This is necessary because the catch block in the melt function would otherwise remove all
 // quotes from the invoiceHistory and the user would not be able to pay the invoice again after reopening the app.
 let isUnloading = false;
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
     isUnloading = true;
   });

@@ -2954,7 +2954,9 @@ export default defineComponent({
     },
 
     triggerRecoverbullBackupFileDialog() {
-      const input = this.$refs.recoverbullBackupFileInput as HTMLInputElement | undefined;
+      const input = this.$refs.recoverbullBackupFileInput as
+        | HTMLInputElement
+        | undefined;
       if (input) {
         input.value = "";
         input.click();
