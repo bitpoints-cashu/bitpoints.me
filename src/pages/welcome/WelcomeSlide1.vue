@@ -4,7 +4,7 @@
     <div class="text-center">
       <h2 class="q-mt-md">Welcome to {{ brandName }}</h2>
       <div class="text-left">
-        <p class="q-mt-sm">Your personal Bitcoin-backed rewards wallet.</p>
+        <p class="q-mt-sm">Your personal rewards wallet.</p>
 
         <q-expansion-item
           v-model="termsOpen"
@@ -22,7 +22,7 @@
             <p class="q-mb-sm text-caption">
               • Use this app at your own risk<br />
               • Keep your wallet backup secure<br />
-              • Bitcoin transactions are irreversible
+              • Rewards transactions are irreversible
             </p>
           </div>
         </q-expansion-item>
