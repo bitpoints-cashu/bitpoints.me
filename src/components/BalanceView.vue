@@ -122,7 +122,7 @@
         @click="checkPendingTokens()"
         ><q-icon name="history" size="1rem" class="q-mx-xs" />
         {{ $t("BalanceView.pending.label") }}:
-        {{ formatCurrencyDisplay(pendingBalance, this.activeUnit) }}
+        {{ formatCurrency(pendingBalance, this.activeUnit) }}
         <q-tooltip>{{ $t("BalanceView.pending.tooltip") }}</q-tooltip>
       </q-btn>
     </div>
