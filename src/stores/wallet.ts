@@ -1483,6 +1483,7 @@ export const useWalletStore = defineStore("wallet", {
     },
     decodeRequest: async function (req: string) {
       const p2pkStore = useP2PKStore();
+      const receiveStore = useReceiveTokensStore();
       req = req.trim();
       this.payInvoiceData.input.request = req;
       this.payInvoiceData.lnurlpay = null as any;
