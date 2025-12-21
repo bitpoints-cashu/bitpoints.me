@@ -142,36 +142,48 @@ export default {
       }
     },
     handleResult(result: QrScanner.ScanResult) {
-      const qrData = result.data;
+      try {
+        const qrData = result.data;
 
-      // Check if this is a watch pairing QR code
-      const watchConnection = this.watchIntegration.parseWatchQR(qrData);
-      if (watchConnection) {
-        this.watchIntegration.addWatch(watchConnection);
-        notifySuccess(`Watch "${watchConnection.name}" paired successfully!`);
-        this.qrScanner?.stop();
-        return;
-      }
+        // Check if this is a watch pairing QR code
+        const watchConnection = this.watchIntegration.parseWatchQR(qrData);
+        if (watchConnection) {
+          this.watchIntegration.addWatch(watchConnection);
+          notifySuccess(`Watch "${watchConnection.name}" paired successfully!`);
+          this.qrScanner?.stop();
+          return;
+        }
 
-      // if this is a multipart-qr code, do not yet emit
-      if (qrData.toLowerCase().startsWith("ur:")) {
-        this.urDecoder?.receivePart(qrData);
-        this.urDecoderProgress =
-          this.urDecoder?.estimatedPercentComplete() || 0;
-        if (this.urDecoder?.isComplete() && this.urDecoder?.isSuccess()) {
-          const ur = this.urDecoder?.resultUR();
-          const decoded = ur.decodeCBOR();
-          this.$emit("decode", decoded.toString());
+        // if this is a multipart-qr code, do not yet emit
+        if (qrData.toLowerCase().startsWith("ur:")) {
+          this.urDecoder?.receivePart(qrData);
+          this.urDecoderProgress =
+            this.urDecoder?.estimatedPercentComplete() || 0;
+          if (this.urDecoder?.isComplete() && this.urDecoder?.isSuccess()) {
+            const ur = this.urDecoder?.resultUR();
+            const decoded = ur.decodeCBOR();
+            this.$emit("decode", decoded.toString());
+            this.qrScanner?.stop();
+            // Blur any focused input to prevent keyboard
+            (document.activeElement as HTMLElement)?.blur();
+            this.urDecoderProgress = 0;
+          }
+        } else {
+          this.$emit("decode", result.data);
           this.qrScanner?.stop();
           // Blur any focused input to prevent keyboard
           (document.activeElement as HTMLElement)?.blur();
-          this.urDecoderProgress = 0;
         }
-      } else {
-        this.$emit("decode", result.data);
-        this.qrScanner?.stop();
-        // Blur any focused input to prevent keyboard
-        (document.activeElement as HTMLElement)?.blur();
+      } catch (error) {
+        console.error("QR scan result processing failed:", error);
+        // Don't stop the scanner on error - let user try again
+        // Show user-friendly error message
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to process scanned QR code. Please try again.",
+          position: "top",
+          timeout: 3000,
+        });
       }
     },
     pasteToParseDialog: async function () {

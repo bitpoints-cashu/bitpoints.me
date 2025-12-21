@@ -695,17 +695,29 @@ export default {
       this.tab = to;
     },
     decodeQR: function (res) {
-      this.camera.data = res;
-      this.camera.show = false;
+      try {
+        this.camera.data = res;
+        this.camera.show = false;
 
-      // If receive tokens dialog is open, treat as token to receive
-      if (this.showReceiveTokens) {
-        this.receiveData.tokensBase64 = res;
-        return;
+        // If receive tokens dialog is open, treat as token to receive
+        if (this.showReceiveTokens) {
+          this.receiveData.tokensBase64 = res;
+          return;
+        }
+
+        // Otherwise, treat as Lightning request
+        this.decodeRequest(res);
+      } catch (error) {
+        console.error("QR code processing failed:", error);
+        this.$q.notify({
+          type: "negative",
+          message: "Failed to process scanned QR code. Please try again.",
+          position: "top",
+          timeout: 3000,
+        });
+        // Re-open camera if processing failed
+        this.camera.show = true;
       }
-
-      // Otherwise, treat as Lightning request
-      this.decodeRequest(res);
     },
     /////////////////////////////////// WALLET ///////////////////////////////////
     showInvoiceCreateDialog: async function () {
