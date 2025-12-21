@@ -36,6 +36,13 @@ export default {
         return;
       }
 
+      // Configure QR scanner for Safari compatibility
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari) {
+        // Disable web worker for Safari to avoid module loading issues
+        QrScanner.WORKER_PATH = null;
+      }
+
       this.qrScanner = new QrScanner(
         this.$refs.cameraEl as HTMLVideoElement,
         (result: QrScanner.ScanResult) => {
