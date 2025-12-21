@@ -1211,6 +1211,7 @@ export default {
         },
         withdraw: {
           label: "Withdraw",
+          processing: "Elaborazione...",
         },
       },
     },

@@ -306,9 +306,22 @@
             </div>
           </div>
           <div class="row q-mt-lg">
-            <q-btn unelevated color="primary" type="submit">{{
-              $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.label")
-            }}</q-btn>
+            <q-btn
+              unelevated
+              color="primary"
+              type="submit"
+              :disabled="payInvoiceData.blocking"
+              :loading="payInvoiceData.blocking"
+            >
+              <template v-slot:loading>
+                <q-spinner-hourglass />
+              </template>
+              {{
+                payInvoiceData.blocking
+                  ? $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.processing")
+                  : $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.label")
+              }}
+            </q-btn>
             <q-btn v-close-popup flat color="grey" class="q-ml-auto">{{
               $t("PayInvoiceDialog.lnurlwithdraw.actions.close.label")
             }}</q-btn>

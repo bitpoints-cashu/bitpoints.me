@@ -1218,6 +1218,7 @@ export default {
         },
         withdraw: {
           label: "Withdraw",
+          processing: "Wird verarbeitet...",
         },
       },
     },

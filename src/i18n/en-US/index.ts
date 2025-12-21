@@ -1283,6 +1283,7 @@ export default {
         },
         withdraw: {
           label: "Withdraw",
+          processing: "Processing...",
         },
       },
     },

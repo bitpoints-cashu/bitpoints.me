@@ -1209,6 +1209,7 @@ export default {
         },
         withdraw: {
           label: "Withdraw",
+          processing: "処理中...",
         },
       },
     },
