@@ -540,10 +540,15 @@ export default defineComponent({
     },
     pasteToParseDialog: async function () {
       console.log("pasteToParseDialog");
-      const text = await useUiStore().pasteFromClipboard();
-      if (text) {
-        this.payInvoiceData.input.request = text.trim();
-        // await this.decodeAndQuote(text.trim());
+      try {
+        const text = await useUiStore().pasteFromClipboard();
+        if (text) {
+          this.payInvoiceData.input.request = text.trim();
+          // await this.decodeAndQuote(text.trim());
+        }
+      } catch (error) {
+        console.error("Paste failed:", error);
+        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
       }
     },
     handleMeltButton: function () {

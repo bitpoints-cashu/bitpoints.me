@@ -164,8 +164,9 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
       uiStore.closeDialogs();
     },
     pasteToParseDialog: async function (verbose = false) {
-      const text = await useUiStore().pasteFromClipboard();
-      if (this.decodeToken(text)) {
+      try {
+        const text = await useUiStore().pasteFromClipboard();
+        if (this.decodeToken(text)) {
         const tokensStore = useTokensStore();
         const historyToken = tokensStore.tokenAlreadyInHistory(text);
 
@@ -197,6 +198,11 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
         return true;
       } else {
         // notifyWarning("Invalid token");
+        return false;
+      }
+      } catch (error) {
+        console.error("Paste failed:", error);
+        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
         return false;
       }
     },

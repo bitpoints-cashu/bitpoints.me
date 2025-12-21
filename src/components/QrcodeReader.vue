@@ -175,9 +175,14 @@ export default {
       }
     },
     pasteToParseDialog: async function () {
-      const text = await useUiStore().pasteFromClipboard();
-      if (text) {
-        this.$emit("decode", text);
+      try {
+        const text = await useUiStore().pasteFromClipboard();
+        if (text) {
+          this.$emit("decode", text);
+        }
+      } catch (error) {
+        console.error("Paste failed:", error);
+        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
       }
     },
     async retryCameraPermission() {

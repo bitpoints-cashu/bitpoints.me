@@ -143,12 +143,19 @@ export const useUiStore = defineStore("ui", {
     },
     pasteFromClipboard: async function () {
       let text = "";
-      // @ts-ignore
-      if (window?.Capacitor) {
-        const { value } = await Clipboard.read();
-        text = value;
-      } else {
-        text = await navigator.clipboard.readText();
+      try {
+        // @ts-ignore
+        if (window?.Capacitor) {
+          const { value } = await Clipboard.read();
+          text = value;
+        } else {
+          text = await navigator.clipboard.readText();
+        }
+      } catch (error) {
+        console.warn("Clipboard access failed:", error);
+        // For Safari and other browsers that restrict clipboard access,
+        // we provide a helpful error message
+        throw new Error("Clipboard access denied. Please ensure you're using HTTPS and try clicking the paste button again.");
       }
       return text;
     },

@@ -1164,8 +1164,13 @@ export default defineComponent({
     },
     pasteToP2PKField: async function () {
       console.log("pasteToParseDialog");
-      const text = await useUiStore().pasteFromClipboard();
-      this.sendData.p2pkPubkey = text.trim();
+      try {
+        const text = await useUiStore().pasteFromClipboard();
+        this.sendData.p2pkPubkey = text.trim();
+      } catch (error) {
+        console.error("Paste failed:", error);
+        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
+      }
     },
     shareToken: async function () {
       if (!this.webShareSupported) {
