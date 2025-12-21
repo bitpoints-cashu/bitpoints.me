@@ -534,7 +534,10 @@ export default defineComponent({
         this.totalUnitBalance
       );
     },
-    closeParseDialog: function () {},
+    closeParseDialog: function () {
+      // Reset blocking state when dialog closes to prevent UI issues
+      this.payInvoiceData.blocking = false;
+    },
     decodeAndQuote: async function (request) {
       await this.decodeRequest(request);
     },

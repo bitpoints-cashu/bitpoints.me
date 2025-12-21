@@ -1764,7 +1764,10 @@ export const useWalletStore = defineStore("wallet", {
         );
         throw error;
       } finally {
-        this.payInvoiceData.blocking = false;
+        // Ensure button stays disabled for at least 5 seconds to prevent double-clicks
+        setTimeout(() => {
+          this.payInvoiceData.blocking = false;
+        }, 5000);
       }
     },
     initializeMnemonic: function () {
