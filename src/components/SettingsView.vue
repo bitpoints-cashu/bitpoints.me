@@ -84,406 +84,6 @@
       </q-list>
     </div>
 
-    <!-- RECOVERBULL BACKUP SECTION -->
-    <div class="section-divider q-my-md">
-      <div class="divider-line"></div>
-      <div class="divider-text">RecoverBull Backup</div>
-      <div class="divider-line"></div>
-    </div>
-
-    <div class="q-py-sm q-px-xs text-left" on-left>
-      <q-list padding class="recoverbull-backup-list">
-        <q-item>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold">
-              RecoverBull Backup
-            </q-item-label>
-            <q-item-label caption>
-              Secure your seed phrase using the RecoverBull protocol. Your
-              password unlocks the encrypted backup key stored on
-              {{ recoverbullKeyServerStore.baseUrl }}.
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-
-        <q-item>
-          <q-item-section>
-            <q-input
-              v-model="recoverbullPassword"
-              type="password"
-              label="Backup password"
-              color="primary"
-              outlined
-              dense
-              autocomplete="new-password"
-              :disable="recoverbullBackupStore.backupInProgress"
-            />
-          </q-item-section>
-          <q-item-section side>
-            <q-btn
-              outline
-              color="primary"
-              :loading="recoverbullBackupStore.backupInProgress"
-              :disable="
-                recoverbullBackupStore.backupInProgress || !recoverbullPassword
-              "
-              @click="createRecoverbullBackup"
-            >
-              Create Backup
-            </q-btn>
-          </q-item-section>
-        </q-item>
-
-        <q-item v-if="recoverbullBackupStore.lastError">
-          <q-item-section>
-            <q-banner class="bg-negative text-white" dense>
-              {{ recoverbullBackupStore.lastError }}
-            </q-banner>
-          </q-item-section>
-        </q-item>
-
-        <q-item v-if="recoverbullRateLimit">
-          <q-item-section>
-            <q-banner class="bg-warning text-dark" dense>
-              Key server rate limit is active. Please wait before retrying.
-            </q-banner>
-          </q-item-section>
-        </q-item>
-
-        <q-item v-if="recoverbullLastBackup">
-          <q-item-section>
-            <q-item-label caption>
-              Backup ID: {{ recoverbullLastBackup.identifierHex }}
-            </q-item-label>
-            <q-item-label caption>
-              Created
-              {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
-            </q-item-label>
-          </q-item-section>
-          <q-item-section side class="row items-center no-wrap">
-            <q-btn
-              round
-              dense
-              flat
-              icon="content_copy"
-              @click="copyRecoverbullBackupJson"
-            >
-              <q-tooltip>Copy backup JSON</q-tooltip>
-            </q-btn>
-            <q-btn flat color="primary" @click="downloadRecoverbullBackup">
-              Download JSON
-            </q-btn>
-          </q-item-section>
-        </q-item>
-
-        <q-separator class="q-my-md" />
-
-        <q-item>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold">
-              Restore from RecoverBull Backup
-            </q-item-label>
-            <q-item-label caption>
-              Provide the backup file (or paste its content) and password to
-              recover your mnemonic.
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-
-        <q-item>
-          <q-item-section>
-            <q-input
-              v-model="recoverbullRestorePassword"
-              type="password"
-              label="Restore password"
-              color="primary"
-              outlined
-              dense
-              autocomplete="current-password"
-              :disable="recoverbullBackupStore.restoreInProgress"
-            />
-            <input
-              ref="recoverbullBackupFileInput"
-              type="file"
-              accept=".json,.josn,application/json"
-              class="hidden-file-input"
-              @change="handleRecoverbullBackupFile"
-            />
-            <div class="row items-center q-gutter-sm">
-              <q-btn
-                outline
-                color="primary"
-                :disable="recoverbullBackupStore.restoreInProgress"
-                label="Select RecoverBull backup file"
-                @click="triggerRecoverbullBackupFileDialog"
-              />
-              <span class="text-caption text-grey-7">
-                {{ recoverbullBackupFileName || "No file selected" }}
-              </span>
-            </div>
-            <q-input
-              v-model="recoverbullBackupText"
-              type="textarea"
-              label="Or paste backup JSON"
-              autogrow
-              outlined
-              dense
-              :disable="recoverbullBackupStore.restoreInProgress"
-            />
-          </q-item-section>
-        </q-item>
-
-        <q-item>
-          <q-item-section>
-            <q-btn
-              outline
-              color="warning"
-              :loading="recoverbullBackupStore.restoreInProgress"
-              :disable="
-                recoverbullBackupStore.restoreInProgress ||
-                (!recoverbullBackupFileContent && !recoverbullBackupText) ||
-                !recoverbullRestorePassword
-              "
-              @click="restoreRecoverbullBackup"
-            >
-              Restore Backup
-            </q-btn>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </div>
-
-    <!-- ENCRYPTED SEED BACKUP (OFFLINE) -->
-    <div class="section-divider q-my-md">
-      <div class="divider-line"></div>
-      <div class="divider-text">Encrypted Seed Backup</div>
-      <div class="divider-line"></div>
-    </div>
-
-    <div class="q-py-sm q-px-xs text-left">
-      <input
-        ref="encryptedSeedFileInput"
-        type="file"
-        accept="application/json"
-        class="hidden-file-input"
-        @change="handleEncryptedSeedFile"
-      />
-      <q-list padding>
-        <q-item>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold">
-              Create Encrypted Backup
-            </q-item-label>
-            <q-item-label caption>
-              Choose a passphrase (min 6 characters). The mnemonic will be
-              encrypted client-side and offered as a downloadable JSON file.
-            </q-item-label>
-            <q-input
-              v-model="downloadPassphrase"
-              type="password"
-              outlined
-              dense
-              label="Passphrase"
-              autocomplete="off"
-              class="q-mt-sm"
-            />
-            <q-input
-              v-model="downloadPassphraseConfirm"
-              type="password"
-              outlined
-              dense
-              label="Confirm Passphrase"
-              autocomplete="off"
-              class="q-mt-sm"
-            />
-            <q-input
-              v-model="downloadNote"
-              type="text"
-              outlined
-              dense
-              label="Optional Note"
-              counter
-              maxlength="120"
-              class="q-mt-sm"
-            />
-            <div class="q-mt-sm">
-              <q-btn
-                color="primary"
-                outline
-                label="Download Encrypted Seed"
-                :loading="downloadInProgress"
-                @click="downloadEncryptedSeed"
-              />
-            </div>
-          </q-item-section>
-        </q-item>
-
-        <q-item>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold">
-              Restore From Encrypted Backup
-            </q-item-label>
-            <q-item-label caption>
-              Upload a previously downloaded encrypted seed file or paste the
-              JSON payload below, then enter the passphrase to restore.
-            </q-item-label>
-            <div class="q-mt-sm row items-center">
-              <q-btn
-                outline
-                color="primary"
-                label="Upload Encrypted File"
-                @click="triggerEncryptedSeedFileDialog"
-              />
-              <div v-if="restoreFileName" class="text-caption q-ml-sm">
-                {{ restoreFileName }}
-              </div>
-            </div>
-            <q-input
-              v-model="restorePayload"
-              type="textarea"
-              outlined
-              autogrow
-              label="Encrypted JSON payload"
-              class="q-mt-sm"
-            />
-            <q-input
-              v-model="restorePassphrase"
-              type="password"
-              outlined
-              dense
-              label="Passphrase"
-              autocomplete="off"
-              class="q-mt-sm"
-            />
-            <div class="q-mt-sm">
-              <q-btn
-                color="warning"
-                outline
-                label="Restore Seed From Encrypted Backup"
-                :loading="restoreInProgress"
-                @click="restoreEncryptedSeed"
-              />
-            </div>
-          </q-item-section>
-        </q-item>
-
-        <q-item v-if="downloadMessage">
-          <q-item-section>
-            <q-banner
-              dense
-              :class="
-                downloadMessage.type === 'error'
-                  ? 'bg-negative text-white'
-                  : 'bg-positive text-white'
-              "
-            >
-              {{ downloadMessage.text }}
-            </q-banner>
-          </q-item-section>
-        </q-item>
-
-        <q-item v-if="restoreMessage">
-          <q-item-section>
-            <q-banner
-              dense
-              :class="
-                restoreMessage.type === 'error'
-                  ? 'bg-negative text-white'
-                  : 'bg-positive text-white'
-              "
-            >
-              {{ restoreMessage.text }}
-            </q-banner>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </div>
-
-    <!-- BLUETOOTH SETTINGS SECTION -->
-    <div class="section-divider q-my-md">
-      <div class="divider-line"></div>
-      <div class="divider-text">Bluetooth Mesh</div>
-      <div class="divider-line"></div>
-    </div>
-
-    <div class="q-py-sm q-px-xs text-left">
-      <BluetoothSettings
-        @openNearbyDialog="showNearbyDialog = true"
-        @openContactsDialog="showContactsDialog = true"
-        @openRequestsDialog="showRequestsDialog = true"
-      />
-    </div>
-
-    <!-- Nearby Contacts Dialog -->
-    <q-dialog v-model="showNearbyDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px">
-        <NearbyContactsDialog @close="showNearbyDialog = false" />
-        <q-card-actions align="right">
-          <q-btn flat round icon="close" color="grey" v-close-popup>
-            <q-tooltip>Close</q-tooltip>
-          </q-btn>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Nostr Contacts Dialog -->
-    <q-dialog v-model="showContactsDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px">
-        <NostrContactsDialog />
-        <q-card-actions align="right">
-          <q-btn flat round icon="close" color="grey" v-close-popup>
-            <q-tooltip>Close</q-tooltip>
-          </q-btn>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Favorite Requests Dialog -->
-    <q-dialog v-model="showRequestsDialog" position="bottom">
-      <q-card style="width: 100%; max-width: 600px">
-        <FavoriteRequestsDialog />
-        <q-card-actions align="right">
-          <q-btn flat round icon="close" color="grey" v-close-popup>
-            <q-tooltip>Close</q-tooltip>
-          </q-btn>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- TERMS & LEGAL SECTION -->
-    <div class="section-divider q-my-md">
-      <div class="divider-line"></div>
-      <div class="divider-text">
-        {{ $t("Settings.sections.terms_legal") }}
-      </div>
-      <div class="divider-line"></div>
-    </div>
-
-    <div class="q-py-sm q-px-xs text-left" on-left>
-      <q-list padding>
-        <q-item>
-          <q-item-section>
-            <q-item-label overline class="text-weight-bold">{{
-              $t("Settings.terms_legal.terms.title")
-            }}</q-item-label>
-            <q-item-label caption>
-              {{ $t("Settings.terms_legal.terms.description") }}
-            </q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item>
-          <q-btn
-            class="q-ml-sm q-px-md"
-            color="primary"
-            size="sm"
-            rounded
-            outline
-            @click="showTermsDialog = true"
-            >{{ $t("Settings.terms_legal.terms.button") }}</q-btn
-          >
-        </q-item>
-      </q-list>
-    </div>
 
     <!-- LIGHTNING ADDRESS SECTION -->
     <div class="section-divider q-my-md">
@@ -2363,6 +1963,406 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+    <!-- RECOVERBULL BACKUP SECTION -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">RecoverBull Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left" on-left>
+      <q-list padding class="recoverbull-backup-list">
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              RecoverBull Backup
+            </q-item-label>
+            <q-item-label caption>
+              Secure your seed phrase using the RecoverBull protocol. Your
+              password unlocks the encrypted backup key stored on
+              {{ recoverbullKeyServerStore.baseUrl }}.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullPassword"
+              type="password"
+              label="Backup password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="new-password"
+              :disable="recoverbullBackupStore.backupInProgress"
+            />
+          </q-item-section>
+          <q-item-section side>
+            <q-btn
+              outline
+              color="primary"
+              :loading="recoverbullBackupStore.backupInProgress"
+              :disable="
+                recoverbullBackupStore.backupInProgress || !recoverbullPassword
+              "
+              @click="createRecoverbullBackup"
+            >
+              Create Backup
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullBackupStore.lastError">
+          <q-item-section>
+            <q-banner class="bg-negative text-white" dense>
+              {{ recoverbullBackupStore.lastError }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullRateLimit">
+          <q-item-section>
+            <q-banner class="bg-warning text-dark" dense>
+              Key server rate limit is active. Please wait before retrying.
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="recoverbullLastBackup">
+          <q-item-section>
+            <q-item-label caption>
+              Backup ID: {{ recoverbullLastBackup.identifierHex }}
+            </q-item-label>
+            <q-item-label caption>
+              Created
+              {{ formatDateTime(new Date(recoverbullLastBackup.createdAt)) }}
+            </q-item-label>
+          </q-item-section>
+          <q-item-section side class="row items-center no-wrap">
+            <q-btn
+              round
+              dense
+              flat
+              icon="content_copy"
+              @click="copyRecoverbullBackupJson"
+            >
+              <q-tooltip>Copy backup JSON</q-tooltip>
+            </q-btn>
+            <q-btn flat color="primary" @click="downloadRecoverbullBackup">
+              Download JSON
+            </q-btn>
+          </q-item-section>
+        </q-item>
+
+        <q-separator class="q-my-md" />
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore from RecoverBull Backup
+            </q-item-label>
+            <q-item-label caption>
+              Provide the backup file (or paste its content) and password to
+              recover your mnemonic.
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-input
+              v-model="recoverbullRestorePassword"
+              type="password"
+              label="Restore password"
+              color="primary"
+              outlined
+              dense
+              autocomplete="current-password"
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+            <input
+              ref="recoverbullBackupFileInput"
+              type="file"
+              accept=".json,.josn,application/json"
+              class="hidden-file-input"
+              @change="handleRecoverbullBackupFile"
+            />
+            <div class="row items-center q-gutter-sm">
+              <q-btn
+                outline
+                color="primary"
+                :disable="recoverbullBackupStore.restoreInProgress"
+                label="Select RecoverBull backup file"
+                @click="triggerRecoverbullBackupFileDialog"
+              />
+              <span class="text-caption text-grey-7">
+                {{ recoverbullBackupFileName || "No file selected" }}
+              </span>
+            </div>
+            <q-input
+              v-model="recoverbullBackupText"
+              type="textarea"
+              label="Or paste backup JSON"
+              autogrow
+              outlined
+              dense
+              :disable="recoverbullBackupStore.restoreInProgress"
+            />
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-btn
+              outline
+              color="warning"
+              :loading="recoverbullBackupStore.restoreInProgress"
+              :disable="
+                recoverbullBackupStore.restoreInProgress ||
+                (!recoverbullBackupFileContent && !recoverbullBackupText) ||
+                !recoverbullRestorePassword
+              "
+              @click="restoreRecoverbullBackup"
+            >
+              Restore Backup
+            </q-btn>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
+    <!-- ENCRYPTED SEED BACKUP (OFFLINE) -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">Encrypted Seed Backup</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left">
+      <input
+        ref="encryptedSeedFileInput"
+        type="file"
+        accept="application/json"
+        class="hidden-file-input"
+        @change="handleEncryptedSeedFile"
+      />
+      <q-list padding>
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Create Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Choose a passphrase (min 6 characters). The mnemonic will be
+              encrypted client-side and offered as a downloadable JSON file.
+            </q-item-label>
+            <q-input
+              v-model="downloadPassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadPassphraseConfirm"
+              type="password"
+              outlined
+              dense
+              label="Confirm Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="downloadNote"
+              type="text"
+              outlined
+              dense
+              label="Optional Note"
+              counter
+              maxlength="120"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="primary"
+                outline
+                label="Download Encrypted Seed"
+                :loading="downloadInProgress"
+                @click="downloadEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">
+              Restore From Encrypted Backup
+            </q-item-label>
+            <q-item-label caption>
+              Upload a previously downloaded encrypted seed file or paste the
+              JSON payload below, then enter the passphrase to restore.
+            </q-item-label>
+            <div class="q-mt-sm row items-center">
+              <q-btn
+                outline
+                color="primary"
+                label="Upload Encrypted File"
+                @click="triggerEncryptedSeedFileDialog"
+              />
+              <div v-if="restoreFileName" class="text-caption q-ml-sm">
+                {{ restoreFileName }}
+              </div>
+            </div>
+            <q-input
+              v-model="restorePayload"
+              type="textarea"
+              outlined
+              autogrow
+              label="Encrypted JSON payload"
+              class="q-mt-sm"
+            />
+            <q-input
+              v-model="restorePassphrase"
+              type="password"
+              outlined
+              dense
+              label="Passphrase"
+              autocomplete="off"
+              class="q-mt-sm"
+            />
+            <div class="q-mt-sm">
+              <q-btn
+                color="warning"
+                outline
+                label="Restore Seed From Encrypted Backup"
+                :loading="restoreInProgress"
+                @click="restoreEncryptedSeed"
+              />
+            </div>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="downloadMessage">
+          <q-item-section>
+            <q-banner
+              dense
+              :class="
+                downloadMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
+              {{ downloadMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+
+        <q-item v-if="restoreMessage">
+          <q-item-section>
+            <q-banner
+              dense
+              :class="
+                restoreMessage.type === 'error'
+                  ? 'bg-negative text-white'
+                  : 'bg-positive text-white'
+              "
+            >
+              {{ restoreMessage.text }}
+            </q-banner>
+          </q-item-section>
+        </q-item>
+      </q-list>
+    </div>
+
+    <!-- BLUETOOTH SETTINGS SECTION -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">Bluetooth Mesh</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left">
+      <BluetoothSettings
+        @openNearbyDialog="showNearbyDialog = true"
+        @openContactsDialog="showContactsDialog = true"
+        @openRequestsDialog="showRequestsDialog = true"
+      />
+    </div>
+
+    <!-- Nearby Contacts Dialog -->
+    <q-dialog v-model="showNearbyDialog" position="bottom">
+      <q-card style="width: 100%; max-width: 600px">
+        <NearbyContactsDialog @close="showNearbyDialog = false" />
+        <q-card-actions align="right">
+          <q-btn flat round icon="close" color="grey" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Nostr Contacts Dialog -->
+    <q-dialog v-model="showContactsDialog" position="bottom">
+      <q-card style="width: 100%; max-width: 600px">
+        <NostrContactsDialog />
+        <q-card-actions align="right">
+          <q-btn flat round icon="close" color="grey" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Favorite Requests Dialog -->
+    <q-dialog v-model="showRequestsDialog" position="bottom">
+      <q-card style="width: 100%; max-width: 600px">
+        <FavoriteRequestsDialog />
+        <q-card-actions align="right">
+          <q-btn flat round icon="close" color="grey" v-close-popup>
+            <q-tooltip>Close</q-tooltip>
+          </q-btn>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- TERMS & LEGAL SECTION -->
+    <div class="section-divider q-my-md">
+      <div class="divider-line"></div>
+      <div class="divider-text">
+        {{ $t("Settings.sections.terms_legal") }}
+      </div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="q-py-sm q-px-xs text-left" on-left>
+      <q-list padding>
+        <q-item>
+          <q-item-section>
+            <q-item-label overline class="text-weight-bold">{{
+              $t("Settings.terms_legal.terms.title")
+            }}</q-item-label>
+            <q-item-label caption>
+              {{ $t("Settings.terms_legal.terms.description") }}
+            </q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item>
+          <q-btn
+            class="q-ml-sm q-px-md"
+            color="primary"
+            size="sm"
+            rounded
+            outline
+            @click="showTermsDialog = true"
+            >{{ $t("Settings.terms_legal.terms.button") }}</q-btn
+          >
+        </q-item>
+      </q-list>
+    </div>
 </template>
 <script lang="ts">
 import { defineComponent } from "vue";
