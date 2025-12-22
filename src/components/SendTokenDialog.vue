@@ -1169,7 +1169,9 @@ export default defineComponent({
         this.sendData.p2pkPubkey = text.trim();
       } catch (error) {
         console.error("Paste failed:", error);
-        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
+        notifyError(
+          "Failed to read clipboard contents. Please ensure you're using HTTPS and try again."
+        );
       }
     },
     shareToken: async function () {

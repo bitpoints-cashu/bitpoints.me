@@ -155,7 +155,9 @@ export const useUiStore = defineStore("ui", {
         console.warn("Clipboard access failed:", error);
         // For Safari and other browsers that restrict clipboard access,
         // we provide a helpful error message
-        throw new Error("Clipboard access denied. Please ensure you're using HTTPS and try clicking the paste button again.");
+        throw new Error(
+          "Clipboard access denied. Please ensure you're using HTTPS and try clicking the paste button again."
+        );
       }
       return text;
     },

@@ -287,4 +287,3 @@ export const useVerificationStore = defineStore("verification", {
     },
   },
 });
-

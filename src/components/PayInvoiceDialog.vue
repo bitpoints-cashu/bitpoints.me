@@ -318,7 +318,9 @@
               </template>
               {{
                 payInvoiceData.blocking
-                  ? $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.processing")
+                  ? $t(
+                      "PayInvoiceDialog.lnurlwithdraw.actions.withdraw.processing"
+                    )
                   : $t("PayInvoiceDialog.lnurlwithdraw.actions.withdraw.label")
               }}
             </q-btn>
@@ -551,7 +553,9 @@ export default defineComponent({
         }
       } catch (error) {
         console.error("Paste failed:", error);
-        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
+        notifyError(
+          "Failed to read clipboard contents. Please ensure you're using HTTPS and try again."
+        );
       }
     },
     handleMeltButton: function () {

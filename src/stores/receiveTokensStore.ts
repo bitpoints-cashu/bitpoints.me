@@ -167,42 +167,44 @@ export const useReceiveTokensStore = defineStore("receiveTokensStore", {
       try {
         const text = await useUiStore().pasteFromClipboard();
         if (this.decodeToken(text)) {
-        const tokensStore = useTokensStore();
-        const historyToken = tokensStore.tokenAlreadyInHistory(text);
+          const tokensStore = useTokensStore();
+          const historyToken = tokensStore.tokenAlreadyInHistory(text);
 
-        if (
-          historyToken &&
-          (historyToken.amount > 0 || historyToken.status === "paid")
-        ) {
-          if (verbose) notify("Token already in history.");
+          if (
+            historyToken &&
+            (historyToken.amount > 0 || historyToken.status === "paid")
+          ) {
+            if (verbose) notify("Token already in history.");
+            return false;
+          }
+          this.receiveData.tokensBase64 = text;
+
+          // Auto-receive if not P2PK locked
+          const p2pkStore = useP2PKStore();
+          const isP2PKLocked =
+            p2pkStore.getPrivateKeyForP2PKEncodedToken(text) === null &&
+            p2pkStore.isP2PKEncodedToken(text);
+
+          if (!isP2PKLocked) {
+            this.$nextTick(async () => {
+              try {
+                await this.receiveIfDecodes();
+              } catch (error) {
+                console.error("Auto-receive failed:", error);
+              }
+            });
+          }
+
+          return true;
+        } else {
+          // notifyWarning("Invalid token");
           return false;
         }
-        this.receiveData.tokensBase64 = text;
-
-        // Auto-receive if not P2PK locked
-        const p2pkStore = useP2PKStore();
-        const isP2PKLocked =
-          p2pkStore.getPrivateKeyForP2PKEncodedToken(text) === null &&
-          p2pkStore.isP2PKEncodedToken(text);
-
-        if (!isP2PKLocked) {
-          this.$nextTick(async () => {
-            try {
-              await this.receiveIfDecodes();
-            } catch (error) {
-              console.error("Auto-receive failed:", error);
-            }
-          });
-        }
-
-        return true;
-      } else {
-        // notifyWarning("Invalid token");
-        return false;
-      }
       } catch (error) {
         console.error("Paste failed:", error);
-        notifyError("Failed to read clipboard contents. Please ensure you're using HTTPS and try again.");
+        notifyError(
+          "Failed to read clipboard contents. Please ensure you're using HTTPS and try again."
+        );
         return false;
       }
     },

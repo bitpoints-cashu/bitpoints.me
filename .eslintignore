@@ -8,3 +8,5 @@
 babel.config.js
 **/cashu-ts/dist/**
 /android/**/build/**
+/ios/**
+/src-electron/**
