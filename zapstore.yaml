@@ -5,7 +5,7 @@ summary: A Cashu Ecash Wallet with Bluetooth Mesh Networking, Nostr Integration,
 description: |
   Bitpoints.me is a privacy-focused Cashu ecash wallet that enables offline peer-to-peer payments through Bluetooth mesh networking. Features include Lightning Network integration, Nostr identity management, and cross-platform compatibility.
 
-  Recent Update (v1.3.7): Fixed Bluetooth mesh contacts display in main contacts dialog.
+  Recent Update (v1.4.6): Complete Safari compatibility fixes - QR scanner now works in Safari, improved settings layout with backup sections moved to bottom, enhanced clipboard paste functionality, and LNURL withdrawal double-click prevention.
 
   Key Features:
   - Bluetooth mesh peer-to-peer ecash transfers
